@@ -241,6 +241,8 @@ kbd{border:1px solid var(--line);border-bottom-width:2px;padding:0 5px;border-ra
 .ivb{height:5px;background:#0c1016;border-radius:3px;overflow:hidden;margin-top:10px}
 .ivb i{display:block;height:100%;width:100%;background:var(--red)}
 .ivbox .st{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.ops-row{display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(38,46,58,.5)}
+.ops-row select{width:100%}
 .pcard{background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
 .mrow{display:grid;grid-template-columns:78px 1fr 30px;gap:8px;align-items:center;font-size:12px;margin-top:6px}
 .mrow>span{color:var(--mut)} .mrow>b{text-align:right}
@@ -261,6 +263,43 @@ select:focus,input[type=text]:focus{outline:0;border-color:var(--cyan)}
 .ag{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.ag .mrow{grid-template-columns:62px 1fr 24px}
 .nw{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(38,46,58,.5);font-size:13px}
 .nw span:first-child{color:var(--mut);min-width:38px;font-size:11px;padding-top:1px}
+
+/* ---------- v4: página do jogador ---------- */
+.mbox.xl{width:min(1180px,100%)}
+.plink{cursor:pointer;border-bottom:1px dotted rgba(139,150,165,.55)}
+.plink:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
+.pg{display:grid;grid-template-columns:minmax(300px,370px) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.pg{grid-template-columns:minmax(0,1fr)}}
+.ph-h{display:flex;gap:14px;align-items:flex-start}
+.avt{width:92px;height:116px;flex:none;border:1px solid var(--line);border-radius:4px;background:var(--bg2)}
+.pname{font-size:22px;font-weight:800;letter-spacing:.02em;line-height:1.1}
+.stx{position:relative;display:inline-block;color:#3a4350;letter-spacing:2px;font-size:17px;line-height:1;white-space:nowrap}
+.stx>i{position:absolute;left:0;top:0;overflow:hidden;white-space:nowrap;color:var(--gold);font-style:normal}
+.rings{display:flex;gap:6px;justify-content:space-between;margin:16px 0 8px}
+.ring{position:relative;width:96px;height:96px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring svg{position:absolute;inset:0;width:100%;height:100%}
+.ring .rb{fill:none;stroke:#1d2530;stroke-width:7}
+.ring .rf{fill:none;stroke-width:7;stroke-linecap:round}
+.ring b{position:relative;font-size:26px;line-height:1}
+.ring small{position:relative;font-size:10px;letter-spacing:.14em;color:var(--mut);margin-top:3px;font-weight:700}
+.ring.big{width:150px;height:150px}.ring.big b{font-size:34px;color:var(--cyan)}.ring.big small{font-size:11px;color:var(--txt);letter-spacing:.18em}
+.sec{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:var(--txt);margin:16px 0 8px;display:flex;align-items:center;gap:6px}
+.sec::before{content:"»";color:var(--gold);font-size:16px;line-height:1}
+.repb{display:flex;align-items:center;gap:0;margin-top:2px}
+.repb .md{width:46px;height:46px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;background:radial-gradient(circle at 35% 30%,#ffe27a,#b8860b);box-shadow:0 0 0 2px #7a5a05;z-index:1}
+.repb .lb{margin-left:-14px;padding:9px 12px 9px 22px;font-weight:800;letter-spacing:.04em;background:linear-gradient(90deg,#8f1d2a,#c0392b);border-radius:0 4px 4px 0;font-size:14px}
+.radar{display:block;width:100%;max-width:300px;margin:0 auto}
+.radar text{fill:var(--txt);font-size:10.5px;font-weight:800;letter-spacing:.14em}
+.radar .g{fill:none;stroke:#26303d;stroke-width:1}
+.radar .v{fill:rgba(0,210,255,.2);stroke:var(--cyan);stroke-width:2}
+.radar circle.pt{fill:var(--cyan)}
+.imp{display:grid;grid-template-columns:1fr 150px 1fr;grid-template-rows:1fr 1fr;gap:6px 10px;align-items:center;justify-items:center}
+.imp .ring.big{grid-column:2;grid-row:1 / span 2}
+.imp .s{text-align:center}.imp .s b{display:block;font-size:26px;line-height:1.05}.imp .s small{font-size:11px;letter-spacing:.14em;color:var(--mut);font-weight:700}
+.rt-up{color:var(--green)}.rt-dn{color:var(--red)}
+.pl1{color:var(--gold);font-weight:800}.pl2{color:#d5dde8;font-weight:800}.pl3{color:var(--orange);font-weight:800}
+.wl{font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.wl.w{color:var(--green)}.wl.l{color:var(--red)}
 </style>
 </head>
 <body>
@@ -339,6 +378,40 @@ const OPS = {
   atk:['Ash','Zofia','Sledge','Thermite','Ace','Hibana','Sens','Grim','Flores','Osa','Zero','Iana','Ram','Nomad','Fuze','Twitch','Thatcher','Buck','Lion','Finka','Jackal','Dokkaebi'],
   def:['Jäger','Bandit','Mute','Smoke','Rook','Ela','Vigil','Melusi','Aruni','Thunderbird','Azami','Mira','Alibi','Maestro','Kaid','Mozzie','Clash','Castle','Frost','Wamai','Goyo','Lesion']
 };
+/* Tipos de operador (o que cada um faz pelo time). Ataque: hb Hard Breacher · ent Entry · inf Info/drones · sup Suporte. Defesa: anc Âncora · roam Roamer · inf Info.
+   Cada tipo pesa num atributo do jogador (encaixe) e a composição dos cinco define bônus e penalidades do round (ver compOf). */
+const OP_T = {};
+[['hb','Thermite','Hibana','Ace'], ['ent','Ash','Zofia','Sledge','Ram'], ['inf','Twitch','Dokkaebi','Jackal','Lion','Iana','Grim','Zero','Maestro','Mozzie','Wamai'],
+ ['sup','Thatcher','Finka','Buck','Nomad','Fuze','Osa','Flores','Sens'], ['anc','Jäger','Bandit','Mute','Smoke','Rook','Melusi','Aruni','Thunderbird','Azami','Mira','Kaid','Castle','Goyo'],
+ ['roam','Vigil','Ela','Lesion','Frost','Alibi','Clash']].forEach(([t, ...ops]) => ops.forEach(o => OP_T[o] = t));
+const OP_LAB = {hb:'Hard Breacher', ent:'Entry', inf:'Info', sup:'Suporte', anc:'Âncora', roam:'Roamer'};
+const OP_FIT = {hb:'util', ent:'open', inf:'info', sup:'tw', anc:'cons', roam:'roam'};
+/* encaixe jogador × operador: o atributo que o operador exige (Entry também usa o Aim) acima do rating do jogador; pesa direto no rating do duelo */
+const fitOf = (p, op) => { const t = OP_T[op]; return clamp(((attr(p, OP_FIT[t]) - p.ovr) + (t === 'ent' ? p.aim - p.ovr : 0)) * .15, -2, 2); };
+/* composição dos cinco operadores → {mods: bônus nos duelos do round, plant: chance de plant (só ataque), first: 1º duelo (só ataque), notes}. Centrada no sorteio da CPU (média ≈ 0). */
+const COMP_MEAN = {atk:{mods:1, plant:-.008, first:.29}, def:{mods:2.25, plant:0, first:0}};      // médias medidas em 6000 rounds sorteados
+function compOf(side, ops){
+  const c = {}; ops.forEach(o => { const t = OP_T[o]; c[t] = (c[t] || 0) + 1; });
+  let mods = 0, plant = 0, first = 0; const notes = [];
+  if(side === 'atk'){
+    const hb = c.hb || 0, en = c.ent || 0, inf = c.inf || 0, sp = c.sup || 0;
+    if(!hb){ plant -= .12; mods -= .8; notes.push('sem Hard Breacher: plant mais difícil'); } else if(hb > 2){ mods -= .8; notes.push('breachers demais'); }
+    if(!en){ first -= 1; notes.push('sem Entry: abertura fraca'); } else first += Math.min(en, 2) * .8;
+    if(en >= 4){ mods -= .8; notes.push('só entradas: falta suporte'); }
+    if(!inf){ mods -= .8; notes.push('sem info/drones'); } else mods += inf === 2 ? .9 : .5;
+    mods += Math.min(sp, 2) * .4;
+  } else {
+    const an = c.anc || 0, ro = c.roam || 0, inf = c.inf || 0;
+    if(!an){ mods -= 1.6; notes.push('sem Âncora: o site fica exposto'); } else mods += [0, .4, 1, 1.4, 1.2, 0][an];
+    if(an >= 5) notes.push('todos ancorando: sem pressão de roam');
+    mods += [0, .9, 1.2, .3, -.5, -.9][ro];
+    if(ro >= 3) notes.push('roamers demais: âncoras faltando');
+    mods += [0, .6, .8, .8, .8, .8][inf];
+  }
+  const M = COMP_MEAN[side];
+  return {mods:+(mods - M.mods).toFixed(2), plant:+(plant - M.plant).toFixed(3), first:+(first - M.first).toFixed(2), notes,
+    txt:Object.entries(c).map(([t, n]) => `${n} ${OP_LAB[t]}`).join(' · ')};
+}
 /* Cadência: ataque 1 = lento/guardar drones … 5 = rush · defesa 1 = ancoragem … 5 = roam total */
 const CAD = {
   atk:['1 · Lento — guardar drones','2 · Cadenciado','3 · Padrão','4 · Rápido','5 · Rush'],
@@ -395,7 +468,7 @@ function applySlot(p, s){
   recalc(p);
   if(s.ovr != null && !has('aim') && !has('gs')) for(let i = 0; i < 8 && p.ovr !== s.ovr; i++){ const st = p.ovr < s.ovr ? 1 : -1; p.aim = clamp(p.aim + st, 45, 99); p.gs = clamp(p.gs + st, 45, 99); recalc(p); }
   for(const k of Object.keys(ATTRS)) if(has(k)) p[k] = clamp(a[k], 45, 99);
-  if(has('age')) p.age = clamp(Math.round(a.age), 16, 45);
+  if(has('age')){ p.age = clamp(Math.round(a.age), 16, 45); if(!has('pot')) p.pot = potFor(p.ovr, p.age, mulb(hstr('pot' + p.name))); }      // idade real do db.js: o potencial acompanha (não o da idade sorteada)
   if(has('loy')) p.loy = clamp(Math.round(a.loy), 0, 100);
   p.pot = Math.max(has('pot') ? clamp(a.pot, 45, 99) : p.pot, p.ovr);
 }
@@ -429,7 +502,8 @@ function realPool(taken){
   });
 }
 function genFA(taken){ const o = realPool(taken); for(let i = 0; i < 16; i++) o.push(genVet(taken)); for(let i = 0; i < 18; i++) o.push(genYoung(taken)); return o; }
-const budFor = power => 70 + Math.max(0, power - 70) * 6;      // orçamento de transferências da CPU (K$): folga curta, o dinheiro não sobra
+const budFor = power => 50 + Math.max(0, power - 70) * 7;     // orçamento de transferências da CPU (K$): os fortes começam bem mais ricos
+const budCap = power => 100 + Math.max(0, power - 70) * 12;   // teto de caixa por poder: o clube forte acumula, o fraco não
 const namesOf = teams => new Set(Object.values(teams).flatMap(t => t.players.concat(t.bench).map(p => p.name.toLowerCase())));
 
 /* ---------- construção de times ---------- */
@@ -518,7 +592,7 @@ function newMatch(A, B, userKey = null, quiet = true, an = 0){
   return {
     t:{a:A, b:B}, userKey, quiet, an, first:rnd() < .5 ? 'a' : 'b',
     score:{a:0,b:0}, ot:{a:0,b:0}, played:0, otPlayed:0, inOT:false, wasOT:false, done:false, winner:null,
-    streak:{a:0,b:0}, tos:{a:1,b:1}, conf:{a:A.conf, b:B.conf}, chem:{a:A.chem, b:B.chem}, tac:{a:{v:0,n:0}, b:{v:0,n:0}},
+    streak:{a:0,b:0}, tos:{a:1,b:1}, calm:{a:0,b:0}, conf:{a:A.conf, b:B.conf}, chem:{a:A.chem, b:B.chem}, tac:{a:{v:0,n:0}, b:{v:0,n:0}},
     last:{a:null,b:null}, pen:{a:{atk:0,def:0}, b:{atk:0,def:0}}, bans:{a:{atk:null,def:null}, b:{atk:null,def:null}},
     map:null, veto:[], hist:[], ps:{a:A.players.map(blank), b:B.players.map(blank)}
   };
@@ -561,14 +635,23 @@ function aiPlan(m, k, side){
   }
   return {cad, route};
 }
+/* Timeout técnico (entre rounds; 1 por mapa, +1 na prorrogação). Sempre corta o embalo do rival (zera a sequência de rounds dele) e escolhe um foco:
+   · 'adjust' (tático): +v no confronto por 3 rounds e o rival perde a leitura dos padrões do time; v sobe com Analista e Treinador (só no time do usuário)
+   · 'motiv'  (mental): a confiança sobe até um piso (65 + Psicólogo + liderança) e, por 3 rounds, cai só pela metade ao perder round
+   · 'ear'    (bronca, só a CPU): arriscado — reseta a confiança para 68 se estava baixa, senão a derruba para 55 */
+function toCalc(m, k, kind){
+  const st = k === m.userKey && typeof S !== 'undefined' && S ? S.club.staff : null, an = st ? st.an : 0, co = st ? st.co || 0 : 0, ps = st ? st.ps : 0;
+  return {tac:Math.min(5, 3 + .5 * (an + co)), fAdj:55, fMot:65 + 4 * ps + Math.round(clamp(teamMods(m.t[k]).led / 3, 0, 6))};
+}
 function doTimeout(m, k, posture){
   m.tos[k]--; m.streak[other(k)] = 0;
-  const pre = m.conf[k];
+  const pre = m.conf[k], c = toCalc(m, k, posture); let tac = 0;
   if(posture === 'ear') m.conf[k] = pre < 50 ? 68 : 55;
-  else if(posture === 'motiv') m.conf[k] = 65;
-  else { m.conf[k] = 55; m.tac[k] = {v:3, n:3}; }
-  return {pre, post:m.conf[k]};
+  else if(posture === 'motiv'){ m.conf[k] = Math.max(pre, c.fMot); m.calm[k] = 3; }
+  else { m.conf[k] = Math.max(pre, c.fAdj); m.tac[k] = {v:c.tac, n:3}; m.last[k] = null; tac = c.tac; }
+  return {kind:posture, pre, post:m.conf[k], tac};
 }
+const TO_DESC = {adjust:r => `ajusta o plano de jogo (<b>+${r.tac}</b> por 3 rounds; o rival perde a leitura dos padrões)`, motiv:r => `reorganiza a cabeça do time (confiança <b>${Math.round(r.pre)} → ${Math.round(r.post)}</b>; erros pesam metade por 3 rounds)`, ear:r => `recebe uma bronca do técnico (confiança <b>${Math.round(r.pre)} → ${Math.round(r.post)}</b>)`};
 
 /* Modificadores de time: liderança = melhor líder do elenco (+2 se há IGL) acima do próprio rating; equipe, informação e utilidade = média do desvio */
 function teamMods(t){
@@ -577,14 +660,20 @@ function teamMods(t){
 }
 
 /* ---------- um round ---------- */
+/* aplica a escolha do usuário sobre o sorteio: operadores válidos (não banidos, do lado certo, sem repetir) vão para o jogador de mesmo índice; os demais ficam com o sorteio, sem duplicar */
+function applyLoadout(units, side, sel, banned){
+  const ok = o => o && o !== banned && OPS[side].includes(o), used = new Set();
+  units.forEach(u => { if(ok(sel[u.i]) && !used.has(sel[u.i])){ u.op = sel[u.i]; used.add(u.op); u.fixed = true; } });
+  units.forEach(u => { if(!u.fixed && used.has(u.op)){ const free = OPS[side].filter(o => o !== banned && !used.has(o) && !units.some(x => x.op === o)); if(free.length) u.op = pick(free); } });
+}
 function roundInit(m, userPlan, interactive){
   const ak = atkKey(m), dk = other(ak), AT = m.t[ak], DT = m.t[dk], V = !m.quiet, pre = [];
   const fix = p => ({cad:clamp(Math.round(p.cad), 1, 5), route:clamp(Math.round(p.route), 0, 2)});
   const pA = fix(ak === m.userKey && userPlan ? userPlan : aiPlan(m, ak, 'atk'));
   const pD = fix(dk === m.userKey && userPlan ? userPlan : aiPlan(m, dk, 'def'));
-  for(const k of ['a','b']) if(k !== m.userKey && m.tos[k] > 0 && (m.streak[other(k)] >= 3 || m.conf[k] < 35) && rnd() < .6){
-    const po = pick(['ear','motiv','adjust']); doTimeout(m, k, po);
-    if(V) pre.push({c:'sys', h:`⏱ <b>TIMEOUT TÉCNICO</b> — <b style="color:${m.t[k].color}">${esc(m.t[k].name)}</b> para o jogo e reorganiza o time.`});
+  for(const k of ['a','b']) if((k !== m.userKey || m.commTo) && m.tos[k] > 0 && (m.streak[other(k)] >= 3 || m.conf[k] < 35) && rnd() < .6){      // o usuário só é "auto" quando a comissão conduz (Assistir/Simular tudo)
+    const po = k === m.userKey ? (m.streak[other(k)] >= 3 && m.conf[k] >= 40 ? 'adjust' : 'motiv') : pick(['ear','motiv','adjust']), r = doTimeout(m, k, po);
+    if(V) pre.push({c:'sys', h:`⏱ <b>TIMEOUT TÉCNICO</b> — <b style="color:${m.t[k].color}">${esc(m.t[k].name)}</b> ${TO_DESC[po](r)}.`});
   }
   const tacv = k => m.tac[k].n > 0 ? m.tac[k].v : 0, tA = teamMods(AT), tD = teamMods(DT);
   const base = 2 * (pA.cad - 3) * (pD.cad - 3) + (pA.route === pD.route ? -5 : 2) + (tA.led - tD.led) / 30 + (tA.tw - tD.tw) * .12 + (tA.info - tD.info) * .08
@@ -598,12 +687,16 @@ function roundInit(m, userPlan, interactive){
     if(sig && sig !== banned && rnd() < .6) pick(units).op = sig;
   };
   assign(A, 'atk', m.bans[dk].atk, AT.sigA); assign(D, 'def', m.bans[ak].def, DT.sigD);
-  if(!A.some(u => HB.has(u.op)) && rnd() < .85){ const c = [...HB].filter(o => o !== m.bans[dk].atk); if(c.length) pick(A).op = pick(c); }
+  const uSide = ak === m.userKey ? 'atk' : 'def', sel = m.userKey && m.loadout ? m.loadout[uSide] : null;      // operadores escolhidos pelo usuário para este lado (senão: sorteio da comissão)
+  if(sel) applyLoadout(uSide === 'atk' ? A : D, uSide, sel, uSide === 'atk' ? m.bans[dk].atk : m.bans[ak].def);
+  if(!(sel && uSide === 'atk') && !A.some(u => HB.has(u.op)) && rnd() < .85){ const c = [...HB].filter(o => o !== m.bans[dk].atk); if(c.length) pick(A).op = pick(c); }
   A.forEach(u => u.hb = HB.has(u.op));
+  [A, D].forEach(us => us.forEach(u => { u.eff += fitOf(u.p, u.op); }));
+  const cA = compOf('atk', A.map(u => u.op)), cD = compOf('def', D.map(u => u.op));
   m.tac.a.n = Math.max(0, m.tac.a.n - 1); m.tac.b.n = Math.max(0, m.tac.b.n - 1);
   return {m, ak, dk, AT, DT, pA, pD, base, A, D, t:0, planted:false, plantT:0, duels:0, kills:0, over:false, winner:null, type:null, started:false,
-    firstT:clamp(Math.round(105 - pA.cad * 17 + rint(-8, 8)), 12, 150), firstB:(3 - pA.cad) * .6, queue:[], pre,
-    mods:{a:0,b:0}, plantAdj:0, defuseAdj:0, flags:{A:false,B:false}, cand:{a:null,b:null}, interactive:!!interactive, rec:null, tm:{[ak]:tA, [dk]:tD}};
+    firstT:clamp(Math.round(105 - pA.cad * 17 + rint(-8, 8)), 12, 150), firstB:(3 - pA.cad) * .6 + cA.first, queue:[], pre, comp:{atk:cA, def:cD, user:uSide},
+    mods:{[ak]:cA.mods, [dk]:cD.mods}, plantAdj:cA.plant, defuseAdj:0, flags:{A:false,B:false}, cand:{a:null,b:null}, interactive:!!interactive, rec:null, tm:{[ak]:tA, [dk]:tD}};
 }
 const alive = arr => arr.filter(u => u.alive);
 const pnU = (m, u) => `<b class="pl" style="color:${m.t[u.k].color}">${esc(u.p.name)}</b>`;
@@ -620,6 +713,8 @@ function roundNext(rs){
     const L = rs.pre.slice();
     if(V){
       L.push({c:'hdr', h:`${rl} · <span style="color:${rs.AT.color}">${esc(rs.AT.short)}</span> ATACA × <span style="color:${rs.DT.color}">${esc(rs.DT.short)}</span> DEFENDE${m.userKey ? ` · plano da comissão: cadência ${mine.cad} · ${esc(m.map.routes[mine.route])}` : ''}`});
+      if(m.userKey){ const uc = rs.comp[rs.comp.user], fx = uc.mods + (rs.comp.user === 'atk' ? uc.first : 0);
+        L.push({c:'sys', h:`🎭 <b>Composição ${rs.comp.user === 'atk' ? 'de ataque' : 'de defesa'}</b>: ${uc.txt} <b class="${fx > .05 ? 'green' : fx < -.05 ? 'red' : 'mut'}">(${fx > 0 ? '+' : ''}${fx.toFixed(1)})</b>${uc.notes.length ? ` <span class="orange">— ${uc.notes.join('; ')}</span>` : ''}`}); }
       L.push({c:'sys', h: rs.pA.cad <= 2 ? `🔍 Fase de drones: o ataque testa ${esc(m.map.routes[rs.pA.route])} sem gastar utilidade.` : rs.pA.cad >= 4 ? `⚡ O ataque sai rápido e pressiona ${esc(m.map.routes[rs.pA.route])}.` : `Ataque monta o controle de mapa de forma padrão.`});
     }
     return {t:0, type:'start', L};
@@ -732,10 +827,11 @@ function endRound(rs, type, winner){
   m.hist.push({w:winner, ak, type, ot:m.inOT, cad:rs.pA.cad, route:rs.pA.route, dcad:rs.pD.cad, stack:rs.pD.route});
   m.last[ak] = {cad:rs.pA.cad, route:rs.pA.route, side:'atk'}; m.last[dk] = {cad:rs.pD.cad, route:rs.pD.route, side:'def'};
   m.streak[winner]++; m.streak[other(winner)] = 0;
-  const drop = clamp(6 - teamMods(m.t[other(winner)]).led / 4, 3, 8);           // um bom líder segura a confiança após perder o round
-  m.conf[winner] = clamp(m.conf[winner] + 6, 15, 95); m.conf[other(winner)] = clamp(m.conf[other(winner)] - drop, 15, 95);
+  const lo = other(winner), drop = clamp(6 - teamMods(m.t[lo]).led / 4, 3, 8) * (m.calm[lo] > 0 ? .5 : 1);           // um bom líder (e o foco mental do timeout) seguram a confiança após perder o round
+  m.conf[winner] = clamp(m.conf[winner] + 6, 15, 95); m.conf[lo] = clamp(m.conf[lo] - drop, 15, 95);
+  m.calm.a = Math.max(0, m.calm.a - 1); m.calm.b = Math.max(0, m.calm.b - 1);
   if(m.inOT){ m.ot[winner]++; m.otPlayed++; m.score[winner]++; if(m.ot[winner] >= 2){ m.done = true; m.winner = winner; } }   // OT soma no placar: 8–6 ou 8–7
-  else { m.score[winner]++; m.played++; if(m.score[winner] >= 7){ m.done = true; m.winner = winner; } else if(m.played >= 12){ m.inOT = true; m.wasOT = true; } }
+  else { m.score[winner]++; m.played++; if(m.score[winner] >= 7){ m.done = true; m.winner = winner; } else if(m.played >= 12){ m.inOT = true; m.wasOT = true; m.tos.a++; m.tos.b++; } }      // prorrogação: cada time ganha mais um timeout
   if(V){
     const rl = 'round';
     const why = {elim:winner === ak ? 'eliminando a defesa' : 'eliminando o ataque', defuse:'com o defuse', boom:'com a detonação', clock:'pelo relógio'}[type];
@@ -843,6 +939,10 @@ function loadSave(){
       Object.values(j.teams).forEach(t => { t.bud = Math.min(t.bud, budFor(t.power) + 120); t.players.concat(t.bench).forEach(p => { if(p.loy == null) p.loy = loyOf(p.name, p.age, p.role); }); });
       j.fa.forEach(p => { if(p.loy == null) p.loy = loyOf(p.name, p.age, p.role); });
     }
+    if(!j.fin2){                                     // saves anteriores: CPU ganhava dinheiro demais — orçamentos limitados à nova curva
+      j.fin2 = true;
+      Object.values(j.teams).forEach(t => { t.bud = Math.min(t.bud, budCap(t.power)); });
+    }
     if(!j.roles5){                                   // saves anteriores: Support/Anchor/Roamer viram Sup1/Sup2/Entry e o IGL passa a ser uma posição
       j.roles5 = true;
       const hint = {Entry:'entry', Flex:'flex', Support:'support', Anchor:'support', Roamer:'entry'}, old = {Support:'Sup1', Anchor:'Sup2', Roamer:'Entry'};
@@ -911,7 +1011,7 @@ function newCareer(userId){
   const teams = buildAll(), sched = {};
   LEAGUES.forEach(l => sched[l.id] = roundRobin(shuffle(Object.values(teams).filter(t => t.league === l.id).map(t => t.id))));
   const pw = teams[userId].power;
-  S = {v:3, igl2:true, fin:true, train:true, roles5:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
+  S = {v:3, igl2:true, fin:true, fin2:true, train:true, roles5:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
        fa:genFA(namesOf(teams)), hist:[], news:[], offers:[],
        cal:CAL_FIRST.slice(), ei:0, ev:'stage2', tn:null, evres:null, qual:null, season:newSeason(), win:'pre', lgName:'Stage 2 ' + START_YEAR, si0:teams[userId].si,
        club:{cash:Math.max(60, 100 + Math.round((pw - 75) * 4)), staff:{an:0, ps:0, md:0, co:0}, week:1, scout:false, fin:null, evo:[], evoLog:[], mapFocus:[]}};
@@ -995,6 +1095,20 @@ function userFixture(idx = S.md){
   for(let i = 0; i < list.length; i++) if(list[i].includes(S.userId)) return {slot:i, opp:list[i][0] === S.userId ? list[i][1] : list[i][0], lg:lid, ph:st.ph};
   return null;
 }
+/* histórico do jogador para a página de perfil: totais de carreira (p.c), últimas séries (p.mh) e resultado por evento (p.eh) */
+const MH_MAX = 6, EH_MAX = 8, PL_SHORT = ['1º','2º','3º–4º','5º–8º','9º–16º'];
+function logStats(p, t, opp, s, won, m, k){
+  const c = p.c || (p.c = {sr:0, mp:0, k:p.k - s.k, d:p.d - s.d, r:p.r - s.r, fk:p.fk - s.fk, cl:p.cl - s.cl, mk:0}), nm = m.maps ? m.maps.length : 1;      // saves antigos: a carreira parte do que já estava somado
+  c.sr++; c.mp += nm; c.k += s.k; c.d += s.d; c.r += s.r; c.fk += s.fk; c.cl += s.cl; c.mk += s.mk || 0;
+  (p.mh || (p.mh = [])).unshift({y:S.year, ev:S.ev, o:opp.id, a:m.score[k], b:m.score[other(k)], w:won ? 1 : 0, k:s.k, d:s.d, fk:s.fk, cl:s.cl, r:s.r});
+  if(p.mh.length > MH_MAX) p.mh.length = MH_MAX;
+  let e = p.eh && p.eh[0];
+  if(!e || e.y !== S.year || e.ev !== S.ev){ e = {y:S.year, ev:S.ev, t:t.id, sr:0, mp:0, k:0, d:0, fk:0, cl:0, r:0, lab:null}; (p.eh || (p.eh = [])).unshift(e); if(p.eh.length > EH_MAX) p.eh.length = EH_MAX; }
+  e.t = t.id; e.sr++; e.mp += nm; e.k += s.k; e.d += s.d; e.fk += s.fk; e.cl += s.cl; e.r += s.r;
+}
+function tagPlaces(lab){                          // ao fechar o evento: grava a colocação de cada time no histórico dos seus jogadores
+  Object.values(S.teams).forEach(t => { const l = lab(t); if(l) squad(t).forEach(p => { const e = p.eh && p.eh[0]; if(e && e.y === S.year && e.ev === S.ev) e.lab = l; }); });
+}
 function commit(m, meta){
   const w = m.winner, l = other(w), W = m.t[w], Lz = m.t[l], group = meta.ph === 'g';
   if(group){ W.w++; Lz.l++; W.rw += m.score[w]; W.rl += m.score[l]; Lz.rw += m.score[l]; Lz.rl += m.score[w]; }
@@ -1004,6 +1118,7 @@ function commit(m, meta){
     const t = m.t[k];
     t.players.forEach((p, i) => {
       const s = m.ps[k][i]; p.k += s.k; p.d += s.d; p.r += s.r; p.fk += s.fk; p.cl += s.cl; if(p.adapt) p.adapt--;
+      logStats(p, t, m.t[other(k)], s, k === w, m, k);
       p.form = clamp(Math.round((p.form * .6 + (s.k - s.d) / Math.max(1, s.r) * 4) * 10) / 10, -4, 4);
     });
     if(t.id !== S.userId) t.conf = clamp(Math.round(60 + (t.conf - 60) * .5 + (k === w ? 3 : -3)), 30, 85);
@@ -1077,8 +1192,9 @@ function tnAward(){
 /* fecha o evento: colocação do usuário, prêmio em dinheiro e (no Major de novembro) a lista de classificados ao SI */
 function closeEvent(){
   const u = T(S.userId), e = EVENTS[S.ev]; let lab = 'Não participou', cash = 0;
-  if(S.tn){ const g = tnAward(); if(g[u.id] != null){ lab = TN_LAB[g[u.id]]; cash = e.cash[g[u.id]]; } }
-  else { const pl = S.final[u.league].indexOf(u.id) + 1; lab = pl + 'º lugar'; cash = Math.round(PLACE_PTS[pl - 1] / 2); }
+  if(S.tn){ const g = tnAward(); tagPlaces(t => g[t.id] != null ? PL_SHORT[g[t.id]] : null); if(g[u.id] != null){ lab = TN_LAB[g[u.id]]; cash = e.cash[g[u.id]]; } }
+  else { const pl = S.final[u.league].indexOf(u.id) + 1; lab = pl + 'º lugar'; cash = Math.round(PLACE_PTS[pl - 1] / 2);
+    tagPlaces(t => { const i = (S.final[t.league] || []).indexOf(t.id); return i >= 0 ? (i + 1) + 'º' : null; }); }
   S.club.cash += cash; S.season.cash += cash; S.season.log.push({ev:S.ev, lab, cash});
   if(S.ev === 'major2'){ const g = g16Status(); S.qual = g.tb.slice(0, G16).map(r => r.t.id); S.season.rank = g.rank; S.season.pts = g.pts; }
   S.evres = {ev:S.ev, lab, cash, si:u.si - (S.si0 || 0)};
@@ -1222,7 +1338,7 @@ function trainHTML(){
       return `<div class="row" style="gap:6px;margin-top:6px"><select data-tp="${p.id}:${i}" style="flex:1;min-width:0"><option value="">— livre —</option>${TR_KEYS.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${TR_ICO[k]} ${TR_STATS[k]} (${attr(p, k)})${roomOf(p, k) <= 0 ? ' · teto' : ''}</option>`).join('')}</select>
         <div style="width:70px">${cur ? meter(clamp(xp, 0, 1) * 100, 'g') : ''}</div><span class="mut" style="font-size:11px;min-width:64px;text-align:right">${cur ? (room <= 0 ? 'no teto' : '≈ +' + yr.toFixed(1) + '/ano') : ''}</span></div>`;
     }).join('');
-    return `<div class="pcard"><div class="row"><div><b style="font-size:16px">${esc(p.name)}</b> ${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos${bench ? ' · reserva (treina a 60%)' : ''}</div></div><span class="sp"></span>
+    return `<div class="pcard"><div class="row"><div><b style="font-size:16px">${pn(p)}</b> ${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos${bench ? ' · reserva (treina a 60%)' : ''}</div></div><span class="sp"></span>
       <div class="right"><div class="big" style="font-size:24px">${p.ovr}</div><div class="gold" style="font-size:12px;letter-spacing:.08em" title="Potencial ${p.pot}">${stars(potStars(p))}</div></div></div>${slots}
       <div class="row" style="margin-top:8px"><span class="mut" style="font-size:11px">${p.stress > 65 ? '⚠ estresse alto reduz o ganho · ' : ''}${dec > .05 ? 'desgaste ≈ −' + dec.toFixed(1) + '/ano por atributo' : 'sem desgaste (jovem)'}</span><span class="sp"></span><button class="btn sm" data-act="train-auto" data-p="${p.id}">🤖 Auto</button></div></div>`;
   };
@@ -1475,7 +1591,7 @@ function nextSeason(){
     if(t.mapTr) Object.keys(t.mapTr).forEach(k => t.mapTr[k] = Math.round(t.mapTr[k] * 5) / 10);      // o treino de mapas perde metade do efeito na virada
     squad(t).forEach(p => { p.adapt = 0; p.loy = clamp(loyal(p) + (p.tx && String(p.tx).startsWith((S.year - 1) + ':') ? 0 : 4) - (p.sat < 45 ? 6 : 0), 15, 95); p.age++; if(t.id === S.userId) p.pot = Math.max(p.pot, p.ovr); else progress(p); p.stress = rint(15, 30); p.sat = Math.round(p.sat + (70 - p.sat) * .5); p.form = 0; p.k = p.d = p.r = p.fk = p.cl = 0; });
     refreshPower(t);
-    t.bud = Math.min(360, t.bud + 45 + Math.max(0, t.power - 70) * 3 + Math.min(45, Math.round(t.si / 25)));      // quem pontuou mais na temporada arrecada mais
+    t.bud = Math.min(budCap(t.power), t.bud + 10 + Math.max(0, t.power - 70) * 3.5 + Math.min(30, Math.round(t.si / 40)));      // quem é mais forte e pontuou mais na temporada arrecada mais
     const gone = squad(t).filter(retires).sort((a, b) => t.bench.includes(b) - t.bench.includes(a));
     gone.forEach(p => { takeOut(t, p); if(t.id === S.userId) info.myRetired.push(p); if(p.ovr >= 85) info.legends.push({p, t}); });
   });
@@ -1516,7 +1632,7 @@ const bestWorstMaps = t => { const a = MAPS.map(m => ({n:m.name, v:aff(t, m.id)}
 const meter = (v, cls = '') => `<div class="bar ${cls}"><i style="width:${clamp(v, 0, 100)}%"></i></div>`;
 const stressCls = v => v > 80 ? 'r' : v > 60 ? 'o' : 'gr';
 function toast(html, cls = ''){ const d = document.createElement('div'); d.className = 'toast ' + cls; d.innerHTML = html; $('#toasts').appendChild(d); setTimeout(() => d.remove(), cls === 'crit' ? 9000 : 5500); }
-function openModal(html, sm){ const m = $('#modal'); m.innerHTML = `<div class="mbox ${sm ? 'sm' : ''}">${html}</div>`; m.classList.add('open'); }
+function openModal(html, sm){ const m = $('#modal'); m.innerHTML = `<div class="mbox ${sm === 'xl' ? 'xl' : sm ? 'sm' : ''}">${html}</div>`; m.classList.add('open'); m.scrollTop = 0; }
 function closeModal(){ $('#modal').classList.remove('open'); $('#modal').innerHTML = ''; }
 
 /* ---------- barra superior ---------- */
@@ -1601,7 +1717,7 @@ function selectHTML(){
       <div class="kv"><span>Mapas fortes</span><b class="green">${mp.best.map(x => x.n).join(', ')}</b></div>
       <div class="kv"><span>Mapas fracos</span><b class="red">${mp.worst.map(x => x.n).join(', ')}</b></div>
       <div class="h3" style="margin-top:14px">Elenco titular</div>
-      ${sel.players.map(p => `<div class="plr"><span><b>${esc(p.name)}</b>${isIgl(p) ? ' <span class="tag gold">IGL</span>' : ''}${sel.star === p.name ? ' <span class="gold">★</span>' : ''}<br><span class="mut" style="font-size:11px">${p.role}</span></span><div class="bar"><i style="width:${(p.ovr - 50) * 2}%"></i></div><b class="right">${p.ovr}</b></div>`).join('')}
+      ${sel.players.map(p => `<div class="plr"><span><b>${pn(p)}</b>${isIgl(p) ? ' <span class="tag gold">IGL</span>' : ''}${sel.star === p.name ? ' <span class="gold">★</span>' : ''}<br><span class="mut" style="font-size:11px">${p.role}</span></span><div class="bar"><i style="width:${(p.ovr - 50) * 2}%"></i></div><b class="right">${p.ovr}</b></div>`).join('')}
       ${sel.bench.length ? `<div class="mut" style="font-size:12px;margin-top:8px">Reserva: ${sel.bench.map(p => esc(p.name)).join(', ')}</div>` : ''}
       <button class="btn gold" style="width:100%;margin-top:14px" data-act="start">▶ Iniciar carreira com ${esc(sel.short)}</button></div>`;
   }
@@ -1695,7 +1811,7 @@ function benchHTML(u){
 }
 function squadHTML(){
   const u = T(S.userId), mp = bestWorstMaps(u);
-  const cards = u.players.map(p => `<div class="pcard"><div class="row"><div><b style="font-size:16px">${esc(p.name)}</b> ${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}${u.star === p.name ? ' <span class="gold">★</span>' : ''}${isBurnout(p) ? ' <span class="tag red">BURNOUT −15</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos · POT ${p.pot} ${stars(potStars(p))}</div></div><span class="sp"></span><div class="right"><div class="big" style="font-size:26px">${p.ovr}</div><div class="mut" style="font-size:10px;letter-spacing:.15em">RATING</div></div></div>
+  const cards = u.players.map(p => `<div class="pcard"><div class="row"><div><b style="font-size:16px">${pn(p)}</b> ${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}${u.star === p.name ? ' <span class="gold">★</span>' : ''}${isBurnout(p) ? ' <span class="tag red">BURNOUT −15</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos · POT ${p.pot} ${stars(potStars(p))}</div></div><span class="sp"></span><div class="right"><div class="big" style="font-size:26px">${p.ovr}</div><div class="mut" style="font-size:10px;letter-spacing:.15em">RATING</div></div></div>
     <div class="mrow"><span>Aim</span>${meter(p.aim, '')}<b>${p.aim}</b></div><div class="mrow"><span>Gamesense</span>${meter(p.gs, 'g')}<b>${p.gs}</b></div>${attrRows(p)}
     <div class="mrow"><span>Estresse</span>${meter(p.stress, stressCls(p.stress))}<b>${p.stress}</b></div><div class="mrow"><span>Satisfação</span>${meter(p.sat, 'g')}<b>${p.sat}</b></div><div class="mrow" title="Lealdade ao clube: cresce +4 por temporada, cai com moral baixa"><span>Lealdade</span>${meter(loyal(p), 'g')}<b>${loyal(p)}</b></div>
     <div class="mut" style="font-size:12px;margin-top:6px">K/D ${p.k}-${p.d} · FK ${p.fk} · Rating ${rating(p).toFixed(2)} · Forma ${p.form > 0 ? '+' : ''}${p.form}</div>
@@ -1703,7 +1819,7 @@ function squadHTML(){
       <span class="mut" style="font-size:12px" title="Entry prefere Aim alto e abertura; Sup1, equipe e utilidade; Sup2, mental e clutch; IGL, liderança; Flex, adaptação">encaixe <b class="${roleFit(p) > .2 ? 'green' : roleFit(p) < -.2 ? 'red' : 'mut'}">${roleFit(p) > 0 ? '+' : ''}${roleFit(p).toFixed(1)}</b></span>${p.adapt ? ` <span class="tag orange">adaptando ${p.adapt}</span>` : ''}</div>
     <div class="row" style="margin-top:8px"><span class="mut" style="font-size:12px">Valor de mercado ${pval(p)} K$</span><span class="sp"></span><button class="btn sm" data-act="sell" data-id="${p.id}" ${windowOpen() ? '' : 'disabled'} title="${windowOpen() ? 'Ver propostas' : 'Janela fechada'}">💸 Vender</button></div></div>`).join('');
   const all = Object.values(S.teams).flatMap(t => t.players.filter(p => p.r >= 6).map(p => ({p, t}))).sort((a, b) => rating(b.p) - rating(a.p)).slice(0, 10);
-  const top = all.map((x, i) => `<tr class="${x.t.id === S.userId ? 'me' : ''}"><td>${i + 1}</td><td><b>${esc(x.p.name)}</b></td><td>${logo(x.t, 'xs')} <span class="mut">${esc(x.t.short)}</span></td><td class="num">${x.p.k}-${x.p.d}</td><td class="num gold"><b>${rating(x.p).toFixed(2)}</b></td></tr>`).join('');
+  const top = all.map((x, i) => `<tr class="${x.t.id === S.userId ? 'me' : ''}"><td>${i + 1}</td><td><b>${pn(x.p)}</b></td><td>${logo(x.t, 'xs')} <span class="mut">${esc(x.t.short)}</span></td><td class="num">${x.p.k}-${x.p.d}</td><td class="num gold"><b>${rating(x.p).toFixed(2)}</b></td></tr>`).join('');
   return `<div class="stack"><div class="card"><div class="row" style="flex-wrap:wrap">${logo(u, 'lg')}<div><div class="big" style="font-size:24px">${esc(u.name)}</div><div class="mut">${LG[u.league].name} · Poder ${u.power} · ${styleName(u)}${u.coach ? ' · Comissão: ' + esc(u.coach) : ''}</div></div><span class="sp"></span>
       <div style="min-width:220px"><div class="mrow"><span>Química</span>${meter(u.chem, '')}<b>${u.chem}</b></div><div class="mrow"><span>Confiança</span>${meter(u.conf, 'g')}<b>${u.conf}</b></div></div></div></div>
     <div class="grid g3">${cards}</div>${benchHTML(u)}
@@ -1748,7 +1864,7 @@ function mkListHTML(){
       : v.ok ? `<button class="btn sm gold" data-act="buy" data-id="${p.id}" data-t="${t.id}">Contratar</button>`
       : vb.ok && cash >= bp ? `<button class="btn sm gold" data-act="buy" data-id="${p.id}" data-t="${t.id}" data-boost="1" title="${esc(v.msg)} — oferta reforçada de ${bp} K$ convence">+50% · ${bp}</button>`
       : `<button class="btn sm" disabled title="${esc(v.msg)}">${v.rival ? '⚔ Rival' : '🔒 Leal'}</button>`;
-    return `<tr><td><b>${esc(p.name)}</b>${t && t.star === p.name ? ' <span class="gold">★</span>' : ''}</td><td>${p.role}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num ${p.pot > p.ovr ? 'green' : 'mut'}">${p.pot}</td><td class="mut" style="font-size:11px;white-space:nowrap" title="${Object.keys(ATTRS).map(k => ATTR_LONG[k] + ' ' + attr(p, k)).join(' · ')}">${topAttrs(p, 2).map(x => `${ATTRS[x.k]} ${attr(p, x.k)}`).join(' · ')}</td>
+    return `<tr><td><b>${pn(p)}</b>${t && t.star === p.name ? ' <span class="gold">★</span>' : ''}</td><td>${p.role}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num ${p.pot > p.ovr ? 'green' : 'mut'}">${p.pot}</td><td class="mut" style="font-size:11px;white-space:nowrap" title="${Object.keys(ATTRS).map(k => ATTR_LONG[k] + ' ' + attr(p, k)).join(' · ')}">${topAttrs(p, 2).map(x => `${ATTRS[x.k]} ${attr(p, x.k)}`).join(' · ')}</td>
       <td class="num ${t ? (loyal(p) >= 70 ? 'orange' : 'mut') : ''}" title="Lealdade ao clube atual">${t ? loyal(p) : ''}</td>
       <td>${t ? `${tn(t)}${isR(u, t) ? ' <span class="tag red">rival</span>' : ''}<span class="mut" style="font-size:11px">${t.players.includes(p) ? 'titular' : 'reserva'}</span>` : p.org ? `<span class="${p.t2 ? 'cyan' : 'mut'}">${p.t2 ? 'Tier 2' : 'Sem contrato'} · ${esc(p.org)}</span>` : '<span class="mut">Agente livre</span>'}</td>
       <td class="num gold"><b>${price}</b></td><td>${btn}</td></tr>`;
@@ -1758,7 +1874,7 @@ function mkListHTML(){
 }
 function mineHTML(){
   const u = T(S.userId), open = windowOpen();
-  const row = (p, st) => `<tr><td><b>${esc(p.name)}</b>${isIgl(p) ? ' <span class="tag gold">IGL</span>' : ''}</td><td>${p.role}</td><td>${st ? 'Titular' : 'Reserva'}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num">${p.pot}</td><td class="num gold"><b>${pval(p)}</b></td>
+  const row = (p, st) => `<tr><td><b>${pn(p)}</b>${isIgl(p) ? ' <span class="tag gold">IGL</span>' : ''}</td><td>${p.role}</td><td>${st ? 'Titular' : 'Reserva'}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num">${p.pot}</td><td class="num gold"><b>${pval(p)}</b></td>
     <td><button class="btn sm" data-act="sell" data-id="${p.id}" ${open ? '' : 'disabled'}>💸 Vender</button>${st ? '' : ` <button class="btn sm danger" data-act="release" data-id="${p.id}" ${open ? '' : 'disabled'}>Dispensar</button>`}</td></tr>`;
   return `<div class="scroll"><table class="tbl"><thead><tr><th>Jogador</th><th>Função</th><th>Situação</th><th class="num">Idade</th><th class="num">OVR</th><th class="num">POT</th><th class="num">Valor K$</th><th></th></tr></thead><tbody>${u.players.map(p => row(p, true)).join('')}${u.bench.map(p => row(p, false)).join('')}</tbody></table></div>
     <p class="mut" style="font-size:12px;margin-top:8px">Vender um titular exige ao menos um reserva: o melhor reserva assume a vaga (e a função). Só times que ganhariam rating e têm orçamento fazem propostas.</p>`;
@@ -1845,6 +1961,81 @@ function leagueHTML(){
     ${bracket}<div class="grid g2">${rounds}</div></div>`;
 }
 
+/* ---------- página do jogador (modal): perfil, forma, radar, estatísticas e históricos ---------- */
+const teamsNow = () => S ? S.teams : PREVIEW;                    // na seleção de time ainda não há save: usa o preview
+const pn = p => `<span class="plink" data-act="player" data-id="${p.id}" title="Ver página do jogador">${esc(p.name)}</span>`;
+function findPlayer(id){
+  for(const t of Object.values(teamsNow())){ const p = t.players.concat(t.bench).find(x => x.id === id); if(p) return {p, t, st:t.players.includes(p) ? 'tit' : 'res'}; }
+  const p = S && S.fa.find(x => x.id === id); return p ? {p, t:null, st:'fa'} : null;
+}
+const rtOf = (k, d, fk, r) => r ? clamp(1 + (k - d) / r * .8 + fk / r * .6, .3, 2.5) : null;      // mesma fórmula do rating() da temporada
+const rtCls = v => v == null ? '' : v >= 1.1 ? 'rt-up' : v < .95 ? 'rt-dn' : '';
+const f2 = v => v == null ? '—' : v.toFixed(2);
+const evLab = (y, ev) => ev === 'si' ? `Six Invitational ${y === START_YEAR ? 'Paris' : y + 1}` : `${EVENTS[ev].name} ${y}`;
+const starsX = (v, tip = '') => `<span class="stx" title="${tip}">★★★★★<i style="width:${clamp(v, 0, 5) / 5 * 100}%">★★★★★</i></span>`;
+const ringSvg = (v, col) => { const r = 42, c = 2 * Math.PI * r, q = clamp(v, 0, 100) / 100;
+  return `<svg viewBox="0 0 100 100"><circle class="rb" cx="50" cy="50" r="${r}"/><circle class="rf" cx="50" cy="50" r="${r}" transform="rotate(-90 50 50)" style="stroke:${col};stroke-dasharray:${(c * q).toFixed(1)} ${c.toFixed(1)}"/></svg>`; };
+const gauge = (v, label, tip) => `<div class="ring" title="${tip}">${ringSvg(v, v >= 70 ? 'var(--green)' : v >= 45 ? 'var(--gold)' : 'var(--red)')}<b>${Math.round(v)}</b><small>${label}</small></div>`;
+function radarSvg(axes){
+  const cx = 130, cy = 112, R = 78, n = axes.length, pt = (i, f) => { const a = (-90 + i * 360 / n) * Math.PI / 180; return [+(cx + Math.cos(a) * R * f).toFixed(1), +(cy + Math.sin(a) * R * f).toFixed(1)]; };
+  const grid = [.25, .5, .75, 1].map(f => `<polygon class="g" points="${axes.map((_, i) => pt(i, f).join(',')).join(' ')}"/>`).join('') + axes.map((_, i) => `<line class="g" x1="${cx}" y1="${cy}" x2="${pt(i, 1)[0]}" y2="${pt(i, 1)[1]}"/>`).join('');
+  const val = axes.map(([, v], i) => pt(i, clamp(v, 6, 100) / 100));
+  const labels = axes.map(([l], i) => { const [x, y] = pt(i, 1.3); return `<text x="${x}" y="${y + 4}" text-anchor="middle">${l}</text>`; }).join('');
+  return `<svg class="radar" viewBox="0 0 260 226">${grid}<polygon class="v" points="${val.map(q => q.join(',')).join(' ')}"/>${val.map(q => `<circle class="pt" cx="${q[0]}" cy="${q[1]}" r="3.5"/>`).join('')}${labels}</svg>`;
+}
+const avatarSvg = (p, t) => { const c = t ? t.color : '#8b96a5';
+  return `<svg class="avt" viewBox="0 0 120 150"><defs><linearGradient id="avg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".5"/><stop offset="1" stop-color="#0e1218"/></linearGradient></defs>
+    <rect width="120" height="150" fill="url(#avg)"/><circle cx="60" cy="58" r="25" fill="#0a0c10" opacity=".65"/><path d="M12 150c0-36 21-56 48-56s48 20 48 56z" fill="#0a0c10" opacity=".65"/>
+    <text x="60" y="66" text-anchor="middle" font-size="22" font-weight="800" fill="${c}" style="font-family:var(--font)">${esc(p.name.slice(0, 2).toUpperCase())}</text></svg>`; };
+const repOf = p => p.ovr >= 93 ? ['Estrela mundial', '🌟', 'Um dos melhores do planeta: cada série que joga é acompanhada pelo circuito inteiro. (OVR 93+)']
+  : p.ovr >= 88 ? ['Astro do circuito', '⭐', 'Nome conhecido em todas as regiões. (OVR 88–92)']
+  : p.ovr >= 82 ? ['Destaque regional', '🔥', 'Referência na sua liga. (OVR 82–87)']
+  : p.ovr >= 75 ? ['Profissional', '🎮', 'Presença sólida no circuito. (OVR 75–81)'] : ['Promessa em formação', '🌱', 'Ainda construindo nome. (OVR até 74)'];
+function bioOf(p, t, st){
+  const tops = topAttrs(p, 2).map(x => ATTR_LONG[x.k].toLowerCase()).join(' e ');
+  const club = t ? `${st === 'tit' ? 'titular' : 'reserva'} do ${t.name} (${LG[t.league].name})` : p.org ? `${p.t2 ? 'do tier 2' : 'sem contrato'} (${p.org})` : 'agente livre';
+  const c = p.c && p.c.sr ? ` Na carreira: ${p.c.sr} séries, K/D ${(p.c.d ? p.c.k / p.c.d : p.c.k).toFixed(2)}.` : '';
+  return `${p.name} tem ${p.age} anos e joga como ${p.role}, ${club}. Destaca-se em ${tops}. ${p.pot > p.ovr + 3 ? `Ainda tem margem para crescer (potencial ${p.pot}).` : 'Já está perto do teto de rendimento.'}${c}`;
+}
+function playerHTML({p, t, st}){
+  const avg = (...v) => v.reduce((a, b) => a + b, 0) / v.length, sc = v => (v - 45) / 54 * 100, tm = teamsNow(), mine = !!(S && t && t.id === S.userId);
+  const axes = [['DEFESA', sc(avg(attr(p, 'roam'), attr(p, 'util')))], ['ATAQUE', sc(avg(p.aim, attr(p, 'open')))], ['LÍDER', sc(attr(p, 'led'))], ['TÁTICA', sc(avg(p.gs, attr(p, 'info')))], ['CLUTCH', sc(attr(p, 'clu'))]];
+  const rep = repOf(p), rt = p.r ? rating(p) : null, cc = p.c || {sr:0, mp:0, k:0, d:0, r:0, fk:0, cl:0, mk:0};
+  const kdC = cc.d ? cc.k / cc.d : cc.k;
+  const stTag = st === 'tit' ? '<span class="tag fill">Titular</span>' : st === 'res' ? '<span class="tag cyan">Reserva</span>' : '<span class="tag mut">Agente livre</span>';
+  const enTag = p.stress > 80 ? '<span class="tag red">Burnout</span>' : p.stress > 60 ? '<span class="tag orange">Cansado</span>' : p.stress <= 35 ? '<span class="tag green">Energizado</span>' : '<span class="tag mut">Normal</span>';
+  const team = t ? `<div class="row" style="gap:8px;margin-top:6px">${logo(t, 'xs')}<b>${esc(t.name)}</b>${mine ? ' <span class="tag cyan">seu time</span>' : ''}</div><div class="mut" style="font-size:12px;margin-top:2px">${LG[t.league].name} · ${LG[t.league].region}</div>`
+    : `<div style="margin-top:6px"><b>${p.org ? esc(p.org) : 'Sem clube'}</b></div><div class="mut" style="font-size:12px;margin-top:2px">${p.t2 ? 'Tier 2 · sob contrato' : 'Disponível no mercado'}</div>`;
+  const news = (S ? S.news : []).filter(n => n.t.startsWith(p.name + ' ') || n.t.includes(' ' + p.name + ' ')).slice(0, 3);
+  const left = `<div class="card"><div class="ph-h">${avatarSvg(p, t)}<div style="min-width:0"><div class="pname">${esc(p.name)}</div><div style="margin-top:6px">${starsX((p.ovr - 60) / 7.5, 'Nível atual: OVR ' + p.ovr)} <b class="gold" style="margin-left:6px">${p.ovr}</b></div>${team}</div></div>
+      <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:10px">${stTag}${enTag}${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}${p.adapt ? `<span class="tag orange">adaptando ${p.adapt}</span>` : ''}</div>
+      <div class="rings">${gauge((p.form + 4) / 8 * 100, 'FORMA', 'Forma recente: sobe com bons jogos (−4 a +4)')}${gauge(100 - p.stress, 'ENERGIA', 'Energia = 100 − estresse. Burnout acima de 80 de estresse')}${gauge(p.sat, 'MORAL', 'Satisfação do jogador com o clube')}</div>
+      <div class="sec">Funções do jogador</div><div class="row" style="gap:8px"><span class="tag cyan">${p.role}</span><span class="mut" style="font-size:12px">encaixe <b class="${roleFit(p) > .2 ? 'green' : roleFit(p) < -.2 ? 'red' : 'mut'}">${roleFit(p) > 0 ? '+' : ''}${roleFit(p).toFixed(1)}</b> · lealdade <b>${loyal(p)}</b> · valor <b class="gold">${pval(p)} K$</b></span></div>
+      <div class="sec">Potencial</div><div>${starsX((p.pot - 60) / 7.5, 'Potencial ' + p.pot)} <span class="mut" style="margin-left:6px">${p.pot}</span></div>
+      <div class="sec">Reputação</div><div class="repb" title="${esc(rep[2])}"><span class="md">${rep[1]}</span><span class="lb">${rep[0]}</span></div>
+      <div style="margin-top:14px">${radarSvg(axes)}</div>
+      <div class="sec">Biografia</div><div style="font-weight:800">${p.age} anos</div><p class="mut" style="font-size:12.5px;margin-top:4px">${esc(bioOf(p, t, st))}</p>
+      ${news.length ? news.map(n => `<div class="nw"><span>${n.y}</span><span>${esc(n.t)}</span></div>`).join('') : ''}</div>`;
+  const over = `<div class="card"><h3>Visão geral · temporada ${S ? S.year : START_YEAR}</h3><div class="imp">
+      <div class="s"><b>${p.r ? f2(p.k / p.r) : '—'}</b><small>KPR</small></div>
+      <div class="ring big">${ringSvg(rt == null ? 0 : (rt - .5) / 1.2 * 100, 'var(--cyan)')}<small>IMPACT</small><b>${f2(rt)}</b><small>RATING</small></div>
+      <div class="s"><b>${p.r ? f2(p.d / p.r) : '—'}</b><small>DPR</small></div>
+      <div class="s"><b>${p.r ? f2(p.fk / p.r) : '—'}</b><small>FK/R</small></div><div class="s"><b>${p.cl}</b><small>CLUTCH</small></div></div>
+      ${p.r ? '' : '<p class="mut" style="font-size:12px;margin-top:8px;text-align:center">Sem rounds jogados nesta temporada.</p>'}</div>`;
+  const det = `<div class="card"><h3>Detalhes · carreira</h3>${[['Séries jogadas', cc.sr], ['Mapas jogados', cc.mp], ['Rounds jogados', cc.r], ['Total de abates', cc.k], ['Total de mortes', cc.d], ['K/D', cc.r ? kdC.toFixed(2) : '—'], ['First kills', cc.fk], ['Clutches vencidos', cc.cl], ['Multi-kills (3K+)', cc.mk]].map(([a, b]) => `<div class="kv"><span>${a}</span><b>${b}</b></div>`).join('')}</div>`;
+  const evRows = (p.eh || []).map(e => { const r = rtOf(e.k, e.d, e.fk, e.r), tt = tm[e.t], pc = !e.lab ? 'mut' : e.lab === '1º' ? 'pl1' : e.lab === '2º' ? 'pl2' : e.lab[0] === '3' ? 'pl3' : 'mut';
+    return `<tr><td>${esc(evLab(e.y, e.ev))}${tt ? ` <span class="mut" style="font-size:11px">${esc(tt.short)}</span>` : ''}</td><td class="num ${pc}" title="${e.lab ? '' : 'Evento em andamento'}">${e.lab || '…'}</td><td class="num">${e.mp}</td><td class="num">${e.k}</td><td class="num">${e.d}</td><td class="num">${e.fk}</td><td class="num">${e.cl}</td><td class="num">${e.d ? (e.k / e.d).toFixed(2) : e.k}</td><td class="num ${rtCls(r)}"><b>${f2(r)}</b></td></tr>`; }).join('');
+  const evTbl = `<div class="card"><h3>Histórico de torneios</h3><div class="scroll"><table class="tbl"><thead><tr><th>Torneio</th><th class="num">Lugar</th><th class="num">Mapas</th><th class="num">K</th><th class="num">D</th><th class="num">FK</th><th class="num">CL</th><th class="num">K/D</th><th class="num">RT</th></tr></thead><tbody>${evRows || '<tr><td colspan="9" class="mut">Nenhum torneio disputado ainda.</td></tr>'}</tbody></table></div></div>`;
+  const mhRows = (p.mh || []).map(x => { const r = rtOf(x.k, x.d, x.fk, x.r), o = tm[x.o];
+    return `<tr><td><span class="wl ${x.w ? 'w' : 'l'}">${x.a}:${x.b}</span></td><td>${o ? tn(o, 'xs') : '—'}<div class="mut" style="font-size:10.5px">${esc(evLab(x.y, x.ev))}</div></td><td class="num">${x.k}</td><td class="num">${x.d}</td><td class="num">${x.fk}</td><td class="num">${x.cl}</td><td class="num ${rtCls(r)}"><b>${f2(r)}</b></td></tr>`; }).join('');
+  const mhTbl = `<div class="card"><h3>Histórico de partidas</h3><div class="scroll"><table class="tbl"><thead><tr><th>Placar</th><th>Adversário</th><th class="num">K</th><th class="num">D</th><th class="num">FK</th><th class="num">CL</th><th class="num">RT</th></tr></thead><tbody>${mhRows || '<tr><td colspan="7" class="mut">Nenhuma partida disputada ainda.</td></tr>'}</tbody></table></div>
+      <div class="mut" style="font-size:11px;margin-top:6px">Placar em rounds (Bo1) ou mapas (Bo3/Bo5) · RT = rating da série · últimas ${MH_MAX} séries</div></div>`;
+  const attrs = `<div class="card"><h3>Atributos</h3><div class="ag"><div class="mrow"><span>Aim</span>${meter(p.aim, '')}<b>${p.aim}</b></div><div class="mrow"><span>G.Sense</span>${meter(p.gs, 'g')}<b>${p.gs}</b></div>${Object.entries(ATTRS).map(([k, n]) => `<div class="mrow" title="${ATTR_LONG[k]}"><span>${n}</span>${meter(attr(p, k), 'g')}<b>${attr(p, k)}</b></div>`).join('')}</div></div>`;
+  return `<div class="mhead"><h2><b>Perfil</b> do jogador</h2><div class="sp"></div><button class="btn sm" data-act="close">✕ Fechar</button></div>
+    <div class="pg"><div>${left}</div><div class="stack"><div class="grid g2">${over}${det}</div>${evTbl}${mhTbl}${attrs}</div></div>`;
+}
+function openPlayer(id){ const f = findPlayer(id); if(f) openModal(playerHTML(f), 'xl'); }
+
 /* ---------- Global Standings (modal, acessível sempre) ---------- */
 function openGlobal(){
   const mode = UI.gMode, tb = globalTable(mode), tab = UI.gTab, cut = tb[G16 - 1].pts, nxt = tb[G16].pts, g = g16Status();
@@ -1876,7 +2067,8 @@ function startUserMatch(){
   const u = T(cur.user.a), o = T(cur.user.b), bo = boFor(cur.user.ph, cur.idx), first = rnd() < .5 ? 'a' : 'b';
   CM = newMatch(u, o, 'a', false, S.club.staff.an);
   CM.meta = {idx:cur.idx, lg:cur.user.lg, slot:cur.user.slot, ph:cur.user.ph, user:true}; CM.ready = false; CM.finished = false;
-  CS = {bo, need:(bo + 1) / 2, wins:{a:0, b:0}, plan:[], maps:[], i:0, over:false};
+  CS = {bo, need:(bo + 1) / 2, wins:{a:0, b:0}, plan:[], maps:[], i:0, over:false, loadout:{atk:null, def:null}};
+  CM.loadout = CS.loadout; UI.opDraft = null;
   CM.vp = {pool:MAPS.slice(), seq:vetoSeq(bo), step:0, turn:first, first, stage:'map', pending:null};          // veto interativo: mapas, lados e operadores
   clearInterval(UI.timer);
   Object.assign(UI, {phase:'veto', auto:false, rs:null, ev:null, clock:0, frozen:false, skip:false, plantAt:null});
@@ -1930,7 +2122,7 @@ function vetoStep(){
 /* carrega o mapa i da série: novo confronto com o mapa e o lado inicial definidos; segue para os bans de operador */
 function loadMap(i){
   const old = CM, pl = CS.plan[i], m = newMatch(old.t.a, old.t.b, 'a', false, old.an);
-  m.meta = old.meta; m.ready = false; m.finished = false; m.map = pl.map; m.first = pl.startAtk; m.vp = {stage:'ops'};
+  m.meta = old.meta; m.ready = false; m.finished = false; m.map = pl.map; m.first = pl.startAtk; m.vp = {stage:'ops'}; m.loadout = CS.loadout;      // a escolha de operadores vale para a série toda
   if(i > 0){ m.conf = {...old.conf}; m.chem = {...old.chem}; }           // a confiança segue de um mapa para o outro
   CM = m; CS.i = i;
   Object.assign(UI, {phase:'veto', auto:false, rs:null, ev:null, clock:0, frozen:false, skip:false, plantAt:null});
@@ -2021,14 +2213,93 @@ function planHTML(m){
   }
   if(UI.phase === 'veto') return vetoHTML(m);
   const my = sideOfUser(m), prep = UI.phase === 'prep', live = UI.phase === 'live', u = m.t.a;
+  const ku = m.userKey, ko = other(ku), toLeft = m.tos[ku];
+  const fx = `<div class="kv"><span>⏱ Timeouts</span><b>você ${toLeft} · rival ${m.tos[ko]}</b></div>`
+    + (m.tac[ku].n > 0 ? `<div class="kv"><span>🎯 Ajuste tático</span><b class="cyan">+${m.tac[ku].v} · ${m.tac[ku].n} round(s)</b></div>` : '')
+    + (m.calm[ku] > 0 ? `<div class="kv"><span>🧠 Foco mental</span><b class="cyan">${m.calm[ku]} round(s)</b></div>` : '')
+    + (m.tac[ko].n > 0 ? `<div class="kv"><span>🎯 Rival ajustado</span><b class="orange">+${m.tac[ko].v} · ${m.tac[ko].n} round(s)</b></div>` : '');
+  const sd = sideOfUser(m), ld = m.loadout && m.loadout[sd], bn = m.bans[ko][sd], nSel = ld ? ld.filter(Boolean).length : 0, badOp = ld && ld.includes(bn);
+  const opsRow = `<div class="kv"><span>🎭 Operadores (${sd === 'atk' ? 'ataque' : 'defesa'})</span><b class="${badOp ? 'orange' : nSel ? 'cyan' : 'mut'}">${badOp ? `⚠ ${esc(bn)} banido` : nSel ? nSel + '/5 escolhidos' : 'sorteio da comissão'}</b></div>`;
+  const opsBtn = `<button class="btn sm ${prep ? 'cyan' : ''} sp" data-act="ops-open" ${prep && m.ready ? '' : 'disabled'} title="Escolher o operador de cada jogador (vale até você mudar)">🎭 Operadores <kbd>O</kbd></button>`;
+  const toBtn = `<button class="btn sm ${prep && toLeft > 0 ? 'cyan' : ''} sp" data-act="to-open" ${prep && m.ready && toLeft > 0 ? '' : 'disabled'} title="${toLeft < 1 ? 'Sem timeouts neste mapa' : prep ? 'Escolha entre foco tático ou mental' : 'O timeout só pode ser chamado entre os rounds'}">⏱ Timeout${toLeft ? ' (' + toLeft + ')' : ''} <kbd>T</kbd></button>`;
   const ctrl = prep ? `<button class="btn gold" style="width:100%" data-act="start-round" ${m.ready ? '' : 'disabled'}>▶ Próximo round <kbd>Espaço</kbd></button>
-      <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn sm cyan sp" data-act="auto" ${m.ready ? '' : 'disabled'}>${UI.auto ? '⏸ Parar auto' : '⏩ Assistir tudo'}</button><button class="btn sm sp" data-act="simall" ${m.ready ? '' : 'disabled'}>⚡ Simular tudo</button></div>`
-    : live ? `<div class="row"><span class="mut" style="font-size:12px">Velocidade</span>${[1, 2, 4].map(s => `<button class="btn sm ${UI.speed === s ? 'gold' : ''}" data-act="speed" data-v="${s}">×${s}</button>`).join('')}<button class="btn sm sp" data-act="skip-round">⏭ Pular round</button></div>` : '';
+      <div class="row" style="margin-top:8px;flex-wrap:wrap">${opsBtn}${toBtn}<button class="btn sm cyan sp" data-act="auto" ${m.ready ? '' : 'disabled'}>${UI.auto ? '⏸ Parar auto' : '⏩ Assistir tudo'}</button><button class="btn sm sp" data-act="simall" ${m.ready ? '' : 'disabled'}>⚡ Simular tudo</button></div>`
+    : live ? `<div class="row"><span class="mut" style="font-size:12px">Velocidade</span>${[1, 2, 4].map(s => `<button class="btn sm ${UI.speed === s ? 'gold' : ''}" data-act="speed" data-v="${s}">×${s}</button>`).join('')}<button class="btn sm sp" data-act="skip-round">⏭ Pular round</button>${toBtn}</div>` : '';
   return `<h3>${live ? 'Round em andamento' : 'Pré-round'} · você ${my === 'atk' ? 'ATACA' : 'DEFENDE'}</h3>
-    <p class="mut" style="font-size:12.5px;margin-bottom:10px">A comissão técnica conduz os rounds (estilo <b>${styleName(u)}</b>). A sua decisão foi o veto: mapa e operadores banidos.</p>
+    <p class="mut" style="font-size:12.5px;margin-bottom:10px">A comissão técnica conduz os rounds (estilo <b>${styleName(u)}</b>). Suas decisões: o veto (mapa e operadores banidos) e o <b>timeout técnico</b> entre os rounds.</p>
     <div class="kv"><span>Mapa</span><b class="gold">${esc(m.map.name)}</b></div>
     <div class="kv"><span>Seus bans</span><b>${esc(m.bans.a.atk)} / ${esc(m.bans.a.def)}</b></div><div class="kv"><span>Bans do rival</span><b>${esc(m.bans.b.atk)} / ${esc(m.bans.b.def)}</b></div>
-    <div class="mrow" style="margin:10px 0"><span>Confiança</span>${meter(m.conf.a, 'g')}<b>${Math.round(m.conf.a)}</b></div>${ctrl}`;
+    <div class="mrow" style="margin:10px 0"><span>Confiança</span>${meter(m.conf.a, 'g')}<b>${Math.round(m.conf.a)}</b></div>${opsRow}${fx}<div style="height:8px"></div>${ctrl}`;
+}
+
+/* ---------- escolha de operadores por execução (vale para a série; por lado; sem escolha a comissão sorteia) ---------- */
+function suggestOps(m, side){                     // sugestão: monta a composição-base e dá cada função ao jogador de melhor encaixe
+  const u = m.t[m.userKey], banned = m.bans[other(m.userKey)][side], tpl = side === 'atk' ? ['hb','ent','ent','inf','sup'] : ['anc','anc','roam','anc','inf'];
+  const perms = a => a.length < 2 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(p => [x, ...p]));
+  let best = null;                                // testa as 120 formas de distribuir as funções entre os 5 jogadores e fica com a de maior encaixe total
+  perms(u.players.map((_, i) => i)).forEach(pm => {
+    const used = new Set(), out = ['', '', '', '', '']; let sc = 0;
+    pm.forEach((pi, s) => { let bo = null, bf = -9; OPS[side].forEach(o => { if(OP_T[o] === tpl[s] && o !== banned && !used.has(o)){ const f = fitOf(u.players[pi], o); if(f > bf){ bf = f; bo = o; } } }); if(bo){ used.add(bo); out[pi] = bo; sc += bf; } });
+    if(!best || sc > best.sc) best = {sc, out};
+  });
+  return best.out;
+}
+function openOps(){
+  const m = CM; if(!m || m.done || !m.ready || UI.phase !== 'prep') return;
+  UI.auto = false; m.commTo = false; const side = sideOfUser(m), cur = m.loadout[side];
+  UI.opDraft = {side, sel:cur ? cur.slice() : ['', '', '', '', '']}; updateMatch(); renderOps();
+}
+function renderOps(){
+  const m = CM, d = UI.opDraft; if(!m || !d) return;
+  const {side, sel} = d, u = m.t[m.userKey], rv = m.t[other(m.userKey)], banned = m.bans[other(m.userKey)][side], sgn = v => (v > 0 ? '+' : '') + v.toFixed(1), cl = v => v > .05 ? 'green' : v < -.05 ? 'red' : 'mut';
+  const groups = Object.entries(OP_LAB).filter(([t]) => OPS[side].some(o => OP_T[o] === t));
+  const rows = u.players.map((p, i) => {
+    const tk = new Set(sel.filter((x, j) => x && j !== i));
+    const opts = `<option value="">— comissão escolhe —</option>` + groups.map(([t, lab]) => `<optgroup label="${lab}">${OPS[side].filter(o => OP_T[o] === t).map(o => { const f = fitOf(p, o), dis = o === banned || tk.has(o);
+      return `<option value="${esc(o)}" ${o === sel[i] ? 'selected' : ''} ${dis ? 'disabled' : ''}>${esc(o)}${o === banned ? ' (banido)' : tk.has(o) ? ' (em uso)' : ''} · encaixe ${sgn(f)}</option>`; }).join('')}</optgroup>`).join('');
+    return `<div class="ops-row"><div><b>${esc(p.name)}</b> <span class="mut" style="font-size:11px">${p.role}</span></div><select data-ops="${i}">${opts}</select></div>`;
+  }).join('');
+  let an = `<div class="mut" style="font-size:12px">Escolha os cinco para ver a análise da composição. Vagas em branco ficam com a comissão (sorteio).</div>`;
+  if(sel.every(Boolean)){
+    const c = compOf(side, sel), fit = sel.reduce((s, o, i) => s + fitOf(u.players[i], o), 0), fx = c.mods + (side === 'atk' ? c.first : 0);
+    an = `<div class="kv"><span>Composição</span><b>${c.txt}</b></div><div class="kv"><span>Bônus da composição</span><b class="${cl(fx)}">${sgn(fx)}</b></div>`
+      + (side === 'atk' ? `<div class="kv"><span>Chance de plant</span><b class="${cl(c.plant)}">${c.plant > 0 ? '+' : ''}${Math.round(c.plant * 100)}%</b></div>` : '')
+      + `<div class="kv"><span>Encaixe jogador × operador</span><b class="${cl(fit)}">${sgn(fit)}</b></div>${c.notes.length ? `<div class="orange" style="font-size:12px;margin-top:6px">⚠ ${c.notes.join(' · ')}</div>` : ''}`;
+  }
+  openModal(`<div class="mhead"><h2><b>🎭 Operadores</b> · você ${side === 'atk' ? 'ATACA' : 'DEFENDE'} em ${esc(m.map.name)}</h2><div class="sp"></div><button class="btn sm" data-act="close">✕ Cancelar</button></div>
+    <p class="mut" style="margin-bottom:8px;font-size:12.5px">Escolha o operador de cada jogador. A escolha vale para todos os rounds em que você <b>${side === 'atk' ? 'ataca' : 'defende'}</b> nesta série, até você mudar (a outra lista vale quando os lados trocam). O número ao lado do nome é o <b>encaixe</b>: o quanto o jogador rende com aquele operador.
+      ${banned ? `<br>🚫 Banido pelo rival: <b class="red">${esc(banned)}</b>.` : ''}${hasIntel() ? ` Operador-assinatura do rival: <b>${esc(side === 'atk' ? rv.sigD : rv.sigA)}</b> (${side === 'atk' ? 'defesa' : 'ataque'}).` : ''}</p>
+    ${rows}<div class="card" style="margin:12px 0;padding:10px 14px;background:var(--card2)">${an}</div>
+    <div class="mut" style="font-size:11.5px;margin-bottom:10px">${side === 'atk' ? 'Ataque: Hard Breacher abre o plant · Entry abre o round · Info (drones) dá leitura · Suporte troca e apoia.' : 'Defesa: Âncora segura o site · Roamer pressiona por fora · Info (contra-drones) reduz a surpresa.'} Composição desbalanceada custa rating.</div>
+    <div class="row" style="flex-wrap:wrap"><button class="btn sm cyan" data-act="ops-sug">✨ Sugerir</button><button class="btn sm" data-act="ops-clear">Limpar</button><span class="sp"></span><button class="btn gold" data-act="ops-ok">✔ Confirmar</button></div>`, true);
+}
+function confirmOps2(){                           // (confirmOps já é o bans de operador do veto)
+  const m = CM, d = UI.opDraft; if(!m || !d) return;
+  const sel = d.sel.slice(), any = sel.some(Boolean); m.loadout[d.side] = any ? sel : null; UI.opDraft = null; closeModal();
+  feedAdd({c:'sys', h:any ? `🎭 <b>Operadores de ${d.side === 'atk' ? 'ataque' : 'defesa'}</b> definidos: ${sel.map((o, i) => `${esc(m.t[m.userKey].players[i].name)} → <b>${esc(o || 'comissão')}</b>`).join(' · ')}` : `🎭 Operadores de ${d.side === 'atk' ? 'ataque' : 'defesa'}: a comissão volta a sortear.`});
+  updateMatch();
+}
+
+/* ---------- timeout técnico do usuário: foco tático ou mental (efeitos em doTimeout) ---------- */
+function openTimeout(){
+  const m = CM; if(!m || m.done || !m.ready || UI.phase !== 'prep') return;
+  const k = m.userKey; if(m.tos[k] < 1){ toast('Sem timeouts restantes neste mapa.', 'warn'); return; }
+  UI.auto = false; m.commTo = false; updateMatch();                       // abrir o timeout pausa o "Assistir tudo": você decide o foco
+  const c = toCalc(m, k, 'adjust'), st = m.streak[other(k)], conf = Math.round(m.conf[k]);
+  openModal(`<div class="mhead"><h2><b>⏱ Timeout</b> técnico</h2><div class="sp"></div><button class="btn sm" data-act="close">✕ Cancelar</button></div>
+    <p class="mut" style="margin-bottom:10px">Restam <b>${m.tos[k]}</b> timeout(s) neste mapa (+1 na prorrogação). Qualquer foco <b>corta o embalo do rival</b>${st >= 2 ? ` (ele vem de <b class="orange">${st} rounds</b> seguidos)` : ''}. Confiança atual: <b>${conf}</b>.</p>
+    <div class="stack" style="gap:10px"><button class="st" data-act="to-do" data-k="adjust"><span class="ic">🎯</span><span class="n">Ajuste tático</span>
+        <span class="d">+${c.tac} no confronto pelos próximos 3 rounds e o rival perde a leitura dos seus padrões. Confiança mínima ${c.fAdj}. Analista e Treinador aumentam o bônus.</span></button>
+      <button class="st" data-act="to-do" data-k="motiv"><span class="ic">🧠</span><span class="n">Reset mental</span>
+        <span class="d">A confiança sobe para pelo menos ${c.fMot} (agora ${conf}) e, por 3 rounds, cai só pela metade ao perder round. Psicólogo e um bom líder aumentam o efeito.</span></button></div>`, true);
+}
+function userTimeout(kind){
+  const m = CM; if(!m || m.done || !m.ready || UI.phase !== 'prep' || m.tos[m.userKey] < 1 || (kind !== 'adjust' && kind !== 'motiv')) return;
+  const k = m.userKey, r = doTimeout(m, k, kind);
+  closeModal();
+  feedAdd({c:'big', h:`⏱ TIMEOUT TÉCNICO · ${esc(m.t[k].short)} — ${kind === 'adjust' ? 'AJUSTE TÁTICO' : 'RESET MENTAL'}`});
+  feedAdd({c:'sys', h:`<b style="color:${m.t[k].color}">${esc(m.t[k].name)}</b> ${TO_DESC[kind](r)}. O embalo do rival foi cortado.`});
+  updateMatch();
 }
 
 /* ---------- loop de tempo real ---------- */
@@ -2065,7 +2336,7 @@ function endOfRound(){
 }
 function simAll(){
   const m = CM; if(!m || m.done || !m.ready || UI.phase === 'live' || UI.phase === 'interv') return;
-  UI.auto = false;
+  UI.auto = false; m.commTo = true;                                  // a comissão conduz também os timeouts do seu time
   while(!m.done){ const {lines} = runRoundAuto(m, null); lines.forEach(l => feedAdd(l, untimed(l.c) ? null : l.t)); }
   UI.phase = 'done'; updateMatch(); onMatchEnd();
   simSeriesRest();
@@ -2073,7 +2344,7 @@ function simAll(){
 /* "Simular tudo" numa série: o que falta é jogado automaticamente, com a comissão decidindo os bans de operador */
 function simSeriesRest(){
   while(CS && !CS.over && CM && CM.done){
-    loadMap(CS.i + 1); const m = CM;
+    loadMap(CS.i + 1); const m = CM; m.commTo = true;
     for(const k of ['a', 'b']) setOpBans(m, k, ...aiOpBans(m, k));
     m.vp = null; m.ready = true;
     while(!m.done){ const {lines} = runRoundAuto(m, null); lines.forEach(l => feedAdd(l, untimed(l.c) ? null : l.t)); }
@@ -2161,6 +2432,7 @@ document.addEventListener('click', e => {
     case 'nav': UI.view = d.v; UI.lgTab = null; render(); break;
     case 'global': openGlobal(); break;
     case 'close': closeModal(); break;
+    case 'player': openPlayer(+d.id); break;
     case 'gtab': UI.gTab = d.l; openGlobal(); break;
     case 'gmode': UI.gMode = d.m; openGlobal(); break;
     case 'sfilter': UI.sFilter = d.l; renderSide(); break;
@@ -2176,7 +2448,13 @@ document.addEventListener('click', e => {
     case 'veto-ops': confirmOps(); break;
     case 'speed': UI.speed = +d.v; updateMatch(); break;
     case 'skip-round': UI.skip = true; break;
-    case 'auto': UI.auto = !UI.auto; updateMatch(); if(UI.auto && UI.phase === 'prep') startRound(); break;
+    case 'ops-open': openOps(); break;
+    case 'ops-sug': if(CM && UI.opDraft){ UI.opDraft.sel = suggestOps(CM, UI.opDraft.side); renderOps(); } break;
+    case 'ops-clear': if(UI.opDraft){ UI.opDraft.sel = ['', '', '', '', '']; renderOps(); } break;
+    case 'ops-ok': confirmOps2(); break;
+    case 'to-open': openTimeout(); break;
+    case 'to-do': userTimeout(d.k); break;
+    case 'auto': UI.auto = !UI.auto; if(CM) CM.commTo = UI.auto; updateMatch(); if(UI.auto && UI.phase === 'prep') startRound(); break;
     case 'simall': simAll(); break;
     case 'result': if(CM && CM.report) showReport(CM.report); break;
     case 'report-ok': closeModal(); CM = null; CS = null; UI.phase = 'idle'; UI.view = 'dash'; render(); break;
@@ -2213,9 +2491,12 @@ document.addEventListener('keydown', e => {
   if((e.key === 'g' || e.key === 'G') && S && UI.view !== 'select') openGlobal();
   if(UI.view === 'match' && CM && !$('#modal').classList.contains('open') && !UI.frozen){
     if((e.key === ' ' || e.key === 'Enter') && UI.phase === 'prep'){ e.preventDefault(); startRound(); }
+    if((e.key === 't' || e.key === 'T') && UI.phase === 'prep') openTimeout();
+    if((e.key === 'o' || e.key === 'O') && UI.phase === 'prep') openOps();
   }
 });
 document.addEventListener('change', e => {
+  if(e.target.dataset && e.target.dataset.ops !== undefined){ if(UI.opDraft){ UI.opDraft.sel[+e.target.dataset.ops] = e.target.value; renderOps(); } return; }
   if(S && e.target.dataset && e.target.dataset.mf !== undefined){ setMapFocus(+e.target.dataset.mf, e.target.value); rerender(); return; }
   if(S && e.target.dataset && e.target.dataset.tp){ const [id, sl] = e.target.dataset.tp.split(':'); setPlan(+id, +sl, e.target.value); rerender(); return; }
   if(S && e.target.dataset && e.target.dataset.rl){ const r = setRole(+e.target.dataset.rl, e.target.value); if(r) toast(esc(r), 'warn'); rerender(); return; }
