@@ -307,16 +307,21 @@ function wpick(items, wf, r = rnd){let tot=0;const ws=items.map(i=>{const w=Math
    ===================================================================== */
 const LG = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
 
-/* Elenco no db.js: 'Nick' · 'Nick*' (IGL) · 'Nick:Entry' (função) · 'Nick*:Flex' (os dois) */
-const ROLE_KEY = {entry:'Entry', flex:'Flex', support:'Support', anchor:'Anchor', roamer:'Roamer'};
-const parseSlot = s => { const m = s.trim().match(/^(.+?)(\*)?(?::(\w+))?$/); return {name:m[1], igl:!!m[2], role:ROLE_KEY[(m[3] || '').toLowerCase()] || null}; };
+/* Elenco no db.js: 'Nick' · 'Nick*' (IGL) · 'Nick:Entry' (função: Entry, Flex, Sup1, Sup2 ou IGL) · 'Nick=95' (rating) · 'Nick:Sup1=95{aim:97;gs:93;clu:80;age:24;pot:90}' (tudo) */
+const ROLE_KEY = {entry:'Entry', flex:'Flex', sup1:'Sup1', sup2:'Sup2', igl:'IGL', support:'Sup1', anchor:'Sup2', roamer:'Entry'};      // as 3 últimas chaves só existem para ler db.js antigos
+const parseSlot = s => {
+  const m = s.trim().match(/^(.+?)(\*)?(?::([A-Za-z0-9]+))?(?:=(\d+))?(?:\{([^}]*)\})?$/), attrs = {};
+  (m[5] || '').split(';').forEach(kv => { const [k, v] = kv.split(':').map(x => x.trim()); if(k && v !== undefined && v !== '' && Number.isFinite(+v)) attrs[k] = +v; });
+  return {name:m[1], role:m[2] ? 'IGL' : ROLE_KEY[(m[3] || '').toLowerCase()] || null, ovr:m[4] ? +m[4] : null, attrs};
+};
 const TEAM_DB = TEAM_ROWS.map(([id, name, short, league, power, ros, o]) => {
   const [main, bench] = ros.split('|'), slots = main.split(',').map(parseSlot);
-  return Object.assign({id, name, short, league, power, slots, roster:slots.map(s => s.name), bench:bench ? bench.split(',').map(s => parseSlot(s).name) : []}, o);
+  return Object.assign({id, name, short, league, power, slots, roster:slots.map(s => s.name), benchSlots:bench ? bench.split(',').map(parseSlot) : [], bench:bench ? bench.split(',').map(s => parseSlot(s).name) : []}, o);
 });
-const isIglOf = (d, n) => d.igl === n || d.slots.some(s => s.igl && s.name === n);
 
-const ROLES = ['Entry','Flex','Support','Anchor','Roamer'];
+/* Posições reais do R6: Entry, Flex, Sup1, Sup2 e IGL (o IGL é uma das cinco posições do time) */
+const ROLES = ['Entry','Flex','Sup1','Sup2','IGL'], ROLES_GEN = ROLES.slice(0, 4);
+const isIgl = p => p.role === 'IGL';
 const HB = new Set(['Thermite','Hibana','Ace']);          // hard breachers
 
 /* Mapas (pool de 7) · atk = viés de lado · routes = rotas de entrada/foco · calls = callouts do feed */
@@ -368,19 +373,34 @@ const attr = (p, k) => p[k] == null ? p.ovr : p[k];                     // saves
 const topAttrs = (p, n = 2) => Object.keys(ATTRS).map(k => ({k, d:attr(p, k) - p.ovr})).sort((a, b) => b.d - a.d).slice(0, n);
 function mkAttrs(ovr, role, r, igl, age = 25){
   const n = () => Math.round((r() - .5) * 14), exp = clamp(Math.round((age - 24) * .6), -2, 4);       // experiência: mental e consistência crescem com a idade
-  const b = {Roamer:{roam:8, info:4}, Anchor:{roam:-5, clu:4, men:5, util:3}, Entry:{roam:-2, open:8}, Support:{tw:5, util:6}, Flex:{adp:6, info:2}}[role] || {};
+  const b = {Entry:{open:8, roam:4}, Flex:{adp:6, info:2}, Sup1:{tw:5, util:6}, Sup2:{tw:3, men:5, clu:4, roam:-3}}[role] || {};
   const v = (k, base = 0) => clamp(ovr + base + n() + (b[k] || 0), 45, 99);
   return {clu:v('clu'), led:clamp(ovr - 5 + n() + (igl ? 8 : 0), 45, 99), tw:v('tw'), roam:v('roam'), open:v('open'), util:v('util'), men:clamp(v('men') + exp, 45, 99), info:clamp(v('info') + (igl ? 4 : 0), 45, 99),
           cons:clamp(v('cons') + exp, 45, 99), adp:v('adp')};
 }
 function mkPlayer(o, r = rnd){
-  const ovr = clamp(Math.round(o.ovr), 45, 99), sp = Math.round((r() - .5) * 8), role = o.role || ROLES[Math.floor(r() * ROLES.length)];
-  const p = {id:mkId(), name:o.name, role, igl:false, aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
+  const ovr = clamp(Math.round(o.ovr), 45, 99), sp = Math.round((r() - .5) * 8), role = o.role || ROLES_GEN[Math.floor(r() * ROLES_GEN.length)];
+  const p = {id:mkId(), name:o.name, role, aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
              stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, age:o.age, pot:o.pot, ...mkAttrs(ovr, role, r, false, o.age)};
   recalc(p); p.pot = Math.max(p.pot, p.ovr); return p;
 }
-function mkBench(names, power, r2){
-  return names.map((n, i) => { const ovr = clamp(Math.round(power - 5 - i * 2 + (r2() - .5) * 4), 50, 99); return mkPlayer({name:n, ovr, ...seedMeta(r2, ovr)}, r2); });
+/* valores definidos no db.js (Nick=OVR{aim:97;gs:93;clu:80;age:24;pot:90}) sobrepõem os gerados pelo jogo.
+   Com aim/gs explícitos o OVR é calculado deles; só com =OVR, Aim e Gamesense são ajustados até fechar exatamente esse rating. */
+function applySlot(p, s){
+  const a = s.attrs || {}, has = k => Number.isFinite(a[k]);
+  if(has('aim')) p.aim = clamp(a.aim, 45, 99);
+  if(has('gs')) p.gs = clamp(a.gs, 45, 99);
+  recalc(p);
+  if(s.ovr != null && !has('aim') && !has('gs')) for(let i = 0; i < 8 && p.ovr !== s.ovr; i++){ const st = p.ovr < s.ovr ? 1 : -1; p.aim = clamp(p.aim + st, 45, 99); p.gs = clamp(p.gs + st, 45, 99); recalc(p); }
+  for(const k of Object.keys(ATTRS)) if(has(k)) p[k] = clamp(a[k], 45, 99);
+  if(has('age')) p.age = clamp(Math.round(a.age), 16, 45);
+  p.pot = Math.max(has('pot') ? clamp(a.pot, 45, 99) : p.pot, p.ovr);
+}
+function mkBench(list, power, r2){
+  return list.map((x, i) => {
+    const s = typeof x === 'string' ? parseSlot(x) : x, ovr = s.ovr != null ? clamp(s.ovr, 45, 99) : clamp(Math.round(power - 5 - i * 2 + (r2() - .5) * 4), 50, 99);
+    const p = mkPlayer({name:s.name, ovr, role:s.role, ...seedMeta(r2, ovr)}, r2); applySlot(p, s); return p;
+  });
 }
 const NAME_A = ['Kro','Vex','Zan','Nyx','Rav','Tor','Mik','Dra','Sol','Bex','Fen','Lux','Jax','Oro','Pyr','Quin','Riz','Sko','Tek','Uma','Vyr','Wex','Yor','Zek','Ash','Bly','Cor','Dov','Hex','Kai','Lok','Mor','Neo','Ori','Pax','Rho','Syn','Tav','Vor','Zed'];
 const NAME_B = ['x','n','z','ro','ka','ix','on','ey','o','a','i','er','us','yn','ck','ss','ta','ki','zo','lo'];
@@ -402,7 +422,7 @@ function realPool(taken){
     taken.add(name.toLowerCase());
     const r = mulb(hstr('p' + name)), age = o.age || 21 + Math.floor(r() * 10);
     const p = mkPlayer({name, ovr, age, pot:o.pot || potFor(ovr, age, r), role:ROLE_KEY[(o.role || '').toLowerCase()]}, r);
-    p.org = org; if(o.t2) p.t2 = 1; return p;
+    applySlot(p, {ovr, attrs:o}); p.org = org; if(o.t2) p.t2 = 1; return p;
   });
 }
 function genFA(taken){ const o = realPool(taken); for(let i = 0; i < 16; i++) o.push(genVet(taken)); for(let i = 0; i < 18; i++) o.push(genYoung(taken)); return o; }
@@ -410,22 +430,54 @@ const budFor = power => 120 + Math.max(0, power - 70) * 10;      // orçamento d
 const namesOf = teams => new Set(Object.values(teams).flatMap(t => t.players.concat(t.bench).map(p => p.name.toLowerCase())));
 
 /* ---------- construção de times ---------- */
+/* Distribui as posições do time. fixed[i] = posição já definida (db.js, IGL); hints[i] = {primary} com a função real (entry/flex/support).
+   1) a função real vale direto (entry → Entry, flex → Flex, support → Sup1 e depois Sup2), mesmo que o time tenha duas iguais;
+   2) quem não tem dado vai para a posição que sobrou e melhor encaixa no perfil (Aim alto → Entry, Gamesense alto → Sup).
+   O IGL nunca é adivinhado. Time sem IGL definido pode ficar com uma posição repetida. */
+const FAM = {Entry:'entry', Flex:'flex', Sup1:'support', Sup2:'support', IGL:'igl'};
+function assignRoles(players, fixed, hints = []){
+  const out = fixed.slice(), used = {};
+  fixed.forEach(r => { if(r) used[r] = 1; });
+  players.forEach((p, i) => {
+    const hn = hints[i] && hints[i].primary; if(out[i] || !hn) return;
+    out[i] = hn === 'entry' ? 'Entry' : hn === 'flex' ? 'Flex' : !used.Sup1 ? 'Sup1' : 'Sup2'; used[out[i]] = 1;
+  });
+  const free = players.map((p, i) => i).filter(i => !out[i]), base = ['Entry', 'Flex', 'Sup1', 'Sup2'].filter(t => !used[t]);
+  if(!free.length) return out;
+  const score = (i, t) => { const ag = (players[i].aim - players[i].gs) / 4; return t === 'Entry' ? ag : t === 'Flex' ? 0 : -ag; };
+  let lists = [base];
+  if(free.length > base.length){ lists = [base]; for(let k = base.length; k < free.length; k++) lists = lists.flatMap(l => ['Entry', 'Flex', 'Sup2'].map(e => l.concat(e))); }
+  let best = null;
+  for(const list of lists){
+    const walk = (k, usedIdx, acc, sc) => {
+      if(k === free.length){ if(!best || sc > best.sc) best = {sc, acc:acc.slice()}; return; }
+      for(let j = 0; j < list.length; j++) if(!usedIdx[j]){ usedIdx[j] = 1; acc.push(list[j]); walk(k + 1, usedIdx, acc, sc + score(free[k], list[j])); acc.pop(); usedIdx[j] = 0; }
+    };
+    walk(0, [], [], 0);
+  }
+  free.forEach((i, k) => out[i] = best.acc[k]);
+  return out;
+}
 function buildTeam(d){
   const r = mulb(hstr('t' + d.id)), r2 = mulb(hstr('m' + d.id)), r3 = mulb(hstr('x' + d.id));   // r2: idade, potencial e reservas · r3: atributos de especialidade (não alteram a sequência de r)
-  const roles = shuffle(ROLES, r), off = shuffle([3,1,0,-1,-3], r);
+  shuffle(ROLES, r); const off = shuffle([3,1,0,-1,-3], r);      // o 1º sorteio só mantém a sequência aleatória de sempre (as posições agora vêm do db.js e do encaixe)
   const star = d.star ? d.roster.indexOf(d.star) : -1;
   if(star >= 0){ const mx = off.indexOf(3); [off[star], off[mx]] = [off[mx], off[star]]; }
-  const pool = roles.filter(x => !d.slots.some(s => s.role === x));       // funções não definidas no db.js continuam sorteadas
   const players = d.roster.map((n, i) => {
-    const ovr = clamp(Math.round(d.power + off[i]), 50, 99), sp = Math.round((r() - .5) * 8), role = d.slots[i].role || pool.shift() || roles[i], igl = isIglOf(d, n), meta = seedMeta(r2, ovr);
-    return {id:mkId(), name:n, role, igl, ...mkAttrs(ovr, role, r3, igl, meta.age), aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
+    const ovr = d.slots[i].ovr != null ? clamp(d.slots[i].ovr, 45, 99) : clamp(Math.round(d.power + off[i]), 50, 99), sp = Math.round((r() - .5) * 8), meta = seedMeta(r2, ovr);
+    return {id:mkId(), name:n, role:null, aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
             stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, ...meta};
   });
   players.forEach(recalc);
-  const base = Math.round(Math.max(0, (d.power - 72) * 4.5) + r() * 22) + (d.ewc ? EWC_BONUS : 0);
+  assignRoles(players, d.slots.map(s => s.role || (d.igl === s.name ? 'IGL' : null)), d.slots.map(s => s.hint)).forEach((role, i) => players[i].role = role);
+  players.forEach(p => Object.assign(p, mkAttrs(p.ovr, p.role, r3, p.role === 'IGL', p.age)));
+  players.forEach((p, i) => applySlot(p, d.slots[i]));
+  const custom = d.slots.some(s => s.ovr != null || s.attrs.aim != null || s.attrs.gs != null);      // ratings definidos no db.js: o poder do time passa a ser a média deles
+  const pw = custom ? Math.round(players.reduce((s, p) => s + p.ovr, 0) / players.length) : d.power;
+  const base = Math.round(Math.max(0, (pw - 72) * 4.5) + r() * 22) + (d.ewc ? EWC_BONUS : 0);
   return {
-    id:d.id, name:d.name, short:d.short, tag:d.tag || d.short.slice(0, 3).toUpperCase(), league:d.league, power:d.power, color:d.color,
-    style:['agg','meth','bal'][hstr('s' + d.id) % 3], ewc:!!d.ewc, star:d.star || null, coach:d.coach || null, note:d.note || d.ex || '', src:!!d.src, bench:mkBench(d.bench, d.power, r2), bud:budFor(d.power),
+    id:d.id, name:d.name, short:d.short, tag:d.tag || d.short.slice(0, 3).toUpperCase(), league:d.league, power:pw, color:d.color,
+    style:['agg','meth','bal'][hstr('s' + d.id) % 3], ewc:!!d.ewc, star:d.star || null, coach:d.coach || null, note:d.note || d.ex || '', src:!!d.src, bench:mkBench(d.benchSlots, pw, r2), bud:budFor(pw),
     sigA:OPS.atk[hstr('a' + d.id) % OPS.atk.length], sigD:OPS.def[hstr('d' + d.id) % OPS.def.length],
     players, chem:60, conf:60, w:0, l:0, rw:0, rl:0, si:base, siBase:base, siPrev:base, rkPrev:0, form:[]
   };
@@ -440,11 +492,12 @@ const MAP_TR_STEP = .3, MAP_TR_MAX = 1.5;                                    // 
 const aff  = (t, mapId) => ((hstr(t.id + mapId) % 9) - 4) * .5 + ((t.mapTr || {})[mapId] || 0);   // afinidade com o mapa: base −2 … +2 mais o treino
 const raff = (t, mapId, r) => ((hstr(t.id + mapId + 'r' + r) % 5) - 2) * .5;  // afinidade com a rota
 /* Rating efetivo em jogo: Burnout (estresse > 80) = −15; estresse alto e moral baixa também pesam */
-/* Encaixe na função: Entry/Roamer rendem mais com Aim acima do Gamesense; Support/Anchor, o contrário. Quem acabou de trocar de função se adapta por 2 rodadas (−3). */
+/* Encaixe na posição: Entry rende mais com Aim acima do Gamesense e abertura; Sup1 com equipe e utilidade; Sup2 com mental e clutch; IGL com liderança e informação;
+   Flex com adaptação. Quem acabou de trocar de posição se adapta por 2 rodadas (−3). */
 const roleFit = p => {                                       // cada função premia o atributo que a define
   const ag = (p.aim - p.gs) / 8, dv = k => (attr(p, k) - p.ovr) / 14;
-  const v = p.role === 'Entry' ? ag + dv('open') : p.role === 'Roamer' ? ag / 2 + dv('roam') : p.role === 'Support' ? -ag + dv('tw') + dv('util') / 2
-    : p.role === 'Anchor' ? -ag + dv('clu') / 2 + dv('men') / 2 : dv('adp') + dv('info') / 2;          // Flex: versatilidade e leitura de jogo
+  const v = p.role === 'Entry' ? ag + dv('open') + dv('roam') / 2 : p.role === 'Sup1' ? -ag + dv('tw') + dv('util') / 2 : p.role === 'Sup2' ? -ag + dv('men') / 2 + dv('clu') / 2
+    : p.role === 'IGL' ? dv('led') + 5 / 14 + dv('info') / 2 : dv('adp') + dv('info') / 2;          // IGL: a liderança nasce ~5 abaixo do rating (centraliza) · Flex: versatilidade
   return clamp(v, -1, 1);
 };
 /* Mental reduz o peso do estresse e da moral baixa; adaptabilidade encurta a penalidade de quem trocou de função */
@@ -515,7 +568,7 @@ function doTimeout(m, k, posture){
 /* Modificadores de time: liderança = melhor líder do elenco (+2 se há IGL) acima do próprio rating; equipe, informação e utilidade = média do desvio */
 function teamMods(t){
   const ps = t.players, dev = (p, k) => attr(p, k) - p.ovr, avg = k => ps.reduce((s, p) => s + dev(p, k), 0) / ps.length;
-  return {led:Math.max(...ps.map(p => dev(p, 'led'))) + (ps.some(p => p.igl) ? 2 : 0), tw:avg('tw'), info:avg('info'), util:avg('util')};
+  return {led:Math.max(...ps.map(p => dev(p, 'led'))) + (ps.some(isIgl) ? 2 : 0), tw:avg('tw'), info:avg('info'), util:avg('util')};
 }
 
 /* ---------- um round ---------- */
@@ -529,7 +582,7 @@ function roundInit(m, userPlan, interactive){
     if(V) pre.push({c:'sys', h:`⏱ <b>TIMEOUT TÉCNICO</b> — <b style="color:${m.t[k].color}">${esc(m.t[k].name)}</b> para o jogo e reorganiza o time.`});
   }
   const tacv = k => m.tac[k].n > 0 ? m.tac[k].v : 0, tA = teamMods(AT), tD = teamMods(DT);
-  const base = 2 * (pA.cad - 3) * (pD.cad - 3) + (pA.route === pD.route ? -5 : 2) + (tA.led - tD.led) / 16 + (tA.tw - tD.tw) * .18 + (tA.info - tD.info) * .15
+  const base = 2 * (pA.cad - 3) * (pD.cad - 3) + (pA.route === pD.route ? -5 : 2) + (tA.led - tD.led) / 30 + (tA.tw - tD.tw) * .12 + (tA.info - tD.info) * .08
     + raff(AT, m.map.id, pA.route) - raff(DT, m.map.id, pD.route)
     + (m.conf[ak] - m.conf[dk]) / 10 + (m.chem[ak] - m.chem[dk]) / 12 + tacv(ak) - tacv(dk)
     + aff(AT, m.map.id) - aff(DT, m.map.id) - m.pen[ak].atk + m.pen[dk].def + m.map.atk + ATK_BIAS;
@@ -588,7 +641,7 @@ function roundNext(rs){
 function duelEvent(rs, aa, dd){
   const m = rs.m, V = !m.quiet, first = rs.duels === 0, ak = rs.ak, dk = rs.dk;
   const rw = (u, side) => !first ? 1 : side === 'atk' ? (u.p.role === 'Entry' ? 1.7 : u.p.role === 'Flex' ? 1.2 : 1)
-    : (rs.pD.cad >= 4 ? (u.p.role === 'Roamer' ? 1.8 : .8) : (u.p.role === 'Anchor' ? 1.5 : 1));
+    : (rs.pD.cad >= 4 ? (u.p.role === 'Entry' ? 1.8 : u.p.role === 'Flex' ? 1.1 : .8) : (u.p.role === 'Sup1' || u.p.role === 'Sup2' ? 1.5 : 1));
   const au = wpick(aa, u => (u.eff - 40) * rw(u, 'atk')), du = wpick(dd, u => (u.eff - 40) * rw(u, 'def'));
   const bonus = rs.base + rs.mods[ak] - rs.mods[dk] + (first ? rs.firstB : 0);
   /* situações: clutch pesa quando o jogador é o último vivo contra 2+ (100%) ou sob pressão — pós-plant, match point (40%);
@@ -697,6 +750,51 @@ function runRoundAuto(m, userPlan){ const rs = roundInit(m, userPlan, false), ou
 function quickMatch(A, B){ const m = newMatch(A, B, null, true); doVeto(m); while(!m.done) runRoundAuto(m); return m; }
 function winProb(A, B, n = 240){ let w = 0; for(let i = 0; i < n; i++) if(quickMatch(A, B).winner === 'a') w++; return w / n; }
 
+/* ---------- séries (Bo1 / Bo3 / Bo5) ----------
+   Cada mapa é um MD12 (primeiro a 7, com OT). Veto oficial do R6: com 7 mapas, Bo1 = 6 bans alternados; Bo3 = ban, ban, pick, pick, ban, ban;
+   Bo5 = ban, ban, pick, pick, pick, pick. Sobra 1 mapa decisivo. Quem NÃO escolheu o mapa decide o lado inicial; no decisivo, quem vetou primeiro anuncia o lado.
+   Bans de operador: 1 atacante e 1 defensor por time, a cada mapa. */
+const vetoSeq = bo => bo >= 5 ? ['ban', 'ban', 'pick', 'pick', 'pick', 'pick'] : bo >= 3 ? ['ban', 'ban', 'pick', 'pick', 'ban', 'ban'] : ['ban', 'ban', 'ban', 'ban', 'ban', 'ban'];
+const aiSide = (team, mp) => (mp.atk + (team.style === 'agg' ? .3 : team.style === 'meth' ? -.3 : 0) + (rnd() - .5) * .6) >= 0 ? 'atk' : 'def';
+function aiMapPick(m, pool, turn){                            // a IA escolhe onde é forte e o rival é fraco
+  const t = m.t[turn], o = m.t[other(turn)], lv = turn === m.userKey ? m.an : 0;
+  let best = null, bv = -1e9;
+  for(const mp of pool){ const v = (aff(t, mp.id) - aff(o, mp.id)) * (1 + .25 * lv) + rnd() * 1.2 * (1 - .3 * lv); if(v > bv){ bv = v; best = mp; } }
+  return best;
+}
+function aiVetoPlan(A, B, bo){
+  const m = {t:{a:A, b:B}, userKey:null, an:0}, first = rnd() < .5 ? 'a' : 'b', plan = [];
+  let pool = MAPS.slice(), turn = first;
+  vetoSeq(bo).forEach(kind => {
+    if(kind === 'ban'){ const bn = aiMapBan(m, pool, turn); pool = pool.filter(x => x !== bn); }
+    else { const mp = aiMapPick(m, pool, turn), ch = other(turn); pool = pool.filter(x => x !== mp); plan.push({map:mp, picker:turn, startAtk:aiSide(m.t[ch], mp) === 'atk' ? ch : turn}); }
+    turn = other(turn);
+  });
+  plan.push({map:pool[0], picker:null, startAtk:aiSide(m.t[first], pool[0]) === 'atk' ? first : other(first)});
+  return plan;
+}
+/* junta os mapas de uma série num resultado único (placar em mapas, estatísticas somadas) */
+function seriesResult(ms, bo){
+  const wa = ms.filter(x => x.winner === 'a').length, t = ms[0].t, ps = {a:t.a.players.map(blank), b:t.b.players.map(blank)};
+  ms.forEach(x => ['a', 'b'].forEach(k => x.ps[k].forEach((s, i) => { for(const f in s) ps[k][i][f] += s[f]; })));
+  return {t, userKey:ms[0].userKey, score:{a:wa, b:ms.length - wa}, ot:{a:0, b:0}, winner:wa > ms.length - wa ? 'a' : 'b', done:true, wasOT:ms.some(x => x.wasOT), ps, maps:ms, bo,
+          map:{name:ms.map(x => x.map.name).join(' · '), loc:'em ' + ms.length + ' mapas'}};
+}
+function quickSeries(A, B, bo){
+  if(bo <= 1) return quickMatch(A, B);
+  const need = (bo + 1) / 2, ms = []; let wa = 0, wb = 0;
+  for(const pl of aiVetoPlan(A, B, bo)){
+    if(wa >= need || wb >= need) break;
+    const m = newMatch(A, B, null, true); m.map = pl.map; m.first = pl.startAtk;
+    for(const k of ['a', 'b']) setOpBans(m, k, ...aiOpBans(m, k));
+    while(!m.done) runRoundAuto(m);
+    ms.push(m); if(m.winner === 'a') wa++; else wb++;
+  }
+  return seriesResult(ms, bo);
+}
+const seriesProb = (p, bo) => bo >= 5 ? p * p * p * (10 - 15 * p + 6 * p * p) : bo >= 3 ? p * p * (3 - 2 * p) : p;      // chance de levar a série a partir da chance de levar um mapa
+
+
 /* =====================================================================
    3. CARREIRA · LIGAS · SI POINTS · G16 · ROTINA · TALK · STAFF
    ===================================================================== */
@@ -722,15 +820,25 @@ function loadSave(){
       win:!j.cur && !j.done && j.md === 0 ? 'pre' : null});           // saves anteriores ao calendário completo: continuam no Stage 2
     if(j.attrs !== 2){                               // saves anteriores: gera os atributos de especialidade que faltam a partir do rating, função e idade
       j.attrs = 2;
-      const fix = p => { const g = mkAttrs(p.ovr, p.role, mulb(hstr('x' + p.id)), !!p.igl, p.age); for(const k of Object.keys(g)) if(p[k] == null) p[k] = g[k]; };
+      const fix = p => { const g = mkAttrs(p.ovr, p.role, mulb(hstr('x' + p.id)), p.igl || p.role === 'IGL', p.age); for(const k of Object.keys(g)) if(p[k] == null) p[k] = g[k]; };
       Object.values(j.teams).forEach(t => t.players.concat(t.bench).forEach(fix)); j.fa.forEach(fix);
     }
     if(!j.igl2){                                    // saves antigos tinham IGL sorteado pelo jogo: mantém só os IGLs definidos no db.js
       j.igl2 = true;
-      for(const t of Object.values(j.teams)){ const d = TEAM_DB.find(x => x.id === t.id); t.players.concat(t.bench).forEach(p => p.igl = !!d && isIglOf(d, p.name)); }
+      for(const t of Object.values(j.teams)){ const d = TEAM_DB.find(x => x.id === t.id); t.players.concat(t.bench).forEach(p => p.igl = !!d && (d.igl === p.name || d.slots.some(s => s.role === 'IGL' && s.name === p.name))); }
     }
     if(!j.pool){                                    // saves anteriores ao pool real: acrescenta os jogadores do db.js ao mercado
       j.pool = true; const tk = namesOf(j.teams); j.fa.forEach(p => tk.add(p.name.toLowerCase())); j.fa.push(...realPool(tk));
+    }
+    if(!j.roles5){                                   // saves anteriores: Support/Anchor/Roamer viram Sup1/Sup2/Entry e o IGL passa a ser uma posição
+      j.roles5 = true;
+      const hint = {Entry:'entry', Flex:'flex', Support:'support', Anchor:'support', Roamer:'entry'}, old = {Support:'Sup1', Anchor:'Sup2', Roamer:'Entry'};
+      for(const t of Object.values(j.teams)){
+        assignRoles(t.players, t.players.map(p => p.igl ? 'IGL' : null), t.players.map(p => ({primary:hint[p.role]}))).forEach((r, i) => t.players[i].role = r);
+        t.bench.forEach(p => p.role = old[p.role] || p.role);
+      }
+      j.fa.forEach(p => p.role = old[p.role] || p.role);
+      Object.values(j.teams).forEach(t => t.players.concat(t.bench).forEach(p => delete p.igl)); j.fa.forEach(p => delete p.igl);
     }
     PID = 1 + Math.max(0, ...Object.values(j.teams).flatMap(t => t.players.concat(t.bench).map(p => p.id)), ...j.fa.map(p => p.id));
     return j;
@@ -752,14 +860,19 @@ const phTag = ph => ({sf:'semi', f:'final', T16:'oitavas', T8:'quartas', T4:'sem
    Stages = liga regional + playoffs (motor original). Kickoff, Majors, EWC e SI = torneio de 16 times, eliminatória simples.
    pts = SI Points por colocação [campeão, vice, semis, quartas, oitavas] · cash = prêmio em K$ para o usuário. */
 const EVENTS = {
-  kickoff:{name:'Kickoff',                    pts:[150,110,80,50,20],  cash:[40,25,15,8,0]},
-  major1: {name:'BLAST R6 Major · Maio',      pts:[500,400,300,200,100], cash:[200,140,100,60,20]},
+  kickoff:{name:'Kickoff',                    pts:[150,110,80,50,20],  cash:[40,25,15,8,0], bo:[1,1,3,3]},
+  major1: {name:'BLAST R6 Major · Maio',      pts:[500,400,300,200,100], cash:[200,140,100,60,20], bo:[1,3,3,5]},
   stage1: {name:'Stage 1', lg:1},
-  ewc:    {name:'Esports World Cup',          pts:[0,0,0,0,0],         cash:[250,170,120,70,20]},   // o campeão ganha EWC_BONUS (vaga no SI)
+  ewc:    {name:'Esports World Cup',          pts:[0,0,0,0,0],         cash:[250,170,120,70,20], bo:[3,3,3,5]},   // o campeão ganha EWC_BONUS (vaga no SI)
   stage2: {name:'Stage 2', lg:1},
-  major2: {name:'BLAST R6 Major · Novembro',  pts:[500,400,300,200,100], cash:[200,140,100,60,20]},
-  si:     {name:'Six Invitational',           pts:[0,0,0,0,0],         cash:[400,280,200,120,40]}
+  major2: {name:'BLAST R6 Major · Novembro',  pts:[500,400,300,200,100], cash:[200,140,100,60,20], bo:[1,3,3,5]},
+  si:     {name:'Six Invitational',           pts:[0,0,0,0,0],         cash:[400,280,200,120,40], bo:[3,3,3,5]}
 };
+/* Duração das séries (bo = [oitavas, quartas, semis, final]). Oficial (Ubisoft/BLAST 2026): Stage = fase de grupos em Bo1 e playoffs em Bo3;
+   Six Invitational = tudo Bo3 e grand final Bo5; Major = Swiss com Bo1 nas rodadas iniciais e Bo3 nas decisivas, playoffs em Bo3.
+   Estimado (a fonte não detalha): final do Major e do EWC em Bo5, playoffs do Kickoff em Bo1/Bo3. As chaves aqui são simplificadas (eliminação simples). */
+const boFor = (ph, idx) => S.tn ? (EVENTS[S.ev].bo[idx] || 1) : (ph === 'g' ? 1 : 3);
+const boLabel = bo => 'Bo' + bo;
 const CAL_FULL = ['kickoff','major1','stage1','ewc','stage2','major2','si'];
 const CAL_FIRST = ['stage2','major2','si'];             // a 1ª temporada começa no Stage 2 (set/2026)
 const SLOTS = {SAL:3, NAL:3, EML:3, CNL:2, APLA:1, APLN:2, APLO:2};      // 16 vagas por região (Kickoff, Majors, EWC)
@@ -785,7 +898,7 @@ function newCareer(userId){
   const teams = buildAll(), sched = {};
   LEAGUES.forEach(l => sched[l.id] = roundRobin(shuffle(Object.values(teams).filter(t => t.league === l.id).map(t => t.id))));
   const pw = teams[userId].power;
-  S = {v:3, igl2:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
+  S = {v:3, igl2:true, roles5:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
        fa:genFA(namesOf(teams)), hist:[], news:[], offers:[],
        cal:CAL_FIRST.slice(), ei:0, ev:'stage2', tn:null, evres:null, qual:null, season:newSeason(), win:'pre', lgName:'Stage 2 ' + START_YEAR, si0:teams[userId].si,
        club:{cash:Math.max(60, 100 + Math.round((pw - 75) * 4)), staff:{an:0, ps:0, md:0}, week:1, day:0, acts:[], talk:null, scout:false, fin:null}};
@@ -901,7 +1014,7 @@ function simStage(idx){
     if(st.ph === 'f'){ const po = S.po[l.id]; po.final = po.sfW.slice().sort((x, y) => po.seeds.indexOf(x) - po.seeds.indexOf(y)); }
     fixtures(l.id, idx).forEach((pair, slot) => {
       if(pair.includes(S.userId)){ user = {a:S.userId, b:pair[0] === S.userId ? pair[1] : pair[0], lg:l.id, slot, ph:st.ph}; return; }
-      commit(quickMatch(T(pair[0]), T(pair[1])), {idx, lg:l.id, slot, ph:st.ph}); n++;
+      commit(quickSeries(T(pair[0]), T(pair[1]), boFor(st.ph, idx)), {idx, lg:l.id, slot, ph:st.ph}); n++;
     });
   }
   return {user, n};
@@ -932,7 +1045,7 @@ function simTournRound(idx){
   let user = null, n = 0;
   S.tn.rounds[idx].forEach((pair, slot) => {
     if(pair.includes(S.userId)){ user = {a:S.userId, b:pair[0] === S.userId ? pair[1] : pair[0], lg:'TN', slot, ph:TN_PH[idx]}; return; }
-    commit(quickMatch(T(pair[0]), T(pair[1])), {idx, lg:'TN', slot, ph:TN_PH[idx]}); n++;
+    commit(quickSeries(T(pair[0]), T(pair[1]), boFor(TN_PH[idx], idx)), {idx, lg:'TN', slot, ph:TN_PH[idx]}); n++;
   });
   return {user, n};
 }
@@ -1015,12 +1128,12 @@ function mvpOf(m){
 const rating = p => p.r ? clamp(1 + (p.k - p.d) / p.r * .8 + p.fk / p.r * .6, .3, 2.5) : 1;
 function finishUserMatch(m, meta){
   commit(m, meta);
-  const won = m.winner === 'a', t = T(S.userId), c = S.club;
-  t.players.forEach(p => { p.stress = clamp(p.stress + Math.round((5 + (won ? 0 : 4)) * psy()), 0, 100); p.sat = clamp(p.sat + (won ? 3 : -3), 0, 100); });
+  const won = m.winner === 'a', t = T(S.userId), c = S.club, nm = m.maps ? m.maps.length : 1;       // série longa cansa mais: estresse por mapa jogado
+  t.players.forEach(p => { p.stress = clamp(p.stress + Math.round((5 + (won ? 0 : 4)) * psy() * nm), 0, 100); p.sat = clamp(p.sat + (won ? 3 : -3), 0, 100); });
   t.conf = clamp(t.conf + (won ? 2 : -3), 15, 80); t.chem = clamp(t.chem + (won ? 1 : -1), 0, 90);
   if(won) c.cash += Math.round(12 * (1 + .3 * c.staff.md));
   S.uh.push({ev:S.ev, idx:meta.idx, opp:m.t.b.id, won, sa:m.score.a, sb:m.score.b, ot:m.wasOT, map:m.map.name});
-  return finishMatchday({won, sa:m.score.a, sb:m.score.b, opp:m.t.b.id, ot:m.wasOT, map:m.map.name, mvp:mvpOf(m)});
+  return finishMatchday({won, sa:m.score.a, sb:m.score.b, opp:m.t.b.id, ot:m.wasOT, map:m.map.name, mvp:mvpOf(m), bo:m.bo || 1, maps:m.maps ? m.maps.map(x => ({n:x.map.name, sa:x.score.a, sb:x.score.b})) : null});
 }
 
 /* ---------- rotina semanal (3 dias entre as rodadas) ---------- */
@@ -1102,7 +1215,7 @@ const TALKS = [
     {t:'Aumentar o salário (−40 K$)', fx:{cash:-40, p1sat:12}, r:'O jogador renova o compromisso.'},
     {t:'Apelar ao projeto', roll:.6, ok:{p1sat:6, chem:2}, ko:{p1sat:-10, chem:-2}, r:'A conversa decide se o discurso convenceu.'},
     {t:'Ignorar o rumor', fx:{p1sat:-10}, r:'O silêncio é lido como desinteresse.'}]},
-  {id:'igl', w:c => c.ps.some(p => p.igl) ? 1 : 0, who:'igl', title:'Discussão de calls', text:c => `${c.p1} (IGL) e ${c.p2} discutem sobre a call do último round decisivo.`, opts:[
+  {id:'igl', w:c => c.ps.some(isIgl) ? 1 : 0, who:'igl', title:'Discussão de calls', text:c => `${c.p1} (IGL) e ${c.p2} discutem sobre a call do último round decisivo.`, opts:[
     {t:'Apoiar o IGL', fx:{p1sat:4, p2sat:-5, chem:1}, r:'A cadeia de comando se mantém.'},
     {t:'Ouvir o argumento do outro', fx:{p2sat:6, p1sat:-5, chem:-1}, r:'O IGL sente a autoridade abalada.'},
     {t:'Adotar call compartilhada', fx:{chem:4, gs:1, stress:2}, r:'As decisões passam a ser mais colaborativas.'}]},
@@ -1132,7 +1245,7 @@ function pickTalk(){
   const ctx = talkCtx(), pool = TALKS.map(x => ({x, w:x.w(ctx)})).filter(o => o.w > 0), ch = wpick(pool, o => o.w).x;
   let p1;
   if(ch.who === 'stress') p1 = ctx.ps.reduce((b, p) => p.stress > b.stress ? p : b);
-  else if(ch.who === 'igl') p1 = ctx.ps.find(p => p.igl) || ctx.rp();
+  else if(ch.who === 'igl') p1 = ctx.ps.find(isIgl) || ctx.rp();
   else p1 = ctx.rp();
   const p2 = pick(ctx.ps.filter(p => p !== p1));
   return {id:ch.id, p1:p1.name, p2:p2.name, i1:p1.id, i2:p2.id, done:null};
@@ -1207,7 +1320,7 @@ function takeOut(t, p){
   const si = t.players.indexOf(p); if(si < 0) return null;
   let r;
   if(t.bench.length){ r = t.bench.reduce((b, x) => x.ovr > b.ovr ? x : b); t.bench.splice(t.bench.indexOf(r), 1); } else r = backfill(t, p);
-  r.role = p.role; r.igl = false; p.igl = false; t.players[si] = r;
+  r.role = p.role; t.players[si] = r;
   refreshPower(t); return r;
 }
 function keepBench(t, p){
@@ -1216,8 +1329,8 @@ function keepBench(t, p){
 }
 /* p chega a um time da CPU: entra no lugar do titular mais fraco se for upgrade; senão vai ao banco */
 function cpuAdd(t, p){
-  p.igl = false; const W = weakest(t);
-  if(scoreP(p) > scoreP(W)){ p.role = W.role; W.igl = false; t.players[t.players.indexOf(W)] = p; keepBench(t, W); refreshPower(t); }
+  const W = weakest(t);
+  if(scoreP(p) > scoreP(W)){ p.role = W.role; t.players[t.players.indexOf(W)] = p; keepBench(t, W); refreshPower(t); }
   else keepBench(t, p);
 }
 const trimFA = () => {                          // o limite vale só para os gerados; jogadores reais do db.js (p.org) ficam até serem contratados
@@ -1287,7 +1400,7 @@ function buyPlayer(tid, id){
   const p = t && t.id !== S.userId ? squad(t).find(x => x.id === id) : null; if(!p) return 'Jogador indisponível.';
   if(u.bench.length >= MAX_BENCH) return `Banco cheio (máx. ${MAX_BENCH} reservas). Venda ou dispense alguém antes.`;
   const c = buyCost(t, p); if(S.club.cash < c) return 'Caixa insuficiente.';
-  S.club.cash -= c; t.bud += c; takeOut(t, p); p.igl = false; p.sat = 70; p.tx = winId(); u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
+  S.club.cash -= c; t.bud += c; takeOut(t, p); p.sat = 70; p.tx = winId(); u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
   addNews(`${u.short} contrata ${p.name} (${p.ovr}) de ${t.short} por ${c} K$`, p.ovr); save(); return null;
 }
 function sellTo(id, tid, fee){
@@ -1380,7 +1493,7 @@ function nextSeason(){
 const UI = {pickLeague:'SAL', selTeam:null, lgTab:null, gTab:'ALL', gMode:'proj', sFilter:'ALL', view:'select', sell:null,
   mk:{tab:'fa', lg:'ALL', role:'ALL', sort:'ovr', q:'', afford:false},
   speed:1, auto:false, phase:'idle', rs:null, ev:null, clock:0, frozen:false, timer:null, plantAt:null};
-let CM = null;                                  // partida em andamento
+let CM = null;                                  // mapa em andamento
 let PREVIEW = buildAll();
 
 const logo = (t, cls = '') => `<span class="logo ${cls}" style="--c:${t.color}">${esc(t.tag)}</span>`;
@@ -1480,7 +1593,7 @@ function selectHTML(){
       <div class="kv"><span>Mapas fortes</span><b class="green">${mp.best.map(x => x.n).join(', ')}</b></div>
       <div class="kv"><span>Mapas fracos</span><b class="red">${mp.worst.map(x => x.n).join(', ')}</b></div>
       <div class="h3" style="margin-top:14px">Elenco titular</div>
-      ${sel.players.map(p => `<div class="plr"><span><b>${esc(p.name)}</b>${p.igl ? ' <span class="tag gold">IGL</span>' : ''}${sel.star === p.name ? ' <span class="gold">★</span>' : ''}<br><span class="mut" style="font-size:11px">${p.role}</span></span><div class="bar"><i style="width:${(p.ovr - 50) * 2}%"></i></div><b class="right">${p.ovr}</b></div>`).join('')}
+      ${sel.players.map(p => `<div class="plr"><span><b>${esc(p.name)}</b>${isIgl(p) ? ' <span class="tag gold">IGL</span>' : ''}${sel.star === p.name ? ' <span class="gold">★</span>' : ''}<br><span class="mut" style="font-size:11px">${p.role}</span></span><div class="bar"><i style="width:${(p.ovr - 50) * 2}%"></i></div><b class="right">${p.ovr}</b></div>`).join('')}
       ${sel.bench.length ? `<div class="mut" style="font-size:12px;margin-top:8px">Reserva: ${sel.bench.map(p => esc(p.name)).join(', ')}</div>` : ''}
       <button class="btn gold" style="width:100%;margin-top:14px" data-act="start">▶ Iniciar carreira com ${esc(sel.short)}</button></div>`;
   }
@@ -1500,7 +1613,7 @@ const nextBtn = () => S.ei + 1 >= S.cal.length
   : `<button class="btn gold" data-act="next-event">▶ Próximo: ${esc(evName(S.cal[S.ei + 1]))}</button>`;
 function bracketHTML(){
   const bk = S.tn; if(!bk) return '';
-  const cols = TN_NAMES.map((nm, r) => `<div><div class="mut" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">${nm}</div>${(bk.rounds[r] || []).map((pair, s) => { const x = bk.res[r][s];
+  const cols = TN_NAMES.map((nm, r) => `<div><div class="mut" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">${nm} · ${boLabel(EVENTS[bk.ev].bo[r])}</div>${(bk.rounds[r] || []).map((pair, s) => { const x = bk.res[r][s];
     return `<div style="border:1px solid var(--line);border-radius:5px;padding:4px 8px;margin-bottom:8px;background:var(--bg2)">${pair.map(id => `<div class="kv" style="border:0;padding:3px 0;${x && x.w !== id ? 'opacity:.45' : ''}"><span>${tn(T(id), 'xs')}</span><b>${x ? (x.a === id ? x.sa : x.sb) : ''}</b></div>`).join('')}</div>`; }).join('') || '<div class="mut" style="font-size:12px">a definir</div>'}</div>`).join('');
   return `<div class="card"><h3>${esc(evName(bk.ev))} · chaveamento</h3><div class="scroll"><div style="display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:12px">${cols}</div></div>${bk.champ ? `<div class="gold" style="margin-top:6px;font-weight:800">🏆 Campeão: ${esc(T(bk.champ).name)}</div>` : ''}</div>`;
 }
@@ -1523,8 +1636,8 @@ function dashHTML(){
   } else {
     const f = userFixture(), lbl = mdLabel(S.md), resume = S.cur && S.cur.user;
     if(f){
-      const o = T(f.opp), p = winProb(u, o, 200), mp = bestWorstMaps(o), ok = canPlay() || resume;
-      hero = `<div class="card"><h3>Próxima partida · ${lbl}</h3>
+      const o = T(f.opp), bo = boFor(f.ph, S.md), p = seriesProb(winProb(u, o, 200), bo), mp = bestWorstMaps(o), ok = canPlay() || resume;
+      hero = `<div class="card"><h3>Próxima partida · ${lbl} <span class="tag gold">${boLabel(bo)}</span></h3>
         <div class="vs"><div class="t">${logo(u, 'lg')}<div class="nm">${esc(u.short)}</div><div class="mut">Poder ${u.power}</div></div><div class="x">VS</div><div class="t">${logo(o, 'lg')}<div class="nm">${esc(o.short)}</div><div class="mut">Poder ${o.power}</div></div></div>
         <div style="margin:14px 0"><div class="row" style="justify-content:space-between;font-size:12px"><span class="cyan"><b>${Math.round(p * 100)}%</b> vitória (simulação com seu estado atual)</span><span class="mut">${Math.round((1 - p) * 100)}%</span></div><div class="bar" style="margin-top:4px"><i style="width:${p * 100}%"></i></div></div>
         <div class="kv"><span>Estilo do adversário</span><b>${styleName(o)}</b></div>
@@ -1588,7 +1701,7 @@ function weekHTML(){
     if(i === c.day) return `<div class="card" style="border-color:var(--gold)"><h3>Dia ${i + 1} · escolha</h3><div class="stack" style="gap:8px">${Object.entries(ACTS).map(([k, v]) => `<button class="st" data-act="${k === 'map' || k === 'ind' ? 'train-menu' : 'day'}" data-a="${k}"><span class="ic">${v.ico}</span><span class="n">${v.name}</span><span class="d">${v.txt}</span></button>`).join('')}</div></div>`;
     return `<div class="card"><h3>Dia ${i + 1}</h3><p class="mut">Aguardando o dia anterior.</p></div>`;
   }).join('');
-  const rows = u.players.map(p => `<div class="pcard"><div class="row"><b>${esc(p.name)}</b>${p.igl ? '<span class="tag gold">IGL</span>' : ''}${isBurnout(p) ? '<span class="tag red">BURNOUT</span>' : ''}<span class="sp"></span><span class="mut" style="font-size:11px">Aim ${p.aim} · GS ${p.gs}</span></div>
+  const rows = u.players.map(p => `<div class="pcard"><div class="row"><b>${esc(p.name)}</b>${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}${isBurnout(p) ? '<span class="tag red">BURNOUT</span>' : ''}<span class="sp"></span><span class="mut" style="font-size:11px">Aim ${p.aim} · GS ${p.gs}</span></div>
     <div class="mrow"><span>Estresse</span>${meter(p.stress, stressCls(p.stress))}<b>${p.stress}</b></div><div class="mrow"><span>Satisfação</span>${meter(p.sat, 'g')}<b>${p.sat}</b></div></div>`).join('');
   let talk = '';
   if(tv){
@@ -1618,12 +1731,12 @@ function benchHTML(u){
 }
 function squadHTML(){
   const u = T(S.userId), mp = bestWorstMaps(u);
-  const cards = u.players.map(p => `<div class="pcard"><div class="row"><div><b style="font-size:16px">${esc(p.name)}</b> ${p.igl ? '<span class="tag gold">IGL</span>' : ''}${u.star === p.name ? ' <span class="gold">★</span>' : ''}${isBurnout(p) ? ' <span class="tag red">BURNOUT −15</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos · POT ${p.pot}</div></div><span class="sp"></span><div class="right"><div class="big" style="font-size:26px">${p.ovr}</div><div class="mut" style="font-size:10px;letter-spacing:.15em">RATING</div></div></div>
+  const cards = u.players.map(p => `<div class="pcard"><div class="row"><div><b style="font-size:16px">${esc(p.name)}</b> ${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}${u.star === p.name ? ' <span class="gold">★</span>' : ''}${isBurnout(p) ? ' <span class="tag red">BURNOUT −15</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos · POT ${p.pot}</div></div><span class="sp"></span><div class="right"><div class="big" style="font-size:26px">${p.ovr}</div><div class="mut" style="font-size:10px;letter-spacing:.15em">RATING</div></div></div>
     <div class="mrow"><span>Aim</span>${meter(p.aim, '')}<b>${p.aim}</b></div><div class="mrow"><span>Gamesense</span>${meter(p.gs, 'g')}<b>${p.gs}</b></div>${attrRows(p)}
     <div class="mrow"><span>Estresse</span>${meter(p.stress, stressCls(p.stress))}<b>${p.stress}</b></div><div class="mrow"><span>Satisfação</span>${meter(p.sat, 'g')}<b>${p.sat}</b></div>
     <div class="mut" style="font-size:12px;margin-top:6px">K/D ${p.k}-${p.d} · FK ${p.fk} · Rating ${rating(p).toFixed(2)} · Forma ${p.form > 0 ? '+' : ''}${p.form}</div>
     <div class="row" style="margin-top:8px;flex-wrap:wrap"><span class="mut" style="font-size:12px">Função</span><select data-rl="${p.id}" ${S.cur || (CM && !CM.finished) ? 'disabled' : ''}>${ROLES.map(r => `<option ${p.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
-      <span class="mut" style="font-size:12px" title="Entry/Roamer preferem Aim alto; Support/Anchor, Gamesense alto">encaixe <b class="${roleFit(p) > .2 ? 'green' : roleFit(p) < -.2 ? 'red' : 'mut'}">${roleFit(p) > 0 ? '+' : ''}${roleFit(p).toFixed(1)}</b></span>${p.adapt ? ` <span class="tag orange">adaptando ${p.adapt}</span>` : ''}</div>
+      <span class="mut" style="font-size:12px" title="Entry prefere Aim alto e abertura; Sup1, equipe e utilidade; Sup2, mental e clutch; IGL, liderança; Flex, adaptação">encaixe <b class="${roleFit(p) > .2 ? 'green' : roleFit(p) < -.2 ? 'red' : 'mut'}">${roleFit(p) > 0 ? '+' : ''}${roleFit(p).toFixed(1)}</b></span>${p.adapt ? ` <span class="tag orange">adaptando ${p.adapt}</span>` : ''}</div>
     <div class="row" style="margin-top:8px"><span class="mut" style="font-size:12px">Valor de mercado ${pval(p)} K$</span><span class="sp"></span><button class="btn sm" data-act="sell" data-id="${p.id}" ${windowOpen() ? '' : 'disabled'} title="${windowOpen() ? 'Ver propostas' : 'Janela fechada'}">💸 Vender</button></div></div>`).join('');
   const all = Object.values(S.teams).flatMap(t => t.players.filter(p => p.r >= 6).map(p => ({p, t}))).sort((a, b) => rating(b.p) - rating(a.p)).slice(0, 10);
   const top = all.map((x, i) => `<tr class="${x.t.id === S.userId ? 'me' : ''}"><td>${i + 1}</td><td><b>${esc(x.p.name)}</b></td><td>${logo(x.t, 'xs')} <span class="mut">${esc(x.t.short)}</span></td><td class="num">${x.p.k}-${x.p.d}</td><td class="num gold"><b>${rating(x.p).toFixed(2)}</b></td></tr>`).join('');
@@ -1674,7 +1787,7 @@ function mkListHTML(){
 }
 function mineHTML(){
   const u = T(S.userId), open = windowOpen();
-  const row = (p, st) => `<tr><td><b>${esc(p.name)}</b>${p.igl ? ' <span class="tag gold">IGL</span>' : ''}</td><td>${p.role}</td><td>${st ? 'Titular' : 'Reserva'}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num">${p.pot}</td><td class="num gold"><b>${pval(p)}</b></td>
+  const row = (p, st) => `<tr><td><b>${esc(p.name)}</b>${isIgl(p) ? ' <span class="tag gold">IGL</span>' : ''}</td><td>${p.role}</td><td>${st ? 'Titular' : 'Reserva'}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num">${p.pot}</td><td class="num gold"><b>${pval(p)}</b></td>
     <td><button class="btn sm" data-act="sell" data-id="${p.id}" ${open ? '' : 'disabled'}>💸 Vender</button>${st ? '' : ` <button class="btn sm danger" data-act="release" data-id="${p.id}" ${open ? '' : 'disabled'}>Dispensar</button>`}</td></tr>`;
   return `<div class="scroll"><table class="tbl"><thead><tr><th>Jogador</th><th>Função</th><th>Situação</th><th class="num">Idade</th><th class="num">OVR</th><th class="num">POT</th><th class="num">Valor K$</th><th></th></tr></thead><tbody>${u.players.map(p => row(p, true)).join('')}${u.bench.map(p => row(p, false)).join('')}</tbody></table></div>
     <p class="mut" style="font-size:12px;margin-top:8px">Vender um titular exige ao menos um reserva: o melhor reserva assume a vaga (e a função). Só times que ganhariam rating e têm orçamento fazem propostas.</p>`;
@@ -1783,38 +1896,76 @@ function openGlobal(){
 /* =====================================================================
    5. PARTIDA EM TEMPO REAL · RELATÓRIO · EVENTOS
    ===================================================================== */
+let CS = null;                                   // série em andamento (Bo1/Bo3/Bo5)
 function startUserMatch(){
   const cur = S.cur && S.cur.user ? S.cur : startMatchday();
   if(!cur) return;
   if(!cur.user){ const rep = finishMatchday(null); render(); showReport(rep); return; }
-  const u = T(cur.user.a), o = T(cur.user.b);
+  const u = T(cur.user.a), o = T(cur.user.b), bo = boFor(cur.user.ph, cur.idx), first = rnd() < .5 ? 'a' : 'b';
   CM = newMatch(u, o, 'a', false, S.club.staff.an);
   CM.meta = {idx:cur.idx, lg:cur.user.lg, slot:cur.user.slot, ph:cur.user.ph, user:true}; CM.ready = false; CM.finished = false;
-  CM.vp = {pool:MAPS.slice(), turn:rnd() < .5 ? 'a' : 'b', stage:'map'};          // veto interativo: você decide mapas e operadores
+  CS = {bo, need:(bo + 1) / 2, wins:{a:0, b:0}, plan:[], maps:[], i:0, over:false};
+  CM.vp = {pool:MAPS.slice(), seq:vetoSeq(bo), step:0, turn:first, first, stage:'map', pending:null};          // veto interativo: mapas, lados e operadores
   clearInterval(UI.timer);
   Object.assign(UI, {phase:'veto', auto:false, rs:null, ev:null, clock:0, frozen:false, skip:false, plantAt:null});
   UI.view = 'match'; render();
-  feedAdd({c:'big', h:`🗺 VETO · ${esc(CM.t.a.short)} × ${esc(CM.t.b.short)} · ${esc(CM.t[CM.vp.turn].short)} bane primeiro`});
+  feedAdd({c:'big', h:`🗺 VETO${bo > 1 ? ' DA SÉRIE ' + boLabel(bo) : ''} · ${esc(CM.t.a.short)} × ${esc(CM.t.b.short)} · ${esc(CM.t[first].short)} veta primeiro`});
   vetoStep();
 }
 /* conhecimento do rival no veto: Analista de Dados ou VOD da semana revelam afinidade de mapas e operadores-assinatura */
 const hasIntel = () => S.club.staff.an > 0 || S.club.scout;
 const vetoMsg = (m, v) => { const nm = v.team === '-' ? '' : `<b style="color:${m.t[v.team].color}">${esc(m.t[v.team].short)}</b>`;
-  return v.type === 'map' ? `${nm} bane <b>${esc(v.what)}</b>` : v.type === 'pick' ? `🗺 Mapa da partida: <b class="gold">${esc(v.what)}</b>`
+  return v.type === 'map' ? `${nm} bane <b>${esc(v.what)}</b>` : v.type === 'mappick' ? `${nm} <b class="cyan">escolhe</b> <b>${esc(v.what)}</b>`
+    : v.type === 'pick' ? `🗺 ${CS && CS.bo > 1 ? 'Mapa decisivo' : 'Mapa da partida'}: <b class="gold">${esc(v.what)}</b>`
     : `${nm} bane ${v.type === 'atkop' ? 'atacante' : 'defensor'} <b>${esc(v.what)}</b>${v.hit ? ` <span class="orange">— operador-assinatura de ${esc(m.t[v.vs].short)}: −2 no ${v.type === 'atkop' ? 'ataque' : 'defesa'}</span>` : ''}`; };
 function banMap(m, mp, team){
   m.vp.pool = m.vp.pool.filter(x => x !== mp); const v = {team, type:'map', what:mp.name}; m.veto.push(v);
-  feedAdd({c:'sys', h:vetoMsg(m, v)}); m.vp.turn = other(team);
+  feedAdd({c:'sys', h:vetoMsg(m, v)}); m.vp.turn = other(team); m.vp.step++;
+}
+function setSide(m, ent, side){                                // quem não escolheu o mapa decide o lado; no decisivo, quem vetou primeiro
+  const ch = ent.picker ? other(ent.picker) : m.vp.first;
+  ent.startAtk = side === 'atk' ? ch : other(ch);
+  feedAdd({c:'sys', h:`<b style="color:${m.t[ch].color}">${esc(m.t[ch].short)}</b> escolhe começar no <b>${side === 'atk' ? 'ATAQUE' : 'DEFESA'}</b> em ${esc(ent.map.name)}`});
+}
+function pickMap(m, mp, team){
+  const v = m.vp; v.pool = v.pool.filter(x => x !== mp); const ent = {map:mp, picker:team}; CS.plan.push(ent);
+  const lg = {team, type:'mappick', what:mp.name}; m.veto.push(lg); feedAdd({c:'sys', h:vetoMsg(m, lg)});
+  v.turn = other(team); v.step++;
+  if(other(team) === 'a'){ v.stage = 'side'; v.pending = ent; } else setSide(m, ent, aiSide(m.t.b, mp));
+}
+function sideChosen(side){
+  const m = CM, v = m && m.vp; if(!v || v.stage !== 'side' || !v.pending) return;
+  setSide(m, v.pending, side); v.pending = null; v.stage = 'map';
+  if(v.step >= v.seq.length && !v.pool.length) return loadMap(0);        // era o mapa decisivo: veto encerrado
+  vetoStep();
 }
 function vetoStep(){
-  const m = CM; if(!m || !m.vp || m.vp.stage !== 'map') return;
-  if(m.vp.pool.length === 1){
-    m.map = m.vp.pool[0]; const v = {team:'-', type:'pick', what:m.map.name}; m.veto.push(v); feedAdd({c:'sys', h:vetoMsg(m, v)});
-    m.vp.stage = 'ops'; updateMatch(); return;
+  const m = CM, v = m && m.vp; if(!v || v.stage !== 'map') return;
+  if(v.step >= v.seq.length){                                             // sobrou um mapa: o decisivo
+    const mp = v.pool[0], ent = {map:mp, picker:null}; CS.plan.push(ent); v.pool = [];
+    const lg = {team:'-', type:'pick', what:mp.name}; m.veto.push(lg); feedAdd({c:'sys', h:vetoMsg(m, lg)});
+    if(CS.bo === 1){ ent.startAtk = m.first; return loadMap(0); }
+    if(v.first === 'a'){ v.stage = 'side'; v.pending = ent; updateMatch(); return; }
+    setSide(m, ent, aiSide(m.t.b, mp)); return loadMap(0);
   }
-  if(m.vp.turn === 'b') setTimeout(() => { if(CM === m && m.vp.stage === 'map' && m.vp.turn === 'b'){ banMap(m, aiMapBan(m, m.vp.pool, 'b'), 'b'); vetoStep(); } }, 450);
+  if(v.turn === 'b') setTimeout(() => {
+    if(CM !== m || m.vp !== v || v.stage !== 'map' || v.turn !== 'b') return;
+    if(v.seq[v.step] === 'ban') banMap(m, aiMapBan(m, v.pool, 'b'), 'b'); else pickMap(m, aiMapPick(m, v.pool, 'b'), 'b');
+    vetoStep();
+  }, 450);
   updateMatch();
 }
+/* carrega o mapa i da série: novo confronto com o mapa e o lado inicial definidos; segue para os bans de operador */
+function loadMap(i){
+  const old = CM, pl = CS.plan[i], m = newMatch(old.t.a, old.t.b, 'a', false, old.an);
+  m.meta = old.meta; m.ready = false; m.finished = false; m.map = pl.map; m.first = pl.startAtk; m.vp = {stage:'ops'};
+  if(i > 0){ m.conf = {...old.conf}; m.chem = {...old.chem}; }           // a confiança segue de um mapa para o outro
+  CM = m; CS.i = i;
+  Object.assign(UI, {phase:'veto', auto:false, rs:null, ev:null, clock:0, frozen:false, skip:false, plantAt:null});
+  if(CS.bo > 1) feedAdd({c:'big', h:`MAPA ${i + 1}/${CS.bo} · ${esc(pl.map.name)} · ${esc(m.t[m.first].short)} começa no ATAQUE`});
+  updateMatch();
+}
+function nextMap(){ if(CS && !CS.over && CM && CM.done) loadMap(CS.i + 1); }
 function confirmOps(){
   const m = CM, a = $('#vb-atk'), d = $('#vb-def'); if(!m || !m.vp || m.vp.stage !== 'ops' || !a || !d) return;
   setOpBans(m, 'a', a.value, d.value); setOpBans(m, 'b', ...aiOpBans(m, 'b'));
@@ -1824,18 +1975,25 @@ function confirmOps(){
   updateMatch();
 }
 function vetoHTML(m){
-  const v = m.vp, u = m.t.a, o = m.t.b, know = hasIntel();
+  const v = m.vp, u = m.t.a, o = m.t.b, know = hasIntel(), cl = x => x > 0 ? 'green' : x < 0 ? 'red' : 'mut', f = x => (x > 0 ? '+' : '') + x.toFixed(1);
+  const plan = CS.bo > 1 ? `<div class="mut" style="font-size:11px;margin-bottom:8px">Série <b class="gold">${boLabel(CS.bo)}</b> · mapas: ${CS.plan.length ? CS.plan.map((p, i) => `${i + 1}º <b>${esc(p.map.name)}</b>`).join(' · ') : 'a definir'}</div>` : '';
+  if(v.stage === 'side'){
+    const mp = v.pending.map;
+    return `<h3>Escolha o lado · ${esc(mp.name)}</h3>${plan}<div class="mut" style="font-size:12px;margin-bottom:10px">${v.pending.picker ? `${esc(o.short)} escolheu este mapa: você decide o lado inicial.` : 'Mapa decisivo: você anuncia o lado inicial.'}
+      Viés do mapa: <b>${mp.atk > 0 ? 'favorece o ataque' : mp.atk < 0 ? 'favorece a defesa' : 'equilibrado'}</b> · sua afinidade <b class="${cl(aff(u, mp.id))}">${f(aff(u, mp.id))}</b>.</div>
+      <div class="row" style="flex-wrap:wrap"><button class="btn gold sp" data-act="veto-side" data-s="atk">⚔ Começar atacando</button><button class="btn cyan sp" data-act="veto-side" data-s="def">🛡 Começar defendendo</button></div>`;
+  }
   if(v.stage === 'map'){
-    const mine = v.turn === 'a';
-    const rows = v.pool.map(mp => { const au = aff(u, mp.id), ao = aff(o, mp.id), cl = x => x > 0 ? 'green' : x < 0 ? 'red' : 'mut', f = x => (x > 0 ? '+' : '') + x.toFixed(1);
-      return `<button class="rt" data-act="veto-map" data-m="${mp.id}" ${mine ? '' : 'disabled'}><span>${esc(mp.name)}</span><small>você <b class="${cl(au)}">${f(au)}</b> · rival ${know ? `<b class="${cl(ao)}">${f(ao)}</b>` : '<span class="mut">🔒</span>'}</small></button>`; }).join('');
-    return `<h3>Veto de mapas · ${v.pool.length} restantes</h3><div class="mut" style="font-size:12px;margin-bottom:8px">${mine ? '<b class="gold">Sua vez de banir.</b> Bana onde o rival é forte e você é fraco.' : 'O rival está escolhendo…'} O último mapa fica.</div>
+    const mine = v.turn === 'a', pick = v.seq[v.step] === 'pick';
+    const rows = v.pool.map(mp => { const au = aff(u, mp.id), ao = aff(o, mp.id);
+      return `<button class="rt" data-act="veto-map" data-m="${mp.id}" ${mine ? '' : 'disabled'}><span>${pick ? '✔ ' : '✖ '}${esc(mp.name)}</span><small>você <b class="${cl(au)}">${f(au)}</b> · rival ${know ? `<b class="${cl(ao)}">${f(ao)}</b>` : '<span class="mut">🔒</span>'}</small></button>`; }).join('');
+    return `<h3>${pick ? 'Escolha de mapa' : 'Veto de mapas'} · ${v.pool.length} restantes</h3>${plan}<div class="mut" style="font-size:12px;margin-bottom:8px">${mine ? `<b class="gold">Sua vez de ${pick ? 'ESCOLHER o mapa' : 'BANIR'}.</b> ${pick ? 'Escolha onde você é forte: o rival decide o lado.' : 'Bana onde o rival é forte e você é fraco.'}` : 'O rival está escolhendo…'} ${CS.bo === 1 ? 'O último mapa fica.' : ''}</div>
       <div class="stack" style="gap:6px">${rows}</div>
       <div class="mut" style="font-size:11.5px;margin-top:10px">Afinidade de −2 a +2. ${know ? '' : '🔒 A afinidade do rival é revelada com o Analista de Dados ou uma Sessão de VOD.'}</div>`;
   }
   const opt = (list, sig) => list.map(x => `<option value="${x}" ${know && x === sig ? 'selected' : ''}>${x}${know && x === sig ? ' ★ assinatura do rival' : ''}</option>`).join('');
-  return `<h3>Bans de operadores · ${esc(m.map.name)}</h3>
-    <div class="mut" style="font-size:12px;margin-bottom:10px">Escolha um atacante e um defensor do rival para banir. ${know ? 'Banir o operador-assinatura de ' + esc(o.short) + ' custa −2 ao lado dele.' : '🔒 Sem Analista/VOD você não sabe quais são os operadores-assinatura do rival.'}</div>
+  return `<h3>Bans de operadores · ${esc(m.map.name)}${CS.bo > 1 ? ' · mapa ' + (CS.i + 1) + '/' + CS.bo : ''}</h3>${plan}
+    <div class="mut" style="font-size:12px;margin-bottom:10px">Escolha um atacante e um defensor do rival para banir neste mapa. ${know ? 'Banir o operador-assinatura de ' + esc(o.short) + ' custa −2 ao lado dele.' : '🔒 Sem Analista/VOD você não sabe quais são os operadores-assinatura do rival.'}</div>
     <div class="mut" style="font-size:11px;margin-bottom:3px">Atacante banido</div><select id="vb-atk" style="width:100%;margin-bottom:10px">${opt(OPS.atk, o.sigA)}</select>
     <div class="mut" style="font-size:11px;margin-bottom:3px">Defensor banido</div><select id="vb-def" style="width:100%;margin-bottom:12px">${opt(OPS.def, o.sigD)}</select>
     <button class="btn gold" style="width:100%" data-act="veto-ops">✔ Confirmar bans</button>`;
@@ -1857,7 +2015,7 @@ function updateMatch(){
   const rlab = m.done ? 'FIM' : m.inOT ? `OT ${m.otPlayed + 1}/3` : `ROUND ${m.played + 1}/12`;
   const side = k => `<span class="role ${ak === k ? 'atk' : 'def'}">${ak === k ? '⚔ ATAQUE' : '🛡 DEFESA'}</span>`;
   $('#sb').innerHTML = `<div class="sb"><div class="side">${logo(A, 'lg')}<div><div class="nm" style="color:${A.color}">${esc(A.name)}</div><div>${m.done ? '' : side('a')} <span class="mut" style="font-size:11px">PWR ${A.power}</span></div></div></div>
-    <div class="mid"><div class="score">${m.score.a}<i>:</i>${m.score.b}</div><div class="clk" id="clk">3:00</div><div class="bar" style="margin:4px auto;width:170px"><i id="clkbar" style="width:0"></i></div><div class="inf">${rlab} · ${half}</div></div>
+    <div class="mid"><div class="score">${m.score.a}<i>:</i>${m.score.b}</div><div class="clk" id="clk">3:00</div><div class="bar" style="margin:4px auto;width:170px"><i id="clkbar" style="width:0"></i></div><div class="inf">${CS && CS.bo > 1 ? `SÉRIE ${boLabel(CS.bo)} <b class="gold">${CS.wins.a}–${CS.wins.b}</b> · MAPA ${CS.i + 1} · ` : ''}${rlab} · ${half}</div></div>
     <div class="side r">${logo(B, 'lg')}<div><div class="nm" style="color:${B.color}">${esc(B.name)}</div><div>${m.done ? '' : side('b')} <span class="mut" style="font-size:11px">PWR ${B.power}</span></div></div></div></div>`;
   updateClock();
   $('#mapbar').innerHTML = !m.map ? `<span>MAPA</span><span class="mp">a definir no veto…</span>` : m.vp ? `<span>MAPA</span><span class="mp">${esc(m.map.name)}</span><span>· definindo os bans de operadores</span>` : `<span>MAPA</span><span class="mp">${esc(m.map.name)}</span><span>· Bans: ${esc(A.short)} → <b>${m.bans.a.atk}</b>/<b>${m.bans.a.def}</b> · ${esc(B.short)} → <b>${m.bans.b.atk}</b>/<b>${m.bans.b.def}</b></span>${m.pen.a.atk + m.pen.a.def + m.pen.b.atk + m.pen.b.def ? '<span class="orange">· operador-assinatura banido (−2)</span>' : ''}`;
@@ -1882,7 +2040,13 @@ function updateClock(){
   else { el.textContent = fmtT(c); el.className = 'clk' + (ROUND_SEC - c < 30 ? ' low' : ''); $('#clkbar').style.width = (c / ROUND_SEC * 100) + '%'; }
 }
 function planHTML(m){
-  if(m.done) return `<h3>Partida encerrada</h3><button class="btn gold" style="width:100%" data-act="result">🏁 Ver resultado</button>`;
+  if(m.done){
+    const nx = CS && !CS.over ? CS.plan[CS.i + 1] : null;
+    if(nx && CS.wins.a < CS.need && CS.wins.b < CS.need){
+      return `<h3>Mapa ${CS.i + 1} encerrado</h3><div class="kv"><span>Placar do mapa</span><b>${m.score.a}–${m.score.b}</b></div><div class="kv"><span>Série ${boLabel(CS.bo)}</span><b class="gold">${CS.wins.a}–${CS.wins.b}</b></div>
+        <div class="kv"><span>Próximo mapa</span><b>${esc(nx.map.name)}</b></div><button class="btn gold" style="width:100%;margin-top:10px" data-act="next-map">▶ Próximo mapa</button>`; }
+    return `<h3>Partida encerrada</h3><button class="btn gold" style="width:100%" data-act="result">🏁 Ver resultado</button>`;
+  }
   if(UI.phase === 'veto') return vetoHTML(m);
   const my = sideOfUser(m), prep = UI.phase === 'prep', live = UI.phase === 'live', u = m.t.a;
   const ctrl = prep ? `<button class="btn gold" style="width:100%" data-act="start-round" ${m.ready ? '' : 'disabled'}>▶ Próximo round <kbd>Espaço</kbd></button>
@@ -1932,13 +2096,28 @@ function simAll(){
   UI.auto = false;
   while(!m.done){ const {lines} = runRoundAuto(m, null); lines.forEach(l => feedAdd(l, untimed(l.c) ? null : l.t)); }
   UI.phase = 'done'; updateMatch(); onMatchEnd();
+  simSeriesRest();
+}
+/* "Simular tudo" numa série: o que falta é jogado automaticamente, com a comissão decidindo os bans de operador */
+function simSeriesRest(){
+  while(CS && !CS.over && CM && CM.done){
+    loadMap(CS.i + 1); const m = CM;
+    for(const k of ['a', 'b']) setOpBans(m, k, ...aiOpBans(m, k));
+    m.vp = null; m.ready = true;
+    while(!m.done){ const {lines} = runRoundAuto(m, null); lines.forEach(l => feedAdd(l, untimed(l.c) ? null : l.t)); }
+    UI.phase = 'done'; updateMatch(); onMatchEnd();
+  }
 }
 function onMatchEnd(){
-  const m = CM; if(m.finished) return;
-  m.finished = true; UI.auto = false; clearInterval(UI.timer);
-  const rep = finishUserMatch(m, m.meta); m.report = rep;
-  updateMatch(); renderTop(); renderSide();
-  setTimeout(() => { if(CM === m) showReport(rep); }, 700);
+  const m = CM; if(m.mapDone) return;
+  m.mapDone = true; UI.auto = false; clearInterval(UI.timer);
+  CS.maps.push(m); CS.wins[m.winner]++;
+  if(CS.wins.a >= CS.need || CS.wins.b >= CS.need || CS.maps.length >= CS.bo){        // série decidida
+    CS.over = true; m.finished = true;
+    const rep = finishUserMatch(CS.bo === 1 ? m : seriesResult(CS.maps, CS.bo), m.meta); m.report = rep;
+    updateMatch(); renderTop(); renderSide();
+    setTimeout(() => { if(CM === m) showReport(rep); }, 700);
+  } else updateMatch();
 }
 
 /* ---------- simular evento inteiro ---------- */
@@ -1948,7 +2127,7 @@ function simEvent(){
   const step = () => {
     if(S.done){ closeModal(); UI.view = 'dash'; render(); showEventEnd(); return; }
     const c = S.cur || startMatchday();
-    if(c.user) finishUserMatch(quickMatch(T(c.user.a), T(c.user.b)), {idx:c.idx, lg:c.user.lg, slot:c.user.slot, ph:c.user.ph, user:true});
+    if(c.user) finishUserMatch(quickSeries(T(c.user.a), T(c.user.b), boFor(c.user.ph, c.idx)), {idx:c.idx, lg:c.user.lg, slot:c.user.slot, ph:c.user.ph, user:true});
     else finishMatchday(null);
     const p = $('#simprog'), b = $('#simbar');
     if(p) p.textContent = S.done ? 'Concluído' : mdLabel(Math.min(S.md, totalMD() - 1)) + '…';
@@ -1977,7 +2156,7 @@ function showReport(rep){
   if(r) head = `<div class="row" style="justify-content:center;gap:22px;margin:6px 0 14px"><div class="center">${logo(u, 'lg')}<div style="margin-top:6px;font-weight:800">${esc(u.short)}</div></div>
       <div class="center"><div class="big" style="font-size:52px;color:${r.won ? 'var(--cyan)' : 'var(--red)'}">${r.sa} : ${r.sb}</div><div class="tag ${r.won ? 'cyan' : 'red'}">${r.won ? 'VITÓRIA' : 'DERROTA'}${r.ot ? ' · OT' : ''}</div></div>
       <div class="center">${logo(opp, 'lg')}<div style="margin-top:6px;font-weight:800">${esc(opp.short)}</div></div></div>
-      <div class="kv"><span>Mapa</span><b>${esc(r.map)}</b></div><div class="kv"><span>MVP da partida</span><b class="gold">${esc(r.mvp.name)} <span class="mut">(${r.mvp.k}K/${r.mvp.d}D)</span></b></div>`;
+      ${r.maps ? `<div class="kv"><span>Série ${boLabel(r.bo)}</span><b>${r.maps.map(x => `${esc(x.n)} ${x.sa}–${x.sb}`).join(' · ')}</b></div>` : `<div class="kv"><span>Mapa</span><b>${esc(r.map)}</b></div>`}<div class="kv"><span>MVP da partida</span><b class="gold">${esc(r.mvp.name)} <span class="mut">(${r.mvp.k}K/${r.mvp.d}D)</span></b></div>`;
   else head = `<p class="mut" style="margin-bottom:10px">${rep.label} foi simulada sem a sua participação.</p>`;
   const alerts = al.map(a => `<div class="alert ${a.lv}" style="margin-top:8px"><div class="ic">${a.ic}</div><div><h4>${esc(a.t)}</h4><p>${esc(a.x)}</p></div></div>`).join('');
   const drama = rep.dropped ? `<div class="alert crit" style="margin-top:8px"><div class="ic">📉</div><div><h4>VOCÊ CAIU DA LINHA DE CORTE DO G16!</h4><p>O ranking mundial mudou: você despencou para #${rep.rankAfter}. A pressão é máxima.</p></div></div>`
@@ -2022,14 +2201,16 @@ document.addEventListener('click', e => {
     case 'hire': if(hireStaff(d.k)){ toast(`${STAFF[d.k].ico} <b>${STAFF[d.k].name}</b> agora é nível ${S.club.staff[d.k]}.`, 'ok'); render(); } break;
     case 'md-start': startUserMatch(); break;
     case 'start-round': startRound(); break;
-    case 'veto-map': { const m = CM; if(m && m.vp && m.vp.stage === 'map' && m.vp.turn === 'a'){ const mp = m.vp.pool.find(x => x.id === d.m); if(mp){ banMap(m, mp, 'a'); vetoStep(); } } break; }
+    case 'veto-map': { const m = CM, v = m && m.vp; if(v && v.stage === 'map' && v.turn === 'a' && v.step < v.seq.length){ const mp = v.pool.find(x => x.id === d.m); if(mp){ if(v.seq[v.step] === 'ban') banMap(m, mp, 'a'); else pickMap(m, mp, 'a'); vetoStep(); } } break; }
+    case 'veto-side': sideChosen(d.s); break;
+    case 'next-map': nextMap(); break;
     case 'veto-ops': confirmOps(); break;
     case 'speed': UI.speed = +d.v; updateMatch(); break;
     case 'skip-round': UI.skip = true; break;
     case 'auto': UI.auto = !UI.auto; updateMatch(); if(UI.auto && UI.phase === 'prep') startRound(); break;
     case 'simall': simAll(); break;
     case 'result': if(CM && CM.report) showReport(CM.report); break;
-    case 'report-ok': closeModal(); CM = null; UI.phase = 'idle'; UI.view = S.done ? 'dash' : 'week'; render(); break;
+    case 'report-ok': closeModal(); CM = null; CS = null; UI.phase = 'idle'; UI.view = S.done ? 'dash' : 'week'; render(); break;
     case 'sim-event': simEvent(); break;
     case 'next-event': if(S.done && S.ei + 1 < S.cal.length){ const id = advanceEvent(); UI.lgTab = null; UI.view = 'dash'; render();
       toast(`<b>${esc(evName(id))}</b> começou.${S.win ? ' A <b>janela de transferências</b> está aberta.' : ''}`, 'ok'); } break;
