@@ -307,6 +307,7 @@ function wpick(items, wf, r = rnd){let tot=0;const ws=items.map(i=>{const w=Math
    ===================================================================== */
 const LG = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
 
+const RIVAL_PAIRS = [];      // preenchido logo após TEAM_DB (pares de rivais diretos do db.js)
 /* Elenco no db.js: 'Nick' · 'Nick*' (IGL) · 'Nick:Entry' (função: Entry, Flex, Sup1, Sup2 ou IGL) · 'Nick=95' (rating) · 'Nick:Sup1=95{aim:97;gs:93;clu:80;age:24;pot:90}' (tudo) */
 const ROLE_KEY = {entry:'Entry', flex:'Flex', sup1:'Sup1', sup2:'Sup2', igl:'IGL', support:'Sup1', anchor:'Sup2', roamer:'Entry'};      // as 3 últimas chaves só existem para ler db.js antigos
 const parseSlot = s => {
@@ -382,7 +383,7 @@ function mkAttrs(ovr, role, r, igl, age = 25){
 function mkPlayer(o, r = rnd){
   const ovr = clamp(Math.round(o.ovr), 45, 99), sp = Math.round((r() - .5) * 8), role = o.role || ROLES_GEN[Math.floor(r() * ROLES_GEN.length)];
   const p = {id:mkId(), name:o.name, role, aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
-             stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, age:o.age, pot:o.pot, ...mkAttrs(ovr, role, r, false, o.age)};
+             stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, age:o.age, pot:o.pot, loy:loyOf(o.name, o.age, role), ...mkAttrs(ovr, role, r, false, o.age)};
   recalc(p); p.pot = Math.max(p.pot, p.ovr); return p;
 }
 /* valores definidos no db.js (Nick=OVR{aim:97;gs:93;clu:80;age:24;pot:90}) sobrepõem os gerados pelo jogo.
@@ -395,6 +396,7 @@ function applySlot(p, s){
   if(s.ovr != null && !has('aim') && !has('gs')) for(let i = 0; i < 8 && p.ovr !== s.ovr; i++){ const st = p.ovr < s.ovr ? 1 : -1; p.aim = clamp(p.aim + st, 45, 99); p.gs = clamp(p.gs + st, 45, 99); recalc(p); }
   for(const k of Object.keys(ATTRS)) if(has(k)) p[k] = clamp(a[k], 45, 99);
   if(has('age')) p.age = clamp(Math.round(a.age), 16, 45);
+  if(has('loy')) p.loy = clamp(Math.round(a.loy), 0, 100);
   p.pot = Math.max(has('pot') ? clamp(a.pot, 45, 99) : p.pot, p.ovr);
 }
 function mkBench(list, power, r2){
@@ -427,7 +429,7 @@ function realPool(taken){
   });
 }
 function genFA(taken){ const o = realPool(taken); for(let i = 0; i < 16; i++) o.push(genVet(taken)); for(let i = 0; i < 18; i++) o.push(genYoung(taken)); return o; }
-const budFor = power => 120 + Math.max(0, power - 70) * 10;      // orçamento de transferências da CPU (K$)
+const budFor = power => 70 + Math.max(0, power - 70) * 6;      // orçamento de transferências da CPU (K$): folga curta, o dinheiro não sobra
 const namesOf = teams => new Set(Object.values(teams).flatMap(t => t.players.concat(t.bench).map(p => p.name.toLowerCase())));
 
 /* ---------- construção de times ---------- */
@@ -436,6 +438,7 @@ const namesOf = teams => new Set(Object.values(teams).flatMap(t => t.players.con
    2) quem não tem dado vai para a posição que sobrou e melhor encaixa no perfil (Aim alto → Entry, Gamesense alto → Sup).
    O IGL nunca é adivinhado. Time sem IGL definido pode ficar com uma posição repetida. */
 const FAM = {Entry:'entry', Flex:'flex', Sup1:'support', Sup2:'support', IGL:'igl'};
+TEAM_DB.forEach(d => (d.rivals || []).forEach(r => RIVAL_PAIRS.push([d.id, r])));
 function assignRoles(players, fixed, hints = []){
   const out = fixed.slice(), used = {};
   fixed.forEach(r => { if(r) used[r] = 1; });
@@ -472,6 +475,7 @@ function buildTeam(d){
   players.forEach(recalc);
   assignRoles(players, d.slots.map(s => s.role || (d.igl === s.name ? 'IGL' : null)), d.slots.map(s => s.hint)).forEach((role, i) => players[i].role = role);
   players.forEach(p => Object.assign(p, mkAttrs(p.ovr, p.role, r3, p.role === 'IGL', p.age)));
+  players.forEach(p => { p.loy = loyOf(p.name, p.age, p.role); });
   players.forEach((p, i) => applySlot(p, d.slots[i]));
   const custom = d.slots.some(s => s.ovr != null || s.attrs.aim != null || s.attrs.gs != null);      // ratings definidos no db.js: o poder do time passa a ser a média deles
   const pw = custom ? Math.round(players.reduce((s, p) => s + p.ovr, 0) / players.length) : d.power;
@@ -489,7 +493,7 @@ function buildAll(){ const o = {}; TEAM_DB.forEach(d => o[d.id] = buildTeam(d));
 /* =====================================================================
    2. MOTOR DE PARTIDA — MD12, rounds de 3:00 em linha do tempo, troca de lados após o 6º
    ===================================================================== */
-const MAP_WEEK = .15, MAP_TR_MAX = 1.5;                                      // foco de mapa: +0,15 por semana, até +1,5
+const MAP_WEEK = .15, MAP_TR_MAX = 1.5, MAP_SLOTS = 3, MAP_SPLIT = [1, .8, .65];       // foco de mapa: +0,15/semana por mapa (dilui com 2 ou 3 mapas), até +1,5
 const aff  = (t, mapId) => ((hstr(t.id + mapId) % 9) - 4) * .5 + ((t.mapTr || {})[mapId] || 0);   // afinidade com o mapa: base −2 … +2 mais o treino
 const raff = (t, mapId, r) => ((hstr(t.id + mapId + 'r' + r) % 5) - 2) * .5;  // afinidade com a rota
 /* Rating efetivo em jogo: Burnout (estresse > 80) = −15; estresse alto e moral baixa também pesam */
@@ -834,6 +838,11 @@ function loadSave(){
     if(!j.train){                                    // saves anteriores: treinador no staff, plano de treino automático e diário de evolução
       j.train = true; j.club.staff.co = j.club.staff.co || 0; j.club.evo = []; j.club.evoLog = [];
     }
+    if(!j.fin){                                      // saves anteriores: lealdade dos jogadores e orçamentos da CPU mais apertados
+      j.fin = true;
+      Object.values(j.teams).forEach(t => { t.bud = Math.min(t.bud, budFor(t.power) + 120); t.players.concat(t.bench).forEach(p => { if(p.loy == null) p.loy = loyOf(p.name, p.age, p.role); }); });
+      j.fa.forEach(p => { if(p.loy == null) p.loy = loyOf(p.name, p.age, p.role); });
+    }
     if(!j.roles5){                                   // saves anteriores: Support/Anchor/Roamer viram Sup1/Sup2/Entry e o IGL passa a ser uma posição
       j.roles5 = true;
       const hint = {Entry:'entry', Flex:'flex', Support:'support', Anchor:'support', Roamer:'entry'}, old = {Support:'Sup1', Anchor:'Sup2', Roamer:'Entry'};
@@ -902,10 +911,10 @@ function newCareer(userId){
   const teams = buildAll(), sched = {};
   LEAGUES.forEach(l => sched[l.id] = roundRobin(shuffle(Object.values(teams).filter(t => t.league === l.id).map(t => t.id))));
   const pw = teams[userId].power;
-  S = {v:3, igl2:true, train:true, roles5:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
+  S = {v:3, igl2:true, fin:true, train:true, roles5:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
        fa:genFA(namesOf(teams)), hist:[], news:[], offers:[],
        cal:CAL_FIRST.slice(), ei:0, ev:'stage2', tn:null, evres:null, qual:null, season:newSeason(), win:'pre', lgName:'Stage 2 ' + START_YEAR, si0:teams[userId].si,
-       club:{cash:Math.max(60, 100 + Math.round((pw - 75) * 4)), staff:{an:0, ps:0, md:0, co:0}, week:1, scout:false, fin:null, evo:[], evoLog:[], mapFocus:null}};
+       club:{cash:Math.max(60, 100 + Math.round((pw - 75) * 4)), staff:{an:0, ps:0, md:0, co:0}, week:1, scout:false, fin:null, evo:[], evoLog:[], mapFocus:[]}};
   globalTable('proj').forEach(r => r.t.rkPrev = r.rank);
   save();
 }
@@ -1141,7 +1150,7 @@ function finishUserMatch(m, meta){
 
 /* ---------- semana: patrocínio, recuperação e evolução ---------- */
 const psy = () => 1 - .2 * S.club.staff.ps;
-const sponsorIncome = () => Math.round((40 + (T(S.userId).power - 70) * 2) * (1 + .3 * S.club.staff.md));
+const sponsorIncome = () => Math.round((30 + (T(S.userId).power - 70) * 1.5) * (1 + .3 * S.club.staff.md));
 const salaries = () => 15 * (S.club.staff.an + S.club.staff.ps + S.club.staff.md + (S.club.staff.co || 0));
 /* =====================================================================
    EVOLUÇÃO DOS JOGADORES (modelo do Esports Manager 2026)
@@ -1170,6 +1179,12 @@ function addXp(p, k, base){
   p.xp = p.xp || {}; p.xp[k] = (p.xp[k] || 0) + (room > 0 ? base * AGE_F(p.age) * COACH_F[coachLv()] * clamp(room / 6, 0, 1) * cond : 0);
 }
 function bump(p, k, d){ p[k] = clamp(attr(p, k) + d, 45, 99); if(k === 'aim' || k === 'gs') recalc(p); }
+const mapsOf = c => Array.isArray(c.mapFocus) ? c.mapFocus : c.mapFocus ? [c.mapFocus] : [];       // aceita saves antigos (um mapa só)
+function setMapFocus(i, v){                                  // define o espaço i (0–2) do foco de mapa, sem repetir mapa
+  const c = S.club, arr = [0, 1, 2].map(k => mapsOf(c)[k] || ''); arr[i] = v;
+  arr.forEach((x, k) => { if(v && x === v && k !== i) arr[k] = ''; });
+  c.mapFocus = arr.filter(Boolean); save();
+}
 function trainWeek(){
   const u = T(S.userId), c = S.club, lv = coachLv(), out = [];
   squad(u).forEach(p => {
@@ -1182,7 +1197,8 @@ function trainWeek(){
       else if(p.xp[k] <= -1){ p.xp[k] += 1; bump(p, k, -1); out.push({n:p.name, k, d:-1}); }
     });
   });
-  if(c.mapFocus && aff(u, c.mapFocus) !== undefined){ u.mapTr = u.mapTr || {}; u.mapTr[c.mapFocus] = Math.min(MAP_TR_MAX, Math.round(((u.mapTr[c.mapFocus] || 0) + MAP_WEEK) * 100) / 100); }
+  const mf = mapsOf(c).filter(id => MAPS.some(m => m.id === id)).slice(0, MAP_SLOTS);
+  mf.forEach(id => { u.mapTr = u.mapTr || {}; u.mapTr[id] = Math.min(MAP_TR_MAX, Math.round(((u.mapTr[id] || 0) + MAP_WEEK * MAP_SPLIT[mf.length - 1]) * 10000) / 10000); });      // vários mapas ao mesmo tempo dividem o esforço
   c.evo = out; c.evoLog = out.map(x => ({...x, y:S.year, w:c.week})).concat(c.evoLog || []).slice(0, 40);
   return out;
 }
@@ -1211,9 +1227,10 @@ function trainHTML(){
       <div class="row" style="margin-top:8px"><span class="mut" style="font-size:11px">${p.stress > 65 ? '⚠ estresse alto reduz o ganho · ' : ''}${dec > .05 ? 'desgaste ≈ −' + dec.toFixed(1) + '/ano por atributo' : 'sem desgaste (jovem)'}</span><span class="sp"></span><button class="btn sm" data-act="train-auto" data-p="${p.id}">🤖 Auto</button></div></div>`;
   };
   const mapRows = MAPS.map(mp => { const tr = (u.mapTr || {})[mp.id] || 0, a = aff(u, mp.id);
-    return `<div class="kv" style="align-items:center"><span>${mp.id === c.mapFocus ? '📍 ' : ''}<b>${esc(mp.name)}</b> <span class="mut" style="font-size:11px">afinidade <b class="${a > 0 ? 'green' : a < 0 ? 'red' : 'mut'}">${a > 0 ? '+' : ''}${a.toFixed(1)}</b></span></span><span style="width:110px">${meter(tr / MAP_TR_MAX * 100, 'g')}</span></div>`; }).join('');
-  const mapCard = `<div class="card"><h3>📍 Foco de mapa</h3><div class="row" style="flex-wrap:wrap;gap:10px;margin-bottom:8px"><select data-mf="1"><option value="">— nenhum —</option>${MAPS.map(mp => `<option value="${mp.id}" ${mp.id === c.mapFocus ? 'selected' : ''}>${esc(mp.name)}`).join('')}</select>
-    <span class="mut" style="font-size:12px">O time treina o mapa escolhido: +${MAP_WEEK} de afinidade por semana, até +${MAP_TR_MAX} (aparece no veto e pesa nos rounds). O efeito perde metade na virada de temporada.</span></div>${mapRows}</div>`;
+    return `<div class="kv" style="align-items:center"><span>${mapsOf(c).includes(mp.id) ? '📍 ' : ''}<b>${esc(mp.name)}</b> <span class="mut" style="font-size:11px">afinidade <b class="${a > 0 ? 'green' : a < 0 ? 'red' : 'mut'}">${a > 0 ? '+' : ''}${a.toFixed(1)}</b></span></span><span style="width:110px">${meter(tr / MAP_TR_MAX * 100, 'g')}</span></div>`; }).join('');
+  const mf = mapsOf(c), split = MAP_SPLIT[Math.max(0, mf.length - 1)];
+  const mapCard = `<div class="card"><h3>📍 Foco de mapa · até ${MAP_SLOTS} ao mesmo tempo</h3><div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">${[0, 1, 2].map(i => `<select data-mf="${i}"><option value="">— livre —</option>${MAPS.map(mp => `<option value="${mp.id}" ${mp.id === mf[i] ? 'selected' : ''}>${esc(mp.name)}`).join('')}</select>`).join('')}</div>
+    <p class="mut" style="font-size:12px;margin-bottom:8px">O time treina os mapas escolhidos: <b>+${(MAP_WEEK * split).toFixed(2)} de afinidade por semana em cada um</b> (${mf.length <= 1 ? 'esforço total em um mapa' : mf.length === 2 ? 'esforço dividido em 2 mapas' : 'esforço dividido em 3 mapas: mais amplo, porém mais lento por mapa'}), até +${MAP_TR_MAX}. Aparece no veto e pesa nos rounds; o efeito perde metade na virada de temporada.</p>${mapRows}</div>`;
   const log = (c.evoLog || []).slice(0, 14).map(x => `<div class="nw"><span>${x.y} · sem ${x.w}</span><span>${esc(x.n)} <b class="${x.d > 0 ? 'up' : 'dn'}">${x.d > 0 ? '+' : ''}${x.d}</b> ${TR_STATS[x.k]}</span></div>`).join('');
   return `<div class="stack"><div class="card"><div class="row" style="flex-wrap:wrap"><div><div class="big" style="font-size:22px">🎓 Treinador <span class="gold">${stars(COACH_STARS[lv])}</span></div>
       <div class="mut" style="font-size:12.5px">Evolução ×${COACH_F[lv]} · desgaste ×${COACH_DEC[lv]}${lv < 3 ? ' — contrate ou melhore o Treinador em Gestão' : ' — comissão de elite'}</div></div><span class="sp"></span>
@@ -1293,6 +1310,7 @@ function keepBench(t, p){
 }
 /* p chega a um time da CPU: entra no lugar do titular mais fraco se for upgrade; senão vai ao banco */
 function cpuAdd(t, p){
+  joined(p);
   const W = weakest(t);
   if(scoreP(p) > scoreP(W)){ p.role = W.role; t.players[t.players.indexOf(W)] = p; keepBench(t, W); refreshPower(t); }
   else keepBench(t, p);
@@ -1302,15 +1320,44 @@ const trimFA = () => {                          // o limite vale só para os ger
   if(gen.length > FA_CAP){ const keep = new Set(gen.sort((a, b) => pval(b) - pval(a)).slice(0, FA_CAP)); S.fa = S.fa.filter(p => p.org || keep.has(p)); }
 };
 
+/* ---------- rivalidades, lealdade e segurança financeira ----------
+   · Rival direto: pares definidos no db.js (rivals:[...]) + os 4 maiores poderes de uma mesma liga entre si.
+   · Lealdade (0–100): cresce +4 por temporada no mesmo clube, cai com moral baixa e recomeça (~40–54) ao chegar num clube novo.
+   · Segurança financeira (0–100): folga de caixa do clube (orçamento da CPU ou caixa do usuário).
+   O jogador aceita mudar de clube se a ATRAÇÃO (taxa acima do valor de mercado + estabilidade do destino) vencer a RESISTÊNCIA
+   (lealdade + segurança do clube atual + 45 se o destino é rival). Na prática: rival direto quase nunca; clube rico segura o elenco. */
+const secure = t => t.id === S.userId ? clamp(Math.round(S.club.cash / 6), 0, 100) : clamp(Math.round(t.bud / 3.5), 0, 100);
+const loyOf = (name, age, role) => clamp(Math.round(40 + (age - 20) * 1.8 + (hstr('L' + name) % 31) - 15 + (role === 'IGL' ? 8 : 0)), 20, 95);
+const loyal = p => p.loy == null ? 55 : p.loy;
+const joined = p => { p.loy = rint(40, 54); };
+function rivalFn(){
+  const top = {}; LEAGUES.forEach(l => top[l.id] = new Set(Object.values(S.teams).filter(t => t.league === l.id).sort((a, b) => b.power - a.power).slice(0, 4).map(t => t.id)));
+  const pairs = new Set(); RIVAL_PAIRS.forEach(([a, b]) => { pairs.add(a + '|' + b); pairs.add(b + '|' + a); });
+  return (a, b) => !!a && !!b && a.id !== b.id && (pairs.has(a.id + '|' + b.id) || (a.league === b.league && top[a.league].has(a.id) && top[a.league].has(b.id)));
+}
+function verdict(p, from, to, fee, isR){
+  if(!from || !to) return {ok:true};
+  const rival = isR(from, to), pay = fee / Math.max(10, pval(p));
+  const resist = .6 * loyal(p) + .25 * secure(from) + (rival ? 45 : 0) - (p.sat < 40 ? 15 : 0), pull = 50 + (pay - 1) * 40 + (secure(to) - 50) * .15;
+  return {ok:pull >= resist, rival, resist:Math.round(resist), pull:Math.round(pull),
+    msg:rival ? `${p.name} não aceita ir para ${to.short}: é rival direto de ${from.short}` : `${p.name} é leal a ${from.short} (lealdade ${loyal(p)}, clube com segurança financeira ${secure(from)})`};
+}
+
 /* ---------- mercado da CPU: cada time tenta melhorar seu titular mais fraco dentro do orçamento ---------- */
 function cpuMarket(kind){
-  const teams = shuffle(Object.values(S.teams).filter(t => t.id !== S.userId)), sold = {};
-  let deals = 0;
+  const teams = shuffle(Object.values(S.teams).filter(t => t.id !== S.userId)), sold = {}, isR = rivalFn(), said = new Set();
+  let deals = 0, nBlock = 0;
   teams.forEach(t => {
     for(let n = 0; n < (kind === 'pre' ? 2 : 1); n++){
-      if(rnd() > (kind === 'pre' ? .7 : .4)) continue;
+      if(rnd() > (kind === 'pre' ? .5 : .3)) continue;
       const W = weakest(t); let best = null, bs = 0;
-      const consider = (p, src, price) => { if(price > t.bud) return; const up = scoreP(p) - scoreP(W); if(up < 2) return; const s = up - price / 60 + rnd(); if(s > bs){ bs = s; best = {p, src, price}; } };
+      const consider = (p, src, price) => {
+        if(price > t.bud * .6 || t.bud - price < 25) return;                       // reserva de segurança: nenhum clube gasta o caixa todo
+        const up = scoreP(p) - scoreP(W); if(up < 2) return;
+        if(src){ const v = verdict(p, src, t, price, isR);                            // o jogador precisa aceitar (lealdade, segurança, rivalidade)
+          if(!v.ok){ if(v.rival && up >= 4 && nBlock < 3 && !said.has(p.id)){ said.add(p.id); nBlock++; addNews(`${p.name} recusa deixar ${src.short} para o rival ${t.short}`, p.ovr); } return; } }
+        const s = up - price / 60 + rnd(); if(s > bs){ bs = s; best = {p, src, price}; }
+      };
       S.fa.forEach(p => consider(p, null, faCost(p)));
       teams.forEach(o => {
         if(o === t) return;
@@ -1329,12 +1376,14 @@ function cpuMarket(kind){
 }
 /* propostas de times da CPU por um jogador: só quem ganharia rating e tem orçamento */
 function bidsFor(p, n = 4, prem = 0){
-  const val = pval(p), out = [];
+  const val = pval(p), out = [], skipped = [], u = T(S.userId), isR = rivalFn();
   Object.values(S.teams).forEach(t => {
     if(t.id === S.userId || scoreP(p) - scoreP(weakest(t)) < 2) return;
-    const fee = rnd5(val * (.8 + prem + rnd() * .3)); if(fee <= t.bud) out.push({tid:t.id, fee});
+    const fee = rnd5(val * (.8 + prem + rnd() * .3)); if(fee > t.bud * .8 || t.bud - fee < 25) return;
+    if(isR(u, t) && !verdict(p, u, t, fee, isR).ok){ skipped.push(t.short); return; }        // rival direto do seu clube: o jogador recusa
+    out.push({tid:t.id, fee});
   });
-  return out.sort((a, b) => b.fee - a.fee).slice(0, n);
+  const r = out.sort((a, b) => b.fee - a.fee).slice(0, n); r.skipped = skipped; return r;
 }
 function genOffers(){
   const out = [];
@@ -1351,15 +1400,16 @@ function signFA(id){
   const u = T(S.userId), p = S.fa.find(x => x.id === id), g = txGuard(); if(g) return g; if(!p) return 'Jogador indisponível.';
   if(u.bench.length >= MAX_BENCH) return `Banco cheio (máx. ${MAX_BENCH} reservas). Venda ou dispense alguém antes.`;
   const c = faCost(p); if(S.club.cash < c) return 'Caixa insuficiente.';
-  S.club.cash -= c; takeFA(p); p.sat = 70; p.tx = winId(); p.plan = autoPlan(p); p.xp = {}; u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
+  S.club.cash -= c; takeFA(p); joined(p); p.sat = 70; p.tx = winId(); p.plan = autoPlan(p); p.xp = {}; u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
   addNews(`${u.short} assina ${p.name} (${p.ovr}) como agente livre por ${c} K$`, p.ovr); save(); return null;
 }
-function buyPlayer(tid, id){
+function buyPlayer(tid, id, boost = false){
   const u = T(S.userId), t = T(tid), g = txGuard(); if(g) return g;
   const p = t && t.id !== S.userId ? squad(t).find(x => x.id === id) : null; if(!p) return 'Jogador indisponível.';
   if(u.bench.length >= MAX_BENCH) return `Banco cheio (máx. ${MAX_BENCH} reservas). Venda ou dispense alguém antes.`;
-  const c = buyCost(t, p); if(S.club.cash < c) return 'Caixa insuficiente.';
-  S.club.cash -= c; t.bud += c; takeOut(t, p); p.sat = 70; p.tx = winId(); p.plan = autoPlan(p); p.xp = {}; u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
+  const c = boost ? rnd5(buyCost(t, p) * 1.5) : buyCost(t, p); if(S.club.cash < c) return 'Caixa insuficiente.';
+  const v = verdict(p, t, u, c, rivalFn()); if(!v.ok) return v.msg + (boost ? ' — mesmo com a oferta reforçada (+50%).' : '.');
+  S.club.cash -= c; t.bud += c; takeOut(t, p); joined(p); p.sat = 70; p.tx = winId(); p.plan = autoPlan(p); p.xp = {}; u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
   addNews(`${u.short} contrata ${p.name} (${p.ovr}) de ${t.short} por ${c} K$`, p.ovr); save(); return null;
 }
 function sellTo(id, tid, fee){
@@ -1369,6 +1419,7 @@ function sellTo(id, tid, fee){
   if(p.tx === winId()) return flipMsg;
   if(starter && !u.bench.length) return 'Você precisa de um reserva para cobrir a vaga antes de vender um titular.';
   if(t.bud < fee) return `${t.short} não tem mais orçamento para essa proposta.`;
+  const isR = rivalFn(), vv = verdict(p, u, t, fee, isR); if(isR(u, t) && !vv.ok) return vv.msg + '.';
   const rep = takeOut(u, p);
   S.club.cash += fee; t.bud -= fee; u.chem = clamp(u.chem - 2, 0, 100);
   cpuAdd(t, p); refreshPower(u);
@@ -1422,9 +1473,9 @@ function nextSeason(){
   S.year++;
   Object.values(S.teams).forEach(t => {
     if(t.mapTr) Object.keys(t.mapTr).forEach(k => t.mapTr[k] = Math.round(t.mapTr[k] * 5) / 10);      // o treino de mapas perde metade do efeito na virada
-    squad(t).forEach(p => { p.adapt = 0; p.age++; if(t.id === S.userId) p.pot = Math.max(p.pot, p.ovr); else progress(p); p.stress = rint(15, 30); p.sat = Math.round(p.sat + (70 - p.sat) * .5); p.form = 0; p.k = p.d = p.r = p.fk = p.cl = 0; });
+    squad(t).forEach(p => { p.adapt = 0; p.loy = clamp(loyal(p) + (p.tx && String(p.tx).startsWith((S.year - 1) + ':') ? 0 : 4) - (p.sat < 45 ? 6 : 0), 15, 95); p.age++; if(t.id === S.userId) p.pot = Math.max(p.pot, p.ovr); else progress(p); p.stress = rint(15, 30); p.sat = Math.round(p.sat + (70 - p.sat) * .5); p.form = 0; p.k = p.d = p.r = p.fk = p.cl = 0; });
     refreshPower(t);
-    t.bud = Math.min(600, t.bud + 80 + Math.max(0, t.power - 70) * 6 + Math.min(90, Math.round(t.si / 15)));      // quem pontuou mais na temporada arrecada mais
+    t.bud = Math.min(360, t.bud + 45 + Math.max(0, t.power - 70) * 3 + Math.min(45, Math.round(t.si / 25)));      // quem pontuou mais na temporada arrecada mais
     const gone = squad(t).filter(retires).sort((a, b) => t.bench.includes(b) - t.bench.includes(a));
     gone.forEach(p => { takeOut(t, p); if(t.id === S.userId) info.myRetired.push(p); if(p.ovr >= 85) info.legends.push({p, t}); });
   });
@@ -1646,7 +1697,7 @@ function squadHTML(){
   const u = T(S.userId), mp = bestWorstMaps(u);
   const cards = u.players.map(p => `<div class="pcard"><div class="row"><div><b style="font-size:16px">${esc(p.name)}</b> ${isIgl(p) ? '<span class="tag gold">IGL</span>' : ''}${u.star === p.name ? ' <span class="gold">★</span>' : ''}${isBurnout(p) ? ' <span class="tag red">BURNOUT −15</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos · POT ${p.pot} ${stars(potStars(p))}</div></div><span class="sp"></span><div class="right"><div class="big" style="font-size:26px">${p.ovr}</div><div class="mut" style="font-size:10px;letter-spacing:.15em">RATING</div></div></div>
     <div class="mrow"><span>Aim</span>${meter(p.aim, '')}<b>${p.aim}</b></div><div class="mrow"><span>Gamesense</span>${meter(p.gs, 'g')}<b>${p.gs}</b></div>${attrRows(p)}
-    <div class="mrow"><span>Estresse</span>${meter(p.stress, stressCls(p.stress))}<b>${p.stress}</b></div><div class="mrow"><span>Satisfação</span>${meter(p.sat, 'g')}<b>${p.sat}</b></div>
+    <div class="mrow"><span>Estresse</span>${meter(p.stress, stressCls(p.stress))}<b>${p.stress}</b></div><div class="mrow"><span>Satisfação</span>${meter(p.sat, 'g')}<b>${p.sat}</b></div><div class="mrow" title="Lealdade ao clube: cresce +4 por temporada, cai com moral baixa"><span>Lealdade</span>${meter(loyal(p), 'g')}<b>${loyal(p)}</b></div>
     <div class="mut" style="font-size:12px;margin-top:6px">K/D ${p.k}-${p.d} · FK ${p.fk} · Rating ${rating(p).toFixed(2)} · Forma ${p.form > 0 ? '+' : ''}${p.form}</div>
     <div class="row" style="margin-top:8px;flex-wrap:wrap"><span class="mut" style="font-size:12px">Função</span><select data-rl="${p.id}" ${S.cur || (CM && !CM.finished) ? 'disabled' : ''}>${ROLES.map(r => `<option ${p.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
       <span class="mut" style="font-size:12px" title="Entry prefere Aim alto e abertura; Sup1, equipe e utilidade; Sup2, mental e clutch; IGL, liderança; Flex, adaptação">encaixe <b class="${roleFit(p) > .2 ? 'green' : roleFit(p) < -.2 ? 'red' : 'mut'}">${roleFit(p) > 0 ? '+' : ''}${roleFit(p).toFixed(1)}</b></span>${p.adapt ? ` <span class="tag orange">adaptando ${p.adapt}</span>` : ''}</div>
@@ -1689,14 +1740,21 @@ function mkRows(){
 }
 function mkListHTML(){
   const u = T(S.userId), open = windowOpen(), cash = S.club.cash, full = u.bench.length >= MAX_BENCH, {n, rows} = mkRows();
-  const body = rows.map(({p, t, price}) => {
+  const isR = rivalFn(), body = rows.map(({p, t, price}) => {
     const why = !open ? 'Janela fechada' : full ? 'Banco cheio' : price > cash ? 'Caixa insuficiente' : '';
+    const v = t && !why ? verdict(p, t, u, price, isR) : null, bp = rnd5(price * 1.5), vb = t && v && !v.ok ? verdict(p, t, u, bp, isR) : null;
+    const btn = !t ? `<button class="btn sm ${why ? '' : 'gold'}" data-act="sign" data-id="${p.id}" ${why ? 'disabled' : ''} title="${why}">Contratar</button>`
+      : why ? `<button class="btn sm" disabled title="${why}">Contratar</button>`
+      : v.ok ? `<button class="btn sm gold" data-act="buy" data-id="${p.id}" data-t="${t.id}">Contratar</button>`
+      : vb.ok && cash >= bp ? `<button class="btn sm gold" data-act="buy" data-id="${p.id}" data-t="${t.id}" data-boost="1" title="${esc(v.msg)} — oferta reforçada de ${bp} K$ convence">+50% · ${bp}</button>`
+      : `<button class="btn sm" disabled title="${esc(v.msg)}">${v.rival ? '⚔ Rival' : '🔒 Leal'}</button>`;
     return `<tr><td><b>${esc(p.name)}</b>${t && t.star === p.name ? ' <span class="gold">★</span>' : ''}</td><td>${p.role}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num ${p.pot > p.ovr ? 'green' : 'mut'}">${p.pot}</td><td class="mut" style="font-size:11px;white-space:nowrap" title="${Object.keys(ATTRS).map(k => ATTR_LONG[k] + ' ' + attr(p, k)).join(' · ')}">${topAttrs(p, 2).map(x => `${ATTRS[x.k]} ${attr(p, x.k)}`).join(' · ')}</td>
-      <td>${t ? `${tn(t)}<span class="mut" style="font-size:11px">${t.players.includes(p) ? 'titular' : 'reserva'}</span>` : p.org ? `<span class="${p.t2 ? 'cyan' : 'mut'}">${p.t2 ? 'Tier 2' : 'Sem contrato'} · ${esc(p.org)}</span>` : '<span class="mut">Agente livre</span>'}</td>
-      <td class="num gold"><b>${price}</b></td><td><button class="btn sm ${why ? '' : 'gold'}" data-act="${t ? 'buy' : 'sign'}" data-id="${p.id}"${t ? ` data-t="${t.id}"` : ''} ${why ? 'disabled' : ''} title="${why}">Contratar</button></td></tr>`;
+      <td class="num ${t ? (loyal(p) >= 70 ? 'orange' : 'mut') : ''}" title="Lealdade ao clube atual">${t ? loyal(p) : ''}</td>
+      <td>${t ? `${tn(t)}${isR(u, t) ? ' <span class="tag red">rival</span>' : ''}<span class="mut" style="font-size:11px">${t.players.includes(p) ? 'titular' : 'reserva'}</span>` : p.org ? `<span class="${p.t2 ? 'cyan' : 'mut'}">${p.t2 ? 'Tier 2' : 'Sem contrato'} · ${esc(p.org)}</span>` : '<span class="mut">Agente livre</span>'}</td>
+      <td class="num gold"><b>${price}</b></td><td>${btn}</td></tr>`;
   }).join('');
   return `<div class="mut" style="font-size:12px;margin-bottom:6px">${n} jogador(es)${n > 50 ? ' — mostrando os 50 primeiros; refine os filtros' : ''}</div>
-    <div class="scroll"><table class="tbl"><thead><tr><th>Jogador</th><th>Função</th><th class="num">Idade</th><th class="num">OVR</th><th class="num">POT</th><th title="Os atributos em que o jogador mais se destaca (acima do próprio rating)">Destaques</th><th>Time</th><th class="num">Preço K$</th><th></th></tr></thead><tbody>${body || '<tr><td colspan="9" class="mut">Nenhum jogador com esses filtros.</td></tr>'}</tbody></table></div>`;
+    <div class="scroll"><table class="tbl"><thead><tr><th>Jogador</th><th>Função</th><th class="num">Idade</th><th class="num">OVR</th><th class="num">POT</th><th title="Os atributos em que o jogador mais se destaca (acima do próprio rating)">Destaques</th><th class="num" title="Lealdade ao clube atual: jogadores leais recusam sair, e rivais diretos quase nunca aceitam">Leal.</th><th>Time</th><th class="num">Preço K$</th><th></th></tr></thead><tbody>${body || '<tr><td colspan="10" class="mut">Nenhum jogador com esses filtros.</td></tr>'}</tbody></table></div>`;
 }
 function mineHTML(){
   const u = T(S.userId), open = windowOpen();
@@ -1730,7 +1788,7 @@ function marketHTML(){
     : f.tab === 'news' ? (S.news.slice(0, 50).map(n => `<div class="nw"><span>${n.y}</span><span>${esc(n.t)}</span></div>`).join('') || '<p class="mut">Sem movimentações ainda.</p>')
     : `${filt}<div id="mk-list">${mkListHTML()}</div>`;
   return `<div class="stack"><div class="card"><div class="row" style="flex-wrap:wrap"><div><div class="big gold">${S.club.cash} K$</div><div class="mut">Caixa · banco ${u.bench.length}/${MAX_BENCH}</div></div><span class="sp"></span>
-      <div class="mut" style="font-size:12px;max-width:520px;text-align:right">Agentes livres custam 60% do valor de mercado; jogadores de outros times custam o valor (reservas) ou +30% (titulares; +40% se for a estrela). Cada contratação tira 3 de química.</div></div></div>
+      <div class="mut" style="font-size:12px;max-width:520px;text-align:right">Agentes livres custam 60% do valor de mercado; jogadores de outros times custam o valor (reservas) ou +30% (titulares; +40% se for a estrela). Cada contratação tira 3 de química.<br>🛡 Segurança financeira do seu clube: <b class="${secure(u) >= 60 ? 'green' : secure(u) >= 30 ? 'orange' : 'red'}">${secure(u)}/100</b> · ⚔ Rivais diretos: ${(() => { const r = rivalFn(), l = Object.values(S.teams).filter(x => r(u, x)); return l.length ? l.map(x => esc(x.short)).join(', ') : 'nenhum'; })()}. Jogadores leais recusam sair; rivais diretos quase nunca aceitam (só com oferta +50% e pouca lealdade).</div></div></div>
     <div class="alert ${st[0]}"><div class="ic">${st[1]}</div><div><h4>${st[2]}</h4><p>${st[3]}</p></div></div>
     <div class="tabs">${tabs}</div><div class="card">${body}</div></div>`;
 }
@@ -1742,6 +1800,7 @@ function openSell(id){
     <div class="kv"><span>Rating · idade · potencial</span><b>${p.ovr} · ${p.age} anos · ${p.pot}</b></div><div class="kv"><span>Valor de mercado</span><b class="gold">${pval(p)} K$</b></div>
     ${blocked ? '<div class="alert warn" style="margin:10px 0"><div class="ic">⚠️</div><div><h4>Sem reserva</h4><p>Contrate um reserva antes de vender um titular.</p></div></div>' : ''}
     <div class="h3" style="margin-top:14px">Propostas dos times</div>
+    ${bids.skipped && bids.skipped.length ? `<p class="orange" style="font-size:12.5px;margin-bottom:6px">⛔ ${esc(bids.skipped.join(', '))}: rival(is) direto(s) do seu clube — ${esc(p.name)} recusa sair para eles.</p>` : ''}
     ${locked ? `<p class="mut">${flipMsg}</p>` : ''}
     ${bids.length ? bids.map((b, i) => `<div class="kv" style="align-items:center"><span>${tn(T(b.tid))}</span><span><b class="gold">${b.fee} K$</b> <button class="btn sm gold" data-act="sell-ok" data-i="${i}" ${blocked ? 'disabled' : ''}>Aceitar</button></span></div>`).join('')
       : locked ? '' : '<p class="mut">Nenhum time se interessou agora (é preciso ser upgrade para o time e caber no orçamento). Reservas sem procura podem ser dispensados.</p>'}`, true);
@@ -2129,7 +2188,7 @@ document.addEventListener('click', e => {
     case 'mk-tab': UI.mk.tab = d.tab; rerender(); break;
     case 'mk-afford': UI.mk.afford = !UI.mk.afford; rerender(); break;
     case 'sign': case 'buy': {
-      const p = a === 'sign' ? S.fa.find(x => x.id === +d.id) : (T(d.t) ? squad(T(d.t)).find(x => x.id === +d.id) : null), r = a === 'sign' ? signFA(+d.id) : buyPlayer(d.t, +d.id);
+      const p = a === 'sign' ? S.fa.find(x => x.id === +d.id) : (T(d.t) ? squad(T(d.t)).find(x => x.id === +d.id) : null), r = a === 'sign' ? signFA(+d.id) : buyPlayer(d.t, +d.id, d.boost === '1');
       if(r) toast(esc(r), 'warn'); else toast(`<b>${esc(p.name)}</b> (${p.ovr}) chegou ao banco de reservas. Promova-o no <b>Elenco</b> se quiser escalá-lo.`, 'ok');
       rerender(); break; }
     case 'sell': openSell(+d.id); break;
@@ -2157,7 +2216,7 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('change', e => {
-  if(S && e.target.dataset && e.target.dataset.mf){ S.club.mapFocus = e.target.value || null; save(); rerender(); return; }
+  if(S && e.target.dataset && e.target.dataset.mf !== undefined){ setMapFocus(+e.target.dataset.mf, e.target.value); rerender(); return; }
   if(S && e.target.dataset && e.target.dataset.tp){ const [id, sl] = e.target.dataset.tp.split(':'); setPlan(+id, +sl, e.target.value); rerender(); return; }
   if(S && e.target.dataset && e.target.dataset.rl){ const r = setRole(+e.target.dataset.rl, e.target.value); if(r) toast(esc(r), 'warn'); rerender(); return; }
   const k = e.target.dataset && e.target.dataset.mk; if(!k || k === 'q' || !S) return; UI.mk[k] = e.target.value; rerender(); });

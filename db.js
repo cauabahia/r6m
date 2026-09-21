@@ -29,7 +29,7 @@
               Dentro das chaves separe com ; (ponto e vírgula). Chaves aceitas:
                 aim, gs, clu (clutch), led (liderança), tw (equipe), roam (roaming), open (abertura),
                 util (utilidade), men (mental), info (informação), cons (consistência), adp (adaptação),
-                age (idade) e pot (potencial). Valores de 45 a 99.
+                age (idade), pot (potencial) e loy (lealdade ao clube, 0–100). Valores de 45 a 99 (loy de 0 a 100).
               ESTE ARQUIVO JÁ VEM PREENCHIDO com o rating e a função que o jogo usava (Nick:Função=OVR). Basta trocar os números.
               POSIÇÕES: Entry, Flex e Support (Sup1/Sup2) vêm do campo "role" de cada jogador na Liquipedia (set/2026); IGL (*) é o 1º jogador do time
               marcado como IGL lá; sem isso, o capitão do time na Liquipedia; sem isso, ESTIMADO pelo maior atributo de liderança (fora os Entry). Todo time tem um IGL.
@@ -43,6 +43,9 @@
               ewc:1        campeão da EWC (ganha +400 SI Points e o troféu 🏆 na 1ª temporada)
               star:'Nick'  jogador-estrela (rating mais alto do time; mais caro no mercado)
               coach:'…', note:'…', ex:'…'   textos informativos
+              rivals:['id','id']   rivais diretos do time (vale nos dois sentidos). Jogadores NÃO aceitam ir de um rival para o outro
+                           (só com oferta bem acima do valor e pouca lealdade). Além destes pares, os 4 maiores poderes de cada liga
+                           são rivais entre si automaticamente. Ex.: rivals:['furia','liquid']
    ===================================================================== */
 const LEAGUES = [
   {id:'SAL',  tag:'SAL',   name:'South America League',     region:'América do Sul',   color:'#35e08a'},
@@ -341,9 +344,9 @@ const POOL_ROWS = [
 const TEAM_ROWS = [
   // ---- SAL ----
   ['fluxo','Fluxo W7M','W7M','SAL',91,'Paluh:Entry=95,Lobin:Flex=91,dotz*=86,HATEZ:Sup1=88,Fntzy:Entry=88',{tag:'W7M',color:'#ffb100',src:1,coach:'thug (analista: Dan)',note:'Elenco reformulado em 31/08'}],
-  ['faze','FaZe Clan','FaZe','SAL',96,'Cyber:Entry=99,KDS:Entry=96,Handyy:Flex=98,Soulz1:Sup1=96,Vitaking*=96',{tag:'FZ',color:'#ff3b3b',src:1,ewc:1}],
+  ['faze','FaZe Clan','FaZe','SAL',96,'Cyber:Entry=99,KDS:Entry=96,Handyy:Flex=98,Soulz1:Sup1=96,Vitaking*=96',{rivals:['furia','liquid'],tag:'FZ',color:'#ff3b3b',src:1,ewc:1}],
   ['liquid','Team Liquid Alienware','Liquid','SAL',89,'FelipoX*=88,Kheyze:Entry=97,Maia:Entry=94,Jv92:Flex=92,nade:Sup1=91',{tag:'TL',color:'#3aa0ff',src:1}],
-  ['furia','FURIA','FURIA','SAL',91,'HerdsZ:Entry=95,DiasLucas:Sup1=92,volpz*=94,Loira:Entry=91,Bokzera:Flex=93',{tag:'FUR',color:'#e8e8e8',src:1}],
+  ['furia','FURIA','FURIA','SAL',91,'HerdsZ:Entry=95,DiasLucas:Sup1=92,volpz*=94,Loira:Entry=91,Bokzera:Flex=93',{rivals:['fluxo'],tag:'FUR',color:'#e8e8e8',src:1}],
   ['loud','LOUD','LOUD','SAL',84,'live*=86,Flastry:Sup1=86,resetz:Sup2=84,Stemp:Entry=86,Gabu:Flex=83',{tag:'LLL',color:'#35e08a'}],
   ['los','LOS','LOS','SAL',84,'Dash*=88,peres:Entry=88,Nuxxga:Sup1=84,Daffodil:Flex=84,Dodez:Entry=87',{tag:'LOS',color:'#ffd23f'}],
   ['l5','Lucky Five','L5','SAL',82,'Psycho*=82,pino:Flex=81,Bassetto:Sup1=89,Neskin:Flex=81,Wizard:Sup2=83',{tag:'L5',color:'#7be07b'}],
@@ -351,20 +354,20 @@ const TEAM_ROWS = [
   ['imp','Imperial Esports','Imperial','SAL',79,'xS3xyCake*=82,NearZ:Flex=80,mitrix:Sup1=76,Legacy:Sup2=79,Hasaqui:Entry=78',{tag:'IMP',color:'#5aa7ff'}],
   ['intz','INTZ','INTZ','SAL',78,'Rappz:Sup1=77,Ar7hr*=83,naka:Sup2=81,Stk:Entry=79,AngelzZ:Entry=85',{tag:'INT',color:'#4f7cff'}],
   // ---- NAL ----
-  ['dz','DarkZero Esports','DarkZero','NAL',92,'Fultz*=93,njr:Flex=89,J9O:Sup1=95,Kyno:Sup2=91,Nuers:Entry=92|Koshi=87',{tag:'DZ',color:'#ff5a1f',src:1,note:'Campeã de Major'}],
+  ['dz','DarkZero Esports','DarkZero','NAL',92,'Fultz*=93,njr:Flex=89,J9O:Sup1=95,Kyno:Sup2=91,Nuers:Entry=92|Koshi=87',{rivals:['m80','wild'],tag:'DZ',color:'#ff5a1f',src:1,note:'Campeã de Major'}],
   ['wild','Wildcard Gaming','Wildcard','NAL',91,'Kanzen:Entry=92,Spiker*=94,Bae:Entry=88,Adrian:Sup1=91,bbySharKK:Flex=90',{tag:'WC',color:'#b06cff',src:1,note:'Campeã do Stage 1'}],
   ['m80','M80','M80','NAL',89,'Gunnar:Flex=89,Savage*=92,Gaveni:Entry=88,Ashn:Entry=86,dfuzr:Flex=90',{tag:'M80',color:'#ff9d00',src:1,coach:'Fabian'}],
   ['shop','Shopify Rebellion','Shopify','NAL',87,'Canadian*=80,Spoit:Entry=87,Rexen:Entry=89,Surf:Sup1=90,Ambi:Entry=89',{tag:'SR',color:'#8fd14f'}],
-  ['c9','Cloud9','Cloud9','NAL',87,'Monk:Sup1=84,Panbazou:Entry=88,Eddy*=90,Centir:Flex=86,EWZY:Sup2=87',{tag:'C9',color:'#3ec3ff'}],
+  ['c9','Cloud9','Cloud9','NAL',87,'Monk:Sup1=84,Panbazou:Entry=88,Eddy*=90,Centir:Flex=86,EWZY:Sup2=87',{rivals:['100t'],tag:'C9',color:'#3ec3ff'}],
   ['100t','100 Thieves','100T','NAL',86,'Hotancold*=86,GMZ:Entry=85,SpiriTz:Entry=89,Atom:Flex=87,Kason:Sup1=83',{tag:'100',color:'#ff4d5e'}],
   ['ssg','Spacestation Gaming','SSG','NAL',85,'Dream*=84,Gity:Sup1=86,Rival:Flex=88,Aiden:Flex=85,Raid:Entry=82',{tag:'SSG',color:'#5aa7ff'}],
   ['outlast','Outlast','Outlast','NAL',81,'JoyStiCK:Entry=84,iconic*=78,Trevmak:Sup1=82,Tyrant:Entry=80,Mili:Flex=81',{tag:'OL',color:'#ffb347'}],
   ['ff','Five Fears','Five Fears','NAL',80,'Forrest:Sup1=80,JJBlazt*=79,Snake:Entry=77,FENZ:Flex=81,Riv4l:Sup2=83',{tag:'5F',color:'#e0e0e0'}],
   ['fun','For Fun Esports','For Fun','NAL',79,'Beeno:Sup1=78,Packer*=79,MikeW:Sup2=76,Vulspur:Entry=80,Serx:Flex=82',{tag:'FF',color:'#ffd166'}],
   // ---- EML ----
-  ['falcons','Team Falcons','Falcons','EML',93,'BriD:Sup1=90,Yuzus:Flex=93,jume:Flex=93,LikEfac*=94,Solotov:Flex=92',{tag:'FLC',color:'#33d17a',src:1,note:'Campeões europeus'}],
+  ['falcons','Team Falcons','Falcons','EML',93,'BriD:Sup1=90,Yuzus:Flex=93,jume:Flex=93,LikEfac*=94,Solotov:Flex=92',{rivals:['shifters'],tag:'FLC',color:'#33d17a',src:1,note:'Campeões europeus'}],
   ['shifters','Shifters (ex-Team BDS)','Shifters','EML',93,'CTZN:Flex=92,Nafe*=88,Freq:Flex=88,DEADSHT:Sup1=93,Robby:Entry=90',{tag:'BDS',color:'#ff3fa4',src:1,ex:'Team BDS rebatizada em 15/12/2025'}],
-  ['g2','G2 Esports','G2','EML',89,'Shaiiko:Entry=95,Doki:Entry=89,Benjamaster:Flex=94,Alem4o*=86,Stompn:Sup1=91',{tag:'G2',color:'#ff5c5c',src:1,star:'Shaiiko'}],
+  ['g2','G2 Esports','G2','EML',89,'Shaiiko:Entry=95,Doki:Entry=89,Benjamaster:Flex=94,Alem4o*=86,Stompn:Sup1=91',{rivals:['fnatic'],tag:'G2',color:'#ff5c5c',src:1,star:'Shaiiko'}],
   ['vp','Virtus.pro','VP','EML',86,'dan:Entry=87,p4sh4*=89,RORICK:Flex=86,SkyZs:Sup1=83,Nayqo:Sup2=85',{tag:'VP',color:'#ffb347'}],
   ['secret','Team Secret','Secret','EML',86,'Hungry*=89,Noa:Entry=83,CroqSon:Entry=87,Creedz:Flex=86,Drillz:Flex=85',{tag:'TS',color:'#e5e5e5'}],
   ['fnatic','Fnatic','Fnatic','EML',85,'Deapek*=88,Dante7:Entry=82,Wizard:Sup1=85,DJ:Sup2=86,Sm1ss:Flex=84',{tag:'FNC',color:'#ff8a1f'}],
@@ -373,7 +376,7 @@ const TEAM_ROWS = [
   ['tm','Twisted Minds','Twisted','EML',82,'BlaZ:Flex=82,Tr1ixd:Sup1=85,Hashom:Sup2=79,Mowwwgli:Entry=93,jlaDD*=81',{tag:'TM',color:'#8ad0ff'}],
   ['rebels','Rebels Gaming','Rebels','EML',80,'Elemzje:Sup1=77,Linkoo:Entry=81,Asa:Flex=79,Marteau*=83,Feno:Sup2=80|leadjay=74',{tag:'RBL',color:'#ff6b6b'}],
   // ---- CNL ----
-  ['ag','All Gamers','AG','CNL',85,'Mcie:Flex=86,MoonL1ght:Entry=82,Ra3LGuN:Sup1=84,SoloMiD*=88,YaaaaZ:Sup2=85',{tag:'AG',color:'#ff4d5e'}],
+  ['ag','All Gamers','AG','CNL',85,'Mcie:Flex=86,MoonL1ght:Entry=82,Ra3LGuN:Sup1=84,SoloMiD*=88,YaaaaZ:Sup2=85',{rivals:['edg'],tag:'AG',color:'#ff4d5e'}],
   ['edg','EDward Gaming','EDG','CNL',84,'Direction*=83,OnJuly:Sup1=81,Bapn:Flex=85,Carpe:Entry=87,Reif:Sup2=84|Mo5quito=81',{tag:'EDG',color:'#e0e0e0'}],
   ['kz','KINGZERO eSports','KINGZERO','CNL',83,'MomoWiNGs:Sup1=80,KzB:Flex=83,Fiber*=82,Sunset:Entry=86,Wick:Sup2=84',{tag:'KZ',color:'#ffd166'}],
   ['tyloo','TYLOO','TYLOO','CNL',82,'Jackywu:Sup1=81,Songla:Entry=79,ABEI*=83,AurK11:Sup2=85,Austin:Flex=82',{tag:'TYL',color:'#ffd166'}],
