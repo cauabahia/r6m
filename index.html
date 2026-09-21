@@ -258,6 +258,7 @@ select:focus,input[type=text]:focus{outline:0;border-color:var(--cyan)}
 .ovr{display:inline-block;min-width:30px;text-align:center;font-weight:800;padding:1px 6px;border-radius:3px;background:var(--bg2);border:1px solid var(--line)}
 .ovr.e{color:var(--red);border-color:var(--red)} .ovr.g{color:var(--gold);border-color:var(--gold)} .ovr.c{color:var(--cyan);border-color:var(--cyan)}
 .swp{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.ag .mrow{grid-template-columns:62px 1fr 24px}
 .nw{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(38,46,58,.5);font-size:13px}
 .nw span:first-child{color:var(--mut);min-width:38px;font-size:11px;padding-top:1px}
 </style>
@@ -272,8 +273,10 @@ select:focus,input[type=text]:focus{outline:0;border-color:var(--cyan)}
 <div id="modal"></div>
 <div id="toasts"></div>
 
+<script src="db.js"></script>
 <script>
 'use strict';
+if(typeof TEAM_ROWS === 'undefined'){ document.body.innerHTML = '<p style="padding:24px;font:16px sans-serif;color:#fff">Arquivo <b>db.js</b> não encontrado. Ele precisa ficar na mesma pasta do index.html.</p>'; throw new Error('db.js ausente'); }
 /* =====================================================================
    R6 ESPORTS MANAGER — STAGE 2 · 2026  (v2)
    Arquivo único · HTML5 + JS puro · save em localStorage
@@ -302,93 +305,16 @@ function wpick(items, wf, r = rnd){let tot=0;const ws=items.map(i=>{const w=Math
    opções: tag, color, ewc, star, igl, coach, ex, src (1 = poder informado por você;
    sem src = estimativa do jogo). Edite livremente.
    ===================================================================== */
-const LEAGUES = [
-  {id:'SAL',  tag:'SAL',   name:'South America League',     region:'América do Sul',   color:'#35e08a'},
-  {id:'NAL',  tag:'NAL',   name:'North America League',     region:'América do Norte', color:'#00d2ff'},
-  {id:'EML',  tag:'EML',   name:'Europe MENA League',       region:'Europa & MENA',    color:'#ffcc00'},
-  {id:'CNL',  tag:'CNL',   name:'China National League',    region:'China',            color:'#ff6b57'},
-  {id:'APLA', tag:'APL-A', name:'Asia Pacific League · Ásia',    region:'Ásia-Pacífico', color:'#ff7ad9'},
-  {id:'APLN', tag:'APL-N', name:'Asia Pacific League · Norte',   region:'Ásia-Pacífico', color:'#c48bff'},
-  {id:'APLO', tag:'APL-O', name:'Asia Pacific League · Oceania', region:'Ásia-Pacífico', color:'#6fe0d0'}
-];
 const LG = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
 
-const TEAM_DB = [
-  // ---- SAL ----
-  ['fluxo','Fluxo W7M','W7M','SAL',91,'Paluh,Lobin,dotz,HATEZ,Fntzy',{tag:'W7M',color:'#ffb100',src:1,coach:'thug (analista: Dan)',note:'Elenco reformulado em 31/08'}],
-  ['faze','FaZe Clan','FaZe','SAL',96,'Cyber,KDS,Handyy,Soulz1,Vitaking',{tag:'FZ',color:'#ff3b3b',src:1,ewc:1,igl:'Vitaking'}],
-  ['liquid','Team Liquid Alienware','Liquid','SAL',89,'FelipoX,Kheyze,Maia,Jv92,nade',{tag:'TL',color:'#3aa0ff',src:1}],
-  ['furia','FURIA','FURIA','SAL',91,'HerdsZ,DiasLucas,volpz,Loira,Bokzera',{tag:'FUR',color:'#e8e8e8',src:1}],
-  ['loud','LOUD','LOUD','SAL',87,'live,Flastry,resetz,Stemp,Gabu',{tag:'LLL',color:'#35e08a'}],
-  ['los','LOS','LOS','SAL',84,'Dash,peres,Nuxxga,Daffodil,Dodez',{tag:'LOS',color:'#ffd23f'}],
-  ['l5','Lucky Five','L5','SAL',82,'Psycho,pino,Bassetto,Neskin,Wizard',{tag:'L5',color:'#7be07b'}],
-  ['bd','Black Dragons','B. Dragons','SAL',80,'R4re,Romeo,Mr6otlaw,Swag,Guto',{tag:'BD',color:'#d94d4d'}],
-  ['imp','Imperial Esports','Imperial','SAL',79,'xS3xyCake,NearZ,mitrix,Legacy,Hasaqui',{tag:'IMP',color:'#5aa7ff'}],
-  ['intz','INTZ','INTZ','SAL',78,'Rappz,Ar7hr,naka,Stk,AngelzZ',{tag:'INT',color:'#4f7cff'}],
-  // ---- NAL ----
-  ['dz','DarkZero Esports','DarkZero','NAL',92,'Fultz,njr,J9O,Kyno,Nuers|Koshi',{tag:'DZ',color:'#ff5a1f',src:1,note:'Campeã de Major'}],
-  ['wild','Wildcard Gaming','Wildcard','NAL',91,'Kanzen,Spiker,Bae,Adrian,bbySharKK',{tag:'WC',color:'#b06cff',src:1,note:'Campeã do Stage 1'}],
-  ['m80','M80','M80','NAL',89,'Gunnar,Savage,Gaveni,Ashn,dfuzr',{tag:'M80',color:'#ff9d00',src:1,coach:'Fabian'}],
-  ['shop','Shopify Rebellion','Shopify','NAL',87,'Canadian,Spoit,Rexen,Surf,Ambi',{tag:'SR',color:'#8fd14f'}],
-  ['c9','Cloud9','Cloud9','NAL',87,'Monk,Panbazou,Eddy,Centir,EWZY',{tag:'C9',color:'#3ec3ff'}],
-  ['100t','100 Thieves','100T','NAL',86,'Hotancold,GMZ,SpiriTz,Atom,Kason',{tag:'100',color:'#ff4d5e'}],
-  ['ssg','Spacestation Gaming','SSG','NAL',85,'Dream,Gity,Rival,Aiden,Raid',{tag:'SSG',color:'#5aa7ff'}],
-  ['outlast','Outlast','Outlast','NAL',81,'JoyStiCK,iconic,Trevmak,Tyrant,Mili',{tag:'OL',color:'#ffb347'}],
-  ['ff','Five Fears','Five Fears','NAL',80,'Forrest,JJBlazt,Snake,FENZ,Riv4l',{tag:'5F',color:'#e0e0e0'}],
-  ['fun','For Fun Esports','For Fun','NAL',79,'Beeno,Packer,MikeW,Vulspur,Serx',{tag:'FF',color:'#ffd166'}],
-  // ---- EML ----
-  ['falcons','Team Falcons','Falcons','EML',93,'BriD,Yuzus,jume,LikEfac,Solotov',{tag:'FLC',color:'#33d17a',src:1,note:'Campeões europeus'}],
-  ['shifters','Shifters (ex-Team BDS)','Shifters','EML',93,'CTZN,Nafe,Freq,DEADSHT,Robby',{tag:'BDS',color:'#ff3fa4',src:1,ex:'Team BDS rebatizada em 15/12/2025'}],
-  ['g2','G2 Esports','G2','EML',89,'Shaiiko,Doki,Benjamaster,Alem4o,Stompn',{tag:'G2',color:'#ff5c5c',src:1,star:'Shaiiko'}],
-  ['vp','Virtus.pro','VP','EML',86,'dan,p4sh4,RORICK,SkyZs,Nayqo',{tag:'VP',color:'#ffb347'}],
-  ['secret','Team Secret','Secret','EML',86,'Hungry,Noa,CroqSon,Creedz,Drillz',{tag:'TS',color:'#e5e5e5'}],
-  ['fnatic','Fnatic','Fnatic','EML',85,'Deapek,Dante7,Wizard,DJ,Sm1ss',{tag:'FNC',color:'#ff8a1f'}],
-  ['heretics','Team Heretics','Heretics','EML',84,'Aqui,Skeptic,Lollo,Lasmooo,MATZ|Zaaramy',{tag:'TH',color:'#c9a227'}],
-  ['geekay','Geekay Esports','Geekay','EML',83,'Yoggah,AsK,Gruby,Eupor,Sarks',{tag:'GK',color:'#ffe135'}],
-  ['tm','Twisted Minds','Twisted','EML',82,'BlaZ,Tr1ixd,Hashom,Mowwwgli,jlaDD',{tag:'TM',color:'#8ad0ff'}],
-  ['rebels','Rebels Gaming','Rebels','EML',80,'Elemzje,Linkoo,Asa,Marteau,Feno|leadjay',{tag:'RBL',color:'#ff6b6b'}],
-  // ---- CNL ----
-  ['ag','All Gamers','AG','CNL',85,'Mcie,MoonL1ght,Ra3LGuN,SoloMiD,YaaaaZ',{tag:'AG',color:'#ff4d5e'}],
-  ['edg','EDward Gaming','EDG','CNL',84,'Direction,OnJuly,Bapn,Carpe,Reif|Mo5quito',{tag:'EDG',color:'#e0e0e0'}],
-  ['kz','KINGZERO eSports','KINGZERO','CNL',83,'MomoWiNGs,KzB,Fiber,Sunset,Wick',{tag:'KZ',color:'#ffd166'}],
-  ['tyloo','TYLOO','TYLOO','CNL',82,'Jackywu,Songla,ABEI,AurK11,Austin',{tag:'TYL',color:'#ffd166'}],
-  ['lev','Leviatán Esports','Leviatán','CNL',80,'Bullet1,SHADOW,Binbin,ArFeng,DEMoZ',{tag:'LEV',color:'#a06bff'}],
-  ['fam','Four Angry Men','4AM','CNL',80,'rockstarKa,txonly,ShaZ5ibe,Asylum,Yoviker|Logan',{tag:'4AM',color:'#ff7a45'}],
-  ['titan','Titan Esports Club','Titan','CNL',79,'A1mer,Rusher,Arcox,KINA1,bottomLove',{tag:'TTN',color:'#55e6c1'}],
-  ['lgd','LGD Gaming','LGD','CNL',78,'J1ahao,KY,Pau1,wantto,MavDEMON',{tag:'LGD',color:'#4f7cff'}],
-  ['coin','One Coin','One Coin','CNL',78,'BigJ,Darcly,SDGundam,Akira,History',{tag:'1C',color:'#ffb300'}],
-  ['pozy','POZY','POZY','CNL',77,'NRea117,POPO,ZOZ,Su1,N9istr',{tag:'PZY',color:'#6fd3ff'}],
-  // ---- APL Ásia ----
-  ['wbg','Weibo Gaming','Weibo','APLA',84,'SpeakEasy,Gotti,Reeps96,Hovenherst,Terd',{tag:'WBG',color:'#ff7a45'}],
-  ['elv','Elevate','Elevate','APLA',80,'TOLJI,Scatman,MrPuncH,Ape,Nhaiqal',{tag:'ELV',color:'#ffd23f'}],
-  ['999','999','999','APLA',78,'JayDog,JyuB,Miku,Staxsta,Sowhat|Shiba',{tag:'999',color:'#e0e0e0'}],
-  ['fury','FURY','FURY','APLA',77,'Roldinii,Darkk,Markelelele,LebyRinth,Kaneki',{tag:'FRY',color:'#ff4d5e'}],
-  ['daystar','Daystar','Daystar','APLA',76,'Souffle,Pikan,Seal,AZuKi,Yao',{tag:'DAY',color:'#ffb347'}],
-  ['dolph','Dolphins Esports','Dolphins','APLA',76,'ZISTZ,SUNSTRIKE,KI11ERz,TeNnO,Chattonounmei',{tag:'DOL',color:'#3aa0ff'}],
-  ['sharper','Sharper Esports','Sharper','APLA',75,'Lycolis,Nay.Pew,BGMan,KritJ,Peeps',{tag:'SHP',color:'#7be07b'}],
-  ['lo','leftovers','leftovers','APLA',74,'Jittery,xedux,Yannis,Edward,klz',{tag:'LFT',color:'#c48bff'}],
-  // ---- APL Norte ----
-  ['dplus','Dplus KIA','Dplus KIA','APLN',85,'Mity,ion,Levy,Faallz,yurivst',{tag:'DK',color:'#00d2ff'}],
-  ['cag','CAG by VARREL','CAG','APLN',81,'Anitun,Chibisu,Zaka,DD,ShuReap',{tag:'CAG',color:'#ff9d00'}],
-  ['trippy','TRIPPY','TRIPPY','APLN',79,'Demic,Harp3rXD,Arukaze,NL,DOCHI|munu74',{tag:'TRP',color:'#b06cff'}],
-  ['scarz','SCARZ','SCARZ','APLN',78,'Rec,Wqsyo1,FishLike,Nina,YuKiz',{tag:'SZ',color:'#ff4d5e'}],
-  ['fearx','FearX','FearX','APLN',78,'Soldier,Woogiman,JLT,Rider,EunSang',{tag:'FX',color:'#ffd166'}],
-  ['rrx','RRX','RRX','APLN',77,'Akusu,maou,Yuyu,JiNm,KoroMomo',{tag:'RRX',color:'#e0e0e0'}],
-  ['cybme','Can You Be My Enemy','CYBME','APLN',76,'Yanagi,AsveL,sikiNNGO,NOVASHATOL,Toki',{tag:'CYB',color:'#6fd3ff'}],
-  ['kino','KINOTROPE gaming','KNT','APLN',75,'gatorada,Ayagator,Eclair,Aokayu,Kawa',{tag:'KNT',color:'#55e6c1'}],
-  // ---- APL Oceania ----
-  ['chiefs','Chiefs Esports Club','Chiefs','APLO',82,'Wettables,Neptune,Jakenna,Relaes,Lunchbox',{tag:'CHF',color:'#ff4d5e'}],
-  ['ent','ENTERPRISE Esports','ENTERPRISE','APLO',81,'Jigsaw,Kyro,Tuhan,Brendo,Playxr',{tag:'ENT',color:'#ffd23f'}],
-  ['7ven','7VEN','7VEN','APLO',79,'Presidnt,Pinku,Baele,Walsh,Tukk',{tag:'7VN',color:'#a06bff'}],
-  ['man','Man eSports LFO','Man','APLO',77,'Huntr,Pluto,Sharkie,Elementz,Beers',{tag:'MAN',color:'#ff9d00'}],
-  ['anios','Team Anios','Anios','APLO',76,'ChefJeff,erazer,Proxy,Machine,Acog',{tag:'ANI',color:'#3aa0ff'}],
-  ['arcade','Arcade Esports','Arcade','APLO',75,'Japer,FZICS,Loyalth,Aserz,Syrro',{tag:'ARC',color:'#7be07b'}],
-  ['shaiik','Shaiikademy','Shaiikademy','APLO',74,'KKin,Wizard,Shaz,Rhqnz,Kynvx',{tag:'SHA',color:'#ff7ad9'}],
-  ['sphere','Circular Spheres','Spheres','APLO',73,'Kqrma,GOOOFT,Sword,Nezerati,Palarazi',{tag:'CS',color:'#6fe0d0'}]
-].map(([id, name, short, league, power, ros, o]) => {
-  const [main, bench] = ros.split('|');
-  return Object.assign({id, name, short, league, power, roster:main.split(','), bench:bench ? bench.split(',') : []}, o);
+/* Elenco no db.js: 'Nick' · 'Nick*' (IGL) · 'Nick:Entry' (função) · 'Nick*:Flex' (os dois) */
+const ROLE_KEY = {entry:'Entry', flex:'Flex', support:'Support', anchor:'Anchor', roamer:'Roamer'};
+const parseSlot = s => { const m = s.trim().match(/^(.+?)(\*)?(?::(\w+))?$/); return {name:m[1], igl:!!m[2], role:ROLE_KEY[(m[3] || '').toLowerCase()] || null}; };
+const TEAM_DB = TEAM_ROWS.map(([id, name, short, league, power, ros, o]) => {
+  const [main, bench] = ros.split('|'), slots = main.split(',').map(parseSlot);
+  return Object.assign({id, name, short, league, power, slots, roster:slots.map(s => s.name), bench:bench ? bench.split(',').map(s => parseSlot(s).name) : []}, o);
 });
+const isIglOf = (d, n) => d.igl === n || d.slots.some(s => s.igl && s.name === n);
 
 const ROLES = ['Entry','Flex','Support','Anchor','Roamer'];
 const HB = new Set(['Thermite','Hibana','Ace']);          // hard breachers
@@ -421,7 +347,7 @@ const DS = 18, ATK_BIAS = 0, ROUND_SEC = 180, PLANT_SEC = 45;
 const SAVE_KEY = 'r6mgr.stage2.2026.v2';             // mesma chave: saves antigos (v2) são migrados para v3
 const START_YEAR = 2026, MAX_BENCH = 3, CPU_BENCH = 2, FA_CAP = 70;
 const STAFF = {
-  an:{name:'Analista de Dados',   ico:'📊', cost:[90,180,320], txt:'Melhora vetos de mapa e revela tendências do rival.'},
+  an:{name:'Analista de Dados',   ico:'📊', cost:[90,180,320], txt:'Revela no veto a afinidade de mapas e os operadores-assinatura do rival.'},
   ps:{name:'Psicólogo',           ico:'🧠', cost:[80,160,280], txt:'Reduz o acúmulo de estresse e turbina o descanso.'},
   md:{name:'Diretor de Mídia',    ico:'🎥', cost:[70,150,260], txt:'Aumenta patrocínios e bônus de vitória.'}
 };
@@ -432,10 +358,25 @@ const mkId = () => PID++;
 /* margem de crescimento por idade, achatada conforme o rating sobe (quem já é craque tem pouco teto sobrando) */
 const potFor = (ovr, age, r) => Math.min(99, ovr + Math.round((age <= 20 ? 6 + Math.floor(r() * 12) : age <= 23 ? 2 + Math.floor(r() * 7) : age <= 26 ? Math.floor(r() * 3) : 0) * clamp((96 - ovr) / 22, .15, 1)));
 const seedMeta = (r, ovr) => { const age = 19 + Math.floor(r() * 13); return {age, pot:potFor(ovr, age, r)}; };
+/* Atributos de especialidade (além de Aim e Gamesense). Ficam em torno do rating geral; o que pesa no jogo é o desvio em relação a ele.
+   clu clutch (1vN e momentos decisivos) · led liderança (moral e coordenação) · tw trabalho em equipe (sinergia) · roam roaming (defesa agressiva)
+   open duelo de abertura (1º duelo do round) · util utilidades (plant, defuse, Hard Breacher) · men mental (resistência a estresse e moral baixa)
+   info informação/drones (leitura do rival) · cons consistência (menos variação de rendimento) · adp adaptabilidade (troca de função) */
+const ATTRS = {clu:'Clutch', led:'Liderança', tw:'Equipe', roam:'Roaming', open:'Abertura', util:'Utilidade', men:'Mental', info:'Info', cons:'Consist.', adp:'Adaptação'};
+const ATTR_LONG = {clu:'Clutch', led:'Liderança', tw:'Trabalho em equipe', roam:'Roaming', open:'Duelo de abertura', util:'Utilitários', men:'Mental', info:'Informação (drones)', cons:'Consistência', adp:'Adaptabilidade'};
+const attr = (p, k) => p[k] == null ? p.ovr : p[k];                     // saves antigos sem o atributo valem o próprio rating
+const topAttrs = (p, n = 2) => Object.keys(ATTRS).map(k => ({k, d:attr(p, k) - p.ovr})).sort((a, b) => b.d - a.d).slice(0, n);
+function mkAttrs(ovr, role, r, igl, age = 25){
+  const n = () => Math.round((r() - .5) * 14), exp = clamp(Math.round((age - 24) * .6), -2, 4);       // experiência: mental e consistência crescem com a idade
+  const b = {Roamer:{roam:8, info:4}, Anchor:{roam:-5, clu:4, men:5, util:3}, Entry:{roam:-2, open:8}, Support:{tw:5, util:6}, Flex:{adp:6, info:2}}[role] || {};
+  const v = (k, base = 0) => clamp(ovr + base + n() + (b[k] || 0), 45, 99);
+  return {clu:v('clu'), led:clamp(ovr - 5 + n() + (igl ? 8 : 0), 45, 99), tw:v('tw'), roam:v('roam'), open:v('open'), util:v('util'), men:clamp(v('men') + exp, 45, 99), info:clamp(v('info') + (igl ? 4 : 0), 45, 99),
+          cons:clamp(v('cons') + exp, 45, 99), adp:v('adp')};
+}
 function mkPlayer(o, r = rnd){
-  const ovr = clamp(Math.round(o.ovr), 45, 99), sp = Math.round((r() - .5) * 8);
-  const p = {id:mkId(), name:o.name, role:o.role || ROLES[Math.floor(r() * ROLES.length)], igl:false, aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
-             stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, age:o.age, pot:o.pot};
+  const ovr = clamp(Math.round(o.ovr), 45, 99), sp = Math.round((r() - .5) * 8), role = o.role || ROLES[Math.floor(r() * ROLES.length)];
+  const p = {id:mkId(), name:o.name, role, igl:false, aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
+             stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, age:o.age, pot:o.pot, ...mkAttrs(ovr, role, r, false, o.age)};
   recalc(p); p.pot = Math.max(p.pot, p.ovr); return p;
 }
 function mkBench(names, power, r2){
@@ -455,23 +396,32 @@ function genYoung(taken){
   return mkPlayer({name:genName(taken), ovr, age, pot:Math.min(99, wk ? rint(92, 99) : ovr + rint(3, 16))});
 }
 function genVet(taken){ const ovr = rint(66, 84); return mkPlayer({name:genName(taken), ovr, age:rint(25, 31), pot:ovr}); }
-function genFA(taken){ const o = []; for(let i = 0; i < 16; i++) o.push(genVet(taken)); for(let i = 0; i < 18; i++) o.push(genYoung(taken)); return o; }
+/* jogadores reais do db.js (POOL_ROWS): sem contrato ou de times tier 2; p.org guarda a origem e p.t2 marca contrato ativo */
+function realPool(taken){
+  return (typeof POOL_ROWS === 'undefined' ? [] : POOL_ROWS).filter(([n, , , o]) => (o && o.dup) || !taken.has(n.toLowerCase())).map(([name, org, ovr, o = {}]) => {
+    taken.add(name.toLowerCase());
+    const r = mulb(hstr('p' + name)), age = o.age || 21 + Math.floor(r() * 10);
+    const p = mkPlayer({name, ovr, age, pot:o.pot || potFor(ovr, age, r), role:ROLE_KEY[(o.role || '').toLowerCase()]}, r);
+    p.org = org; if(o.t2) p.t2 = 1; return p;
+  });
+}
+function genFA(taken){ const o = realPool(taken); for(let i = 0; i < 16; i++) o.push(genVet(taken)); for(let i = 0; i < 18; i++) o.push(genYoung(taken)); return o; }
 const budFor = power => 120 + Math.max(0, power - 70) * 10;      // orçamento de transferências da CPU (K$)
 const namesOf = teams => new Set(Object.values(teams).flatMap(t => t.players.concat(t.bench).map(p => p.name.toLowerCase())));
 
 /* ---------- construção de times ---------- */
 function buildTeam(d){
-  const r = mulb(hstr('t' + d.id)), r2 = mulb(hstr('m' + d.id));   // r2: idade, potencial e reservas (não altera a sequência original de r)
+  const r = mulb(hstr('t' + d.id)), r2 = mulb(hstr('m' + d.id)), r3 = mulb(hstr('x' + d.id));   // r2: idade, potencial e reservas · r3: atributos de especialidade (não alteram a sequência de r)
   const roles = shuffle(ROLES, r), off = shuffle([3,1,0,-1,-3], r);
   const star = d.star ? d.roster.indexOf(d.star) : -1;
   if(star >= 0){ const mx = off.indexOf(3); [off[star], off[mx]] = [off[mx], off[star]]; }
+  const pool = roles.filter(x => !d.slots.some(s => s.role === x));       // funções não definidas no db.js continuam sorteadas
   const players = d.roster.map((n, i) => {
-    const ovr = clamp(Math.round(d.power + off[i]), 50, 99), sp = Math.round((r() - .5) * 8);
-    return {id:mkId(), name:n, role:roles[i], igl:d.igl === n, aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
-            stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, ...seedMeta(r2, ovr)};
+    const ovr = clamp(Math.round(d.power + off[i]), 50, 99), sp = Math.round((r() - .5) * 8), role = d.slots[i].role || pool.shift() || roles[i], igl = isIglOf(d, n), meta = seedMeta(r2, ovr);
+    return {id:mkId(), name:n, role, igl, ...mkAttrs(ovr, role, r3, igl, meta.age), aim:clamp(ovr + sp, 45, 99), gs:clamp(ovr - sp, 45, 99), ovr, form:0,
+            stress:Math.round(18 + r() * 14), sat:Math.round(62 + r() * 18), k:0, d:0, r:0, fk:0, cl:0, ...meta};
   });
   players.forEach(recalc);
-  if(!players.some(p => p.igl)) players.reduce((b, p) => p.gs > b.gs ? p : b).igl = true;
   const base = Math.round(Math.max(0, (d.power - 72) * 4.5) + r() * 22) + (d.ewc ? EWC_BONUS : 0);
   return {
     id:d.id, name:d.name, short:d.short, tag:d.tag || d.short.slice(0, 3).toUpperCase(), league:d.league, power:d.power, color:d.color,
@@ -486,10 +436,22 @@ function buildAll(){ const o = {}; TEAM_DB.forEach(d => o[d.id] = buildTeam(d));
 /* =====================================================================
    2. MOTOR DE PARTIDA — MD12, rounds de 3:00 em linha do tempo, troca de lados após o 6º
    ===================================================================== */
-const aff  = (t, mapId) => ((hstr(t.id + mapId) % 9) - 4) * .5;              // afinidade com o mapa (−2 … +2)
+const MAP_TR_STEP = .3, MAP_TR_MAX = 1.5;                                    // treino de mapa: +0,3 por sessão, até +1,5
+const aff  = (t, mapId) => ((hstr(t.id + mapId) % 9) - 4) * .5 + ((t.mapTr || {})[mapId] || 0);   // afinidade com o mapa: base −2 … +2 mais o treino
 const raff = (t, mapId, r) => ((hstr(t.id + mapId + 'r' + r) % 5) - 2) * .5;  // afinidade com a rota
 /* Rating efetivo em jogo: Burnout (estresse > 80) = −15; estresse alto e moral baixa também pesam */
-const effP = p => p.ovr + p.form - (p.stress > 80 ? 15 : Math.max(0, p.stress - 60) / 10) + (p.sat - 60) / 30 - (p.sat < 30 ? 2 : 0);
+/* Encaixe na função: Entry/Roamer rendem mais com Aim acima do Gamesense; Support/Anchor, o contrário. Quem acabou de trocar de função se adapta por 2 rodadas (−3). */
+const roleFit = p => {                                       // cada função premia o atributo que a define
+  const ag = (p.aim - p.gs) / 8, dv = k => (attr(p, k) - p.ovr) / 14;
+  const v = p.role === 'Entry' ? ag + dv('open') : p.role === 'Roamer' ? ag / 2 + dv('roam') : p.role === 'Support' ? -ag + dv('tw') + dv('util') / 2
+    : p.role === 'Anchor' ? -ag + dv('clu') / 2 + dv('men') / 2 : dv('adp') + dv('info') / 2;          // Flex: versatilidade e leitura de jogo
+  return clamp(v, -1, 1);
+};
+/* Mental reduz o peso do estresse e da moral baixa; adaptabilidade encurta a penalidade de quem trocou de função */
+const effP = p => p.ovr + p.form + roleFit(p) - (p.adapt ? clamp(3 - (attr(p, 'adp') - p.ovr) / 6, 1, 4.5) : 0)
+  - (p.stress > 80 ? 15 : Math.max(0, p.stress - 60) / 10) * clamp(1 - (attr(p, 'men') - p.ovr) / 30, .5, 1.4) + (p.sat - 60) / 30 - (p.sat < 30 ? 2 : 0);
+/* Consistência: variação de rendimento a cada round (média zero); jogador consistente varia pouco */
+const jitter = p => (rnd() + rnd() + rnd() - 1.5) * 4.5 * clamp(1 - (attr(p, 'cons') - p.ovr) / 25, .3, 1.7);
 const isBurnout = p => p.stress > 80;
 const fmtT = t => { const r = Math.max(0, Math.round(ROUND_SEC - t)); return Math.floor(r / 60) + ':' + String(r % 60).padStart(2, '0'); };
 const blank = () => ({k:0, d:0, fk:0, cl:0, r:0, mk:0});
@@ -503,26 +465,27 @@ function newMatch(A, B, userKey = null, quiet = true, an = 0){
     map:null, veto:[], hist:[], ps:{a:A.players.map(blank), b:B.players.map(blank)}
   };
 }
-/* Veto de mapas (6 bans alternados) e bans de operadores — resolvido instantaneamente. O Analista de Dados reduz o ruído das decisões. */
+/* Veto de mapas (6 bans alternados) e bans de operadores. Nas partidas simuladas é resolvido pela IA;
+   na partida do usuário ele decide os próprios bans (ver vetoStep). */
+function aiMapBan(m, pool, turn){                            // a IA bane onde o rival é forte e ela é fraca
+  const t = m.t[turn], o = m.t[other(turn)], lv = turn === m.userKey ? m.an : 0;
+  let best = null, bv = -1e9;
+  for(const mp of pool){ const v = (aff(o, mp.id) - aff(t, mp.id)) * (1 + .25 * lv) + rnd() * 1.2 * (1 - .3 * lv); if(v > bv){ bv = v; best = mp; } }
+  return best;
+}
+function aiOpBans(m, k){ const opp = m.t[other(k)], smart = k === m.userKey || rnd() < .85; return [smart ? opp.sigA : pick(OPS.atk), smart ? opp.sigD : pick(OPS.def)]; }
+function setOpBans(m, k, ba, bd){                            // banir o operador-assinatura do rival custa −2 ao lado dele
+  const o = other(k), opp = m.t[o];
+  m.bans[k].atk = ba; m.bans[k].def = bd;
+  if(ba === opp.sigA) m.pen[o].atk = 2;
+  if(bd === opp.sigD) m.pen[o].def = 2;
+  m.veto.push({team:k, type:'atkop', what:ba, hit:ba === opp.sigA, vs:o}, {team:k, type:'defop', what:bd, hit:bd === opp.sigD, vs:o});
+}
 function doVeto(m){
   let pool = MAPS.slice(), turn = rnd() < .5 ? 'a' : 'b';
-  const lv = k => k === m.userKey ? m.an : 0;
-  while(pool.length > 1){
-    const t = m.t[turn], o = m.t[other(turn)];
-    let best = null, bv = -1e9;
-    for(const mp of pool){ const v = (aff(o, mp.id) - aff(t, mp.id)) * (1 + .25 * lv(turn)) + rnd() * 1.2 * (1 - .3 * lv(turn)); if(v > bv){ bv = v; best = mp; } }
-    pool = pool.filter(x => x !== best);
-    m.veto.push({team:turn, type:'map', what:best.name}); turn = other(turn);
-  }
+  while(pool.length > 1){ const best = aiMapBan(m, pool, turn); pool = pool.filter(x => x !== best); m.veto.push({team:turn, type:'map', what:best.name}); turn = other(turn); }
   m.map = pool[0]; m.veto.push({team:'-', type:'pick', what:m.map.name});
-  for(const k of ['a','b']){
-    const o = other(k), opp = m.t[o], smart = k === m.userKey || rnd() < .85;
-    const ba = smart ? opp.sigA : pick(OPS.atk), bd = smart ? opp.sigD : pick(OPS.def);
-    m.bans[k].atk = ba; m.bans[k].def = bd;
-    if(ba === opp.sigA) m.pen[o].atk = 2;
-    if(bd === opp.sigD) m.pen[o].def = 2;
-    m.veto.push({team:k, type:'atkop', what:ba, hit:ba === opp.sigA, vs:o}, {team:k, type:'defop', what:bd, hit:bd === opp.sigD, vs:o});
-  }
+  for(const k of ['a','b']) setOpBans(m, k, ...aiOpBans(m, k));
 }
 function atkKey(m){
   if(m.inOT) return m.otPlayed % 2 === 0 ? m.first : other(m.first);
@@ -540,19 +503,19 @@ function aiPlan(m, k, side){
   }
   return {cad, route};
 }
-function autoPlan(m, side){ const l = m.last[m.userKey]; return l && l.side === side ? {cad:l.cad, route:l.route} : {cad:3, route:0}; }
 function doTimeout(m, k, posture){
   m.tos[k]--; m.streak[other(k)] = 0;
   const pre = m.conf[k];
   if(posture === 'ear') m.conf[k] = pre < 50 ? 68 : 55;
   else if(posture === 'motiv') m.conf[k] = 65;
   else { m.conf[k] = 55; m.tac[k] = {v:3, n:3}; }
-  if(k === m.userKey){                                      // efeitos persistentes no vestiário do usuário
-    const T = m.t[k];
-    if(posture === 'ear'){ T.players.forEach(p => { p.sat = clamp(p.sat - 5, 0, 100); p.stress = clamp(p.stress + 4, 0, 100); }); }
-    if(posture === 'motiv'){ T.players.forEach(p => { p.sat = clamp(p.sat + 3, 0, 100); }); T.chem = clamp(T.chem + 1, 0, 100); }
-  }
   return {pre, post:m.conf[k]};
+}
+
+/* Modificadores de time: liderança = melhor líder do elenco (+2 se há IGL) acima do próprio rating; equipe, informação e utilidade = média do desvio */
+function teamMods(t){
+  const ps = t.players, dev = (p, k) => attr(p, k) - p.ovr, avg = k => ps.reduce((s, p) => s + dev(p, k), 0) / ps.length;
+  return {led:Math.max(...ps.map(p => dev(p, 'led'))) + (ps.some(p => p.igl) ? 2 : 0), tw:avg('tw'), info:avg('info'), util:avg('util')};
 }
 
 /* ---------- um round ---------- */
@@ -565,12 +528,12 @@ function roundInit(m, userPlan, interactive){
     const po = pick(['ear','motiv','adjust']); doTimeout(m, k, po);
     if(V) pre.push({c:'sys', h:`⏱ <b>TIMEOUT TÉCNICO</b> — <b style="color:${m.t[k].color}">${esc(m.t[k].name)}</b> para o jogo e reorganiza o time.`});
   }
-  const tacv = k => m.tac[k].n > 0 ? m.tac[k].v : 0;
-  const base = 2 * (pA.cad - 3) * (pD.cad - 3) + (pA.route === pD.route ? -5 : 2)
+  const tacv = k => m.tac[k].n > 0 ? m.tac[k].v : 0, tA = teamMods(AT), tD = teamMods(DT);
+  const base = 2 * (pA.cad - 3) * (pD.cad - 3) + (pA.route === pD.route ? -5 : 2) + (tA.led - tD.led) / 16 + (tA.tw - tD.tw) * .18 + (tA.info - tD.info) * .15
     + raff(AT, m.map.id, pA.route) - raff(DT, m.map.id, pD.route)
     + (m.conf[ak] - m.conf[dk]) / 10 + (m.chem[ak] - m.chem[dk]) / 12 + tacv(ak) - tacv(dk)
     + aff(AT, m.map.id) - aff(DT, m.map.id) - m.pen[ak].atk + m.pen[dk].def + m.map.atk + ATK_BIAS;
-  const mk = (T, k) => T.players.map((p, i) => ({p, i, k, alive:true, kills:0, op:null, hb:false, eff:effP(p)}));
+  const mk = (T, k) => T.players.map((p, i) => ({p, i, k, alive:true, kills:0, op:null, hb:false, eff:effP(p) + jitter(p)}));
   const A = mk(AT, ak), D = mk(DT, dk);
   const assign = (units, side, banned, sig) => {
     const pool = shuffle(OPS[side].filter(o => o !== banned && o !== sig)); units.forEach((u, i) => u.op = pool[i]);
@@ -582,7 +545,7 @@ function roundInit(m, userPlan, interactive){
   m.tac.a.n = Math.max(0, m.tac.a.n - 1); m.tac.b.n = Math.max(0, m.tac.b.n - 1);
   return {m, ak, dk, AT, DT, pA, pD, base, A, D, t:0, planted:false, plantT:0, duels:0, kills:0, over:false, winner:null, type:null, started:false,
     firstT:clamp(Math.round(105 - pA.cad * 17 + rint(-8, 8)), 12, 150), firstB:(3 - pA.cad) * .6, queue:[], pre,
-    mods:{a:0,b:0}, plantAdj:0, defuseAdj:0, flags:{A:false,B:false}, cand:{a:null,b:null}, interactive:!!interactive, rec:null};
+    mods:{a:0,b:0}, plantAdj:0, defuseAdj:0, flags:{A:false,B:false}, cand:{a:null,b:null}, interactive:!!interactive, rec:null, tm:{[ak]:tA, [dk]:tD}};
 }
 const alive = arr => arr.filter(u => u.alive);
 const pnU = (m, u) => `<b class="pl" style="color:${m.t[u.k].color}">${esc(u.p.name)}</b>`;
@@ -598,7 +561,7 @@ function roundNext(rs){
     const rl = m.inOT ? `OT ${m.otPlayed + 1}` : `Round ${m.played + 1}`, mine = rs.ak === m.userKey ? rs.pA : rs.pD, sd = rs.ak === m.userKey ? 'atk' : 'def';
     const L = rs.pre.slice();
     if(V){
-      L.push({c:'hdr', h:`${rl} · <span style="color:${rs.AT.color}">${esc(rs.AT.short)}</span> ATACA × <span style="color:${rs.DT.color}">${esc(rs.DT.short)}</span> DEFENDE${m.userKey ? ` · seu plano: cadência ${mine.cad} · ${esc(m.map.routes[mine.route])}` : ''}`});
+      L.push({c:'hdr', h:`${rl} · <span style="color:${rs.AT.color}">${esc(rs.AT.short)}</span> ATACA × <span style="color:${rs.DT.color}">${esc(rs.DT.short)}</span> DEFENDE${m.userKey ? ` · plano da comissão: cadência ${mine.cad} · ${esc(m.map.routes[mine.route])}` : ''}`});
       L.push({c:'sys', h: rs.pA.cad <= 2 ? `🔍 Fase de drones: o ataque testa ${esc(m.map.routes[rs.pA.route])} sem gastar utilidade.` : rs.pA.cad >= 4 ? `⚡ O ataque sai rápido e pressiona ${esc(m.map.routes[rs.pA.route])}.` : `Ataque monta o controle de mapa de forma padrão.`});
     }
     return {t:0, type:'start', L};
@@ -614,7 +577,7 @@ function roundNext(rs){
     const dt = rint(6, 14), endT = rs.plantT + PLANT_SEC;
     if(rs.t + dt >= endT){
       rs.t = endT;
-      const pd = clamp(.5 + .14 * (dd.length - aa.length) - (rs.base + rs.mods[rs.ak] - rs.mods[rs.dk]) * .01 + (rs.dk === m.userKey ? rs.defuseAdj : 0), .1, .9);
+      const pd = clamp(.5 + .14 * (dd.length - aa.length) - (rs.base + rs.mods[rs.ak] - rs.mods[rs.dk]) * .01 + (rs.dk === m.userKey ? rs.defuseAdj : 0) + rs.tm[rs.dk].util * .006, .1, .9);
       return rnd() < pd ? endRound(rs, 'defuse', rs.dk) : endRound(rs, 'boom', rs.ak);
     }
     rs.t += dt;
@@ -628,7 +591,15 @@ function duelEvent(rs, aa, dd){
     : (rs.pD.cad >= 4 ? (u.p.role === 'Roamer' ? 1.8 : .8) : (u.p.role === 'Anchor' ? 1.5 : 1));
   const au = wpick(aa, u => (u.eff - 40) * rw(u, 'atk')), du = wpick(dd, u => (u.eff - 40) * rw(u, 'def'));
   const bonus = rs.base + rs.mods[ak] - rs.mods[dk] + (first ? rs.firstB : 0);
-  const aWins = rnd() < sig(((au.eff - du.eff) + bonus) / DS);
+  /* situações: clutch pesa quando o jogador é o último vivo contra 2+ (100%) ou sob pressão — pós-plant, match point (40%);
+     roaming pesa na defesa com agressividade 4–5 */
+  const sit = (u, mine, theirs, side) => {
+    const dv = k => attr(u.p, k) - u.p.ovr, press = mine.length === 1 && theirs.length >= 2 ? 1 : (rs.planted || m.score.a >= 6 || m.score.b >= 6) ? .4 : 0;
+    return (press ? clamp(dv('clu') * .3 * press, -3, 3) : 0) + (side === 'def' && rs.pD.cad >= 4 ? dv('roam') * (rs.pD.cad - 3) * .12 : 0)
+      + (first ? dv('open') * .2 : 0) + (side === 'atk' && u.hb && !rs.planted ? dv('util') * .12 : 0);       // abertura no 1º duelo · Hard Breacher depende de utilidade
+  };
+  const diff = (au.eff + sit(au, aa, dd, 'atk')) - (du.eff + sit(du, dd, aa, 'def'));
+  const aWins = rnd() < sig((diff + bonus) / DS);
   const kr = aWins ? au : du, vc = aWins ? du : au;
   kr.kills++; vc.alive = false; rs.duels++; rs.kills++;
   if(first) m.ps[kr.k][kr.i].fk++;
@@ -650,7 +621,7 @@ function duelEvent(rs, aa, dd){
     else if(rs.kills === 1 && rnd() < .35) fire('A', 'fb', vc);       // sofreu o First Blood (nem todo FB congela o round)
   }
   if(!rs.planted && na.length && nd.length){
-    const pp = .30 + (rs.pA.cad - 1) * .07 + .07 * (rs.duels - 1) + rs.plantAdj;
+    const pp = .30 + (rs.pA.cad - 1) * .07 + .07 * (rs.duels - 1) + rs.plantAdj + rs.tm[ak].util * .005;
     if(rnd() < pp){
       const planter = wpick(na, u => u.eff - 40); rs.planted = true; rs.plantT = Math.min(rs.t + rint(3, 9), 170); rs.t = rs.plantT;
       rs.queue.push({t:rs.plantT, type:'plant', L:V ? [{c:'plant', h:`💣 ${pnU(m, planter)} planta o defuser em <b>${pick(m.map.calls)}</b> — ${na.length}v${nd.length} · ${PLANT_SEC}s no relógio`}] : []});
@@ -703,7 +674,8 @@ function endRound(rs, type, winner){
   m.hist.push({w:winner, ak, type, ot:m.inOT, cad:rs.pA.cad, route:rs.pA.route, dcad:rs.pD.cad, stack:rs.pD.route});
   m.last[ak] = {cad:rs.pA.cad, route:rs.pA.route, side:'atk'}; m.last[dk] = {cad:rs.pD.cad, route:rs.pD.route, side:'def'};
   m.streak[winner]++; m.streak[other(winner)] = 0;
-  m.conf[winner] = clamp(m.conf[winner] + 6, 15, 95); m.conf[other(winner)] = clamp(m.conf[other(winner)] - 6, 15, 95);
+  const drop = clamp(6 - teamMods(m.t[other(winner)]).led / 4, 3, 8);           // um bom líder segura a confiança após perder o round
+  m.conf[winner] = clamp(m.conf[winner] + 6, 15, 95); m.conf[other(winner)] = clamp(m.conf[other(winner)] - drop, 15, 95);
   if(m.inOT){ m.ot[winner]++; m.otPlayed++; m.score[winner]++; if(m.ot[winner] >= 2){ m.done = true; m.winner = winner; } }   // OT soma no placar: 8–6 ou 8–7
   else { m.score[winner]++; m.played++; if(m.score[winner] >= 7){ m.done = true; m.winner = winner; } else if(m.played >= 12){ m.inOT = true; m.wasOT = true; } }
   if(V){
@@ -739,13 +711,27 @@ function upgrade(j){
     t.bench = mkBench(t.bench, t.power, r2);
     t.bud = budFor(t.power);
   }
-  Object.assign(j, {v:3, year:START_YEAR, hist:[], news:[], offers:[], fa:genFA(namesOf(j.teams))});
+  Object.assign(j, {v:3, pool:true, year:START_YEAR, hist:[], news:[], offers:[], fa:genFA(namesOf(j.teams))});
 }
 function loadSave(){
   try{
     const j = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if(!j || (j.v !== 2 && j.v !== 3)) return null;
     if(j.v === 2) upgrade(j);
+    if(!j.cal) Object.assign(j, {cal:CAL_FIRST.slice(), ei:0, ev:'stage2', tn:null, evres:null, qual:null, season:newSeason(), lgName:'Stage 2 ' + (j.year || START_YEAR), si0:j.teams[j.userId].si,
+      win:!j.cur && !j.done && j.md === 0 ? 'pre' : null});           // saves anteriores ao calendário completo: continuam no Stage 2
+    if(j.attrs !== 2){                               // saves anteriores: gera os atributos de especialidade que faltam a partir do rating, função e idade
+      j.attrs = 2;
+      const fix = p => { const g = mkAttrs(p.ovr, p.role, mulb(hstr('x' + p.id)), !!p.igl, p.age); for(const k of Object.keys(g)) if(p[k] == null) p[k] = g[k]; };
+      Object.values(j.teams).forEach(t => t.players.concat(t.bench).forEach(fix)); j.fa.forEach(fix);
+    }
+    if(!j.igl2){                                    // saves antigos tinham IGL sorteado pelo jogo: mantém só os IGLs definidos no db.js
+      j.igl2 = true;
+      for(const t of Object.values(j.teams)){ const d = TEAM_DB.find(x => x.id === t.id); t.players.concat(t.bench).forEach(p => p.igl = !!d && isIglOf(d, p.name)); }
+    }
+    if(!j.pool){                                    // saves anteriores ao pool real: acrescenta os jogadores do db.js ao mercado
+      j.pool = true; const tk = namesOf(j.teams); j.fa.forEach(p => tk.add(p.name.toLowerCase())); j.fa.push(...realPool(tk));
+    }
     PID = 1 + Math.max(0, ...Object.values(j.teams).flatMap(t => t.players.concat(t.bench).map(p => p.id)), ...j.fa.map(p => p.id));
     return j;
   }catch(e){ return null; }
@@ -755,10 +741,36 @@ function wipeSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
 const nG = lid => S.sched[lid].length;
 const siTag = () => S.year === START_YEAR ? 'Paris' : String(S.year + 1);      // 2026 → Six Invitational em Paris
 const userLid = () => T(S.userId).league;
-const totalMD = () => nG(userLid()) + 2;
+const totalMD = () => S.tn ? 4 : nG(userLid()) + 2;
 const stageOf = (lid, idx) => { const n = nG(lid); return idx < n ? {ph:'g', r:idx} : idx === n ? {ph:'sf'} : idx === n + 1 ? {ph:'f'} : null; };
-const mdLabel = idx => { const n = nG(userLid()); return idx < n ? 'Rodada ' + (idx + 1) : idx === n ? 'Semifinais' : 'Grande Final'; };
-const phLabel = (ph, idx) => ph === 'sf' ? 'Semifinal' : ph === 'f' ? 'Final' : 'Rodada ' + (idx + 1);
+const mdLabel = idx => { if(S.tn) return TN_NAMES[idx]; const n = nG(userLid()); return idx < n ? 'Rodada ' + (idx + 1) : idx === n ? 'Semifinais' : 'Grande Final'; };
+const phLabel = (ph, idx) => ph === 'sf' || ph === 'T4' ? 'Semifinal' : ph === 'f' || ph === 'T2' ? 'Final' : ph === 'T16' ? 'Oitavas' : ph === 'T8' ? 'Quartas' : 'Rodada ' + (idx + 1);
+const phTag = ph => ({sf:'semi', f:'final', T16:'oitavas', T8:'quartas', T4:'semi', T2:'final'}[ph] || '');
+
+/* ---------- calendário competitivo (formato BLAST R6 2026-27) ----------
+   Kickoff → Major (maio) → Stage 1 → EWC → Stage 2 → Major (novembro) → Six Invitational.
+   Stages = liga regional + playoffs (motor original). Kickoff, Majors, EWC e SI = torneio de 16 times, eliminatória simples.
+   pts = SI Points por colocação [campeão, vice, semis, quartas, oitavas] · cash = prêmio em K$ para o usuário. */
+const EVENTS = {
+  kickoff:{name:'Kickoff',                    pts:[150,110,80,50,20],  cash:[40,25,15,8,0]},
+  major1: {name:'BLAST R6 Major · Maio',      pts:[500,400,300,200,100], cash:[200,140,100,60,20]},
+  stage1: {name:'Stage 1', lg:1},
+  ewc:    {name:'Esports World Cup',          pts:[0,0,0,0,0],         cash:[250,170,120,70,20]},   // o campeão ganha EWC_BONUS (vaga no SI)
+  stage2: {name:'Stage 2', lg:1},
+  major2: {name:'BLAST R6 Major · Novembro',  pts:[500,400,300,200,100], cash:[200,140,100,60,20]},
+  si:     {name:'Six Invitational',           pts:[0,0,0,0,0],         cash:[400,280,200,120,40]}
+};
+const CAL_FULL = ['kickoff','major1','stage1','ewc','stage2','major2','si'];
+const CAL_FIRST = ['stage2','major2','si'];             // a 1ª temporada começa no Stage 2 (set/2026)
+const SLOTS = {SAL:3, NAL:3, EML:3, CNL:2, APLA:1, APLN:2, APLO:2};      // 16 vagas por região (Kickoff, Majors, EWC)
+const SEED16 = [1,16,8,9,4,13,5,12,2,15,7,10,3,14,6,11];
+const TN_PH = ['T16','T8','T4','T2'], TN_NAMES = ['Oitavas','Quartas','Semifinais','Grande Final'];
+const TN_LAB = ['Campeão','Vice-campeão','Semifinais (3º–4º)','Quartas (5º–8º)','Oitavas (9º–16º)'];
+LG.TN = {id:'TN', tag:'TRN', name:'Torneio', region:'Global', color:'#ffcc00'};
+const evName = id => id === 'si' ? `Six Invitational ${siTag()}` : `${EVENTS[id].name} ${S.year}`;
+const seasonLabel = () => S.year + '-' + String(S.year + 1).slice(2);
+const bySI = (a, b) => b.si - a.si || b.power - a.power;
+const newSeason = () => ({log:[], cash:0, rank:0, pts:0});
 
 function roundRobin(ids){
   let arr = ids.slice(); const n = arr.length, rounds = [];
@@ -773,8 +785,9 @@ function newCareer(userId){
   const teams = buildAll(), sched = {};
   LEAGUES.forEach(l => sched[l.id] = roundRobin(shuffle(Object.values(teams).filter(t => t.league === l.id).map(t => t.id))));
   const pw = teams[userId].power;
-  S = {v:3, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
+  S = {v:3, igl2:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
        fa:genFA(namesOf(teams)), hist:[], news:[], offers:[],
+       cal:CAL_FIRST.slice(), ei:0, ev:'stage2', tn:null, evres:null, qual:null, season:newSeason(), win:'pre', lgName:'Stage 2 ' + START_YEAR, si0:teams[userId].si,
        club:{cash:Math.max(60, 100 + Math.round((pw - 75) * 4)), staff:{an:0, ps:0, md:0}, week:1, day:0, acts:[], talk:null, scout:false, fin:null}};
   S.club.talk = pickTalk();
   globalTable('proj').forEach(r => r.t.rkPrev = r.rank);
@@ -794,7 +807,7 @@ function projRanking(lid){
   return g;
 }
 function globalTable(mode){
-  const rk = {}; LEAGUES.forEach(l => rk[l.id] = S.final[l.id] ? null : projRanking(l.id));
+  const rk = {}; LEAGUES.forEach(l => rk[l.id] = S.tn || S.final[l.id] ? null : projRanking(l.id));      // projeção só durante um Stage em andamento
   const arr = Object.values(S.teams).map(t => ({t, pts:mode === 'proj' && rk[t.league] ? t.si + PLACE_PTS[rk[t.league].indexOf(t.id)] : t.si}));
   arr.sort((x, y) => y.pts - x.pts || y.t.power - x.t.power || x.t.name.localeCompare(y.t.name));
   arr.forEach((r, i) => r.rank = i + 1);
@@ -805,16 +818,22 @@ function g16Status(){
   return {tb, me, rank:me.rank, pts:me.pts, in:inn, cutPts:cut.pts, cutTeam:cut.t, nextTeam:nxt.t, nextPts:nxt.pts, margin:inn ? me.pts - nxt.pts : cut.pts - me.pts};
 }
 function userInPlayoffs(){
-  if(S.md < nG(userLid())) return null;
+  if(S.tn || S.md < nG(userLid())) return null;
   const po = S.po[userLid()]; if(!po) return leagueTable(userLid()).slice(0, 4).some(t => t.id === S.userId);
   return po.seeds.includes(S.userId);
 }
 function computeAlerts(){
   const g = g16Status(), u = T(S.userId), out = [];
-  if(S.done){
-    out.push(g.in ? {lv:'ok', ic:'🏆', t:`Vaga direta garantida — Six Invitational ${siTag()}`, x:`${u.name} termina o Stage 2 em #${g.rank} no ranking mundial com ${g.pts} pts (G16).`}
-                  : {lv:'crit', ic:'💀', t:'Fora do G16 — a vaga no Six Invitational ficou para trás', x:`${u.name} encerra em #${g.rank} com ${g.pts} pts, a ${g.margin} pts da linha de corte.`});
-    return out;
+  const burn = () => { const b = u.players.filter(isBurnout); if(b.length) out.push({lv:'crit', ic:'🔥', t:'BURNOUT no elenco', x:`${b.map(p => p.name).join(', ')} em burnout: −15 de rating em jogo. Use Descanso/Psicólogo antes da rodada.`}); return out; };
+  if(S.ev === 'si'){                                            // o Six Invitational fecha a temporada: não há mais SI Points em jogo
+    if(!S.tn.teams.includes(u.id)) out.push({lv:'info', ic:'📺', t:`Six Invitational ${siTag()} sem a sua organização`, x:`${u.name} não se classificou. Acompanhe o torneio pelo Painel ou simule o evento.`});
+    else if(S.done) out.push(S.tn.champ === u.id ? {lv:'ok', ic:'🏆', t:`CAMPEÃO DO SIX INVITATIONAL ${siTag()}!`, x:`${u.name} conquista o maior título do circuito.`} : {lv:'info', ic:'🏁', t:'Six Invitational encerrado', x:`Campeão: ${T(S.tn.champ).name}.`});
+    return burn();
+  }
+  if(S.done && S.ev === 'major2'){                              // última chance de SI Points: a lista de classificados fecha aqui
+    out.push(S.qual.includes(u.id) ? {lv:'ok', ic:'🎫', t:`Vaga garantida — Six Invitational ${siTag()}`, x:`${u.name} fecha os SI Points em #${g.rank} com ${g.pts} pts (G16).`}
+                                   : {lv:'crit', ic:'💀', t:'Fora do G16 — a vaga no Six Invitational ficou para trás', x:`${u.name} encerra em #${g.rank} com ${g.pts} pts, a ${g.margin} pts da linha de corte.`});
+    return burn();
   }
   if(g.in && g.margin <= 25) out.push({lv:'crit', ic:'🚨', t:'ALERTA MÁXIMO — a linha de corte está no seu pescoço', x:`Só ${g.margin} pts separam você do ${g.nextTeam.short} (#${G16 + 1}). Um tropeço e o G16 escapa.`});
   else if(g.in && g.margin <= 70) out.push({lv:'warn', ic:'⚠️', t:'Zona de risco do G16', x:`Você está em #${g.rank}, apenas ${g.margin} pts acima do 1º time fora da zona (${g.nextTeam.short}). Cada round conta.`});
@@ -822,12 +841,12 @@ function computeAlerts(){
   else if(g.margin <= 40) out.push({lv:'crit', ic:'💥', t:'VOCÊ ESTÁ FORA DO G16 — por muito pouco!', x:`Faltam ${g.margin} pts para cruzar a linha (${g.cutTeam.short}, #${G16}). É vencer ou ver o Six Invitational pela TV.`});
   else if(g.margin <= 130) out.push({lv:'warn', ic:'🔥', t:'A linha de corte está ao alcance', x:`Você precisa de +${g.margin} pts. Subir na tabela da liga vale até ${PLACE_PTS[0]} pts em colocação final.`});
   else out.push({lv:'warn', ic:'☠️', t:'Distante do G16', x:`A ${g.margin} pts da linha. Só um título regional muda o jogo (${PLACE_PTS[0]} pts).`});
-  const rem = Math.max(0, nG(userLid()) - S.md), maxPossible = u.si + rem * WIN_PTS + 2 * PO_WIN_PTS + PLACE_PTS[0];
-  if(!g.in && maxPossible < g.cutPts) out.push({lv:'crit', ic:'⛔', t:'Eliminação matemática iminente', x:`Mesmo vencendo tudo você chegaria a ${maxPossible} pts, abaixo dos ${g.cutPts} da linha atual.`});
-  if(userInPlayoffs() === false) out.push({lv:'info', ic:'📡', t:'Fora dos playoffs', x:`Sua campanha regional acabou. O G16 agora depende só da tabela mundial (#${g.rank} projetado).`});
-  const burn = u.players.filter(isBurnout);
-  if(burn.length) out.push({lv:'crit', ic:'🔥', t:'BURNOUT no elenco', x:`${burn.map(p => p.name).join(', ')} em burnout: −15 de rating em jogo. Use Descanso/Psicólogo antes da rodada.`});
-  return out;
+  if(!S.tn){
+    const rem = Math.max(0, nG(userLid()) - S.md), maxPossible = u.si + rem * WIN_PTS + 2 * PO_WIN_PTS + PLACE_PTS[0];
+    if(!g.in && maxPossible < g.cutPts) out.push({lv:'crit', ic:'⛔', t:'Eliminação matemática iminente', x:`Mesmo vencendo tudo neste Stage você chegaria a ${maxPossible} pts, abaixo dos ${g.cutPts} da linha atual.`});
+    if(userInPlayoffs() === false) out.push({lv:'info', ic:'📡', t:'Fora dos playoffs', x:`Sua campanha regional acabou. O G16 agora depende só da tabela mundial (#${g.rank} projetado).`});
+  } else if(!S.tn.teams.includes(u.id)) out.push({lv:'info', ic:'📺', t:`Sua organização não disputa ${EVENTS[S.ev].name}`, x:`Só ${S.tn.teams.length} times entram, por vagas regionais e SI Points. Simule o evento ou acompanhe pelo Painel.`});
+  return burn();
 }
 
 /* ---------- calendário e dias de jogo ---------- */
@@ -840,6 +859,11 @@ function fixtures(lid, idx){
   return po && po.final ? [po.final] : [];
 }
 function userFixture(idx = S.md){
+  if(S.tn){
+    const list = S.tn.rounds[idx] || [];
+    for(let i = 0; i < list.length; i++) if(list[i].includes(S.userId)) return {slot:i, opp:list[i][0] === S.userId ? list[i][1] : list[i][0], lg:'TN', ph:TN_PH[idx]};
+    return null;
+  }
   const lid = userLid(), st = stageOf(lid, idx); if(!st) return null;
   if(st.ph === 'f' && !(S.po[lid] && S.po[lid].sfW.filter(Boolean).length === 2)) return null;
   const list = fixtures(lid, idx);
@@ -849,19 +873,22 @@ function userFixture(idx = S.md){
 function commit(m, meta){
   const w = m.winner, l = other(w), W = m.t[w], Lz = m.t[l], group = meta.ph === 'g';
   if(group){ W.w++; Lz.l++; W.rw += m.score[w]; W.rl += m.score[l]; Lz.rw += m.score[l]; Lz.rl += m.score[w]; }
-  W.si += group ? WIN_PTS : PO_WIN_PTS;
+  if(!S.tn) W.si += group ? WIN_PTS : PO_WIN_PTS;             // torneios pagam SI Points pela colocação final, não por vitória
   W.form.push('W'); Lz.form.push('L'); if(W.form.length > 5) W.form.shift(); if(Lz.form.length > 5) Lz.form.shift();
   for(const k of ['a','b']){
     const t = m.t[k];
     t.players.forEach((p, i) => {
-      const s = m.ps[k][i]; p.k += s.k; p.d += s.d; p.r += s.r; p.fk += s.fk; p.cl += s.cl;
+      const s = m.ps[k][i]; p.k += s.k; p.d += s.d; p.r += s.r; p.fk += s.fk; p.cl += s.cl; if(p.adapt) p.adapt--;
       p.form = clamp(Math.round((p.form * .6 + (s.k - s.d) / Math.max(1, s.r) * 4) * 10) / 10, -4, 4);
     });
     if(t.id !== S.userId) t.conf = clamp(Math.round(60 + (t.conf - 60) * .5 + (k === w ? 3 : -3)), 30, 85);
   }
-  const po = S.po[meta.lg];
-  if(meta.ph === 'sf'){ po.sfW[meta.slot] = W.id; po.sfL[meta.slot] = Lz.id; }
-  if(meta.ph === 'f'){ po.champ = W.id; po.runner = Lz.id; }
+  if(S.tn) S.tn.res[meta.idx][meta.slot] = {a:m.t.a.id, b:m.t.b.id, sa:m.score.a, sb:m.score.b, w:W.id};
+  else {
+    const po = S.po[meta.lg];
+    if(meta.ph === 'sf'){ po.sfW[meta.slot] = W.id; po.sfL[meta.slot] = Lz.id; }
+    if(meta.ph === 'f'){ po.champ = W.id; po.runner = Lz.id; }
+  }
   S.results.push({i:meta.idx, ph:meta.ph, lg:meta.lg, a:m.t.a.id, b:m.t.b.id, sa:m.score.a, sb:m.score.b, w:W.id, ot:m.wasOT, map:m.map.loc, up:W.power <= Lz.power - 5, user:!!meta.user});
   if(S.results.length > 400) S.results.splice(0, S.results.length - 400);
 }
@@ -886,25 +913,93 @@ function closeLeague(lid){
   S.final[lid] = fin; fin.forEach((id, i) => T(id).si += PLACE_PTS[i]);
 }
 const closeStage = idx => LEAGUES.forEach(l => { const st = stageOf(l.id, idx); if(st && st.ph === 'f' && !S.final[l.id]) closeLeague(l.id); });
+
+/* ---------- torneios de 16 times (Kickoff, Majors, EWC, Six Invitational) ---------- */
+const tnPairs = l => l.reduce((a, x, i) => i % 2 ? a : [...a, [x, l[i + 1]]], []);
+function tnField(id){
+  if(id === 'si' && S.qual) return S.qual.map(T);                       // SI: os 16 do G16, definidos ao fim do Major de novembro
+  if(id === 'si') return Object.values(S.teams).sort(bySI).slice(0, G16);
+  let f = LEAGUES.flatMap(l => Object.values(S.teams).filter(t => t.league === l.id).sort(bySI).slice(0, SLOTS[l.id] || 2));
+  const rest = Object.values(S.teams).filter(t => !f.includes(t)).sort(bySI);
+  while(f.length < G16 && rest.length) f.push(rest.shift());
+  return f.sort(bySI).slice(0, G16);
+}
+function setupTournament(id){
+  const f = tnField(id).sort(bySI), order = SEED16.map(s => f[s - 1].id);
+  S.tn = {ev:id, teams:order, rounds:[tnPairs(order)], res:[[], [], [], []], champ:null};
+}
+function simTournRound(idx){
+  let user = null, n = 0;
+  S.tn.rounds[idx].forEach((pair, slot) => {
+    if(pair.includes(S.userId)){ user = {a:S.userId, b:pair[0] === S.userId ? pair[1] : pair[0], lg:'TN', slot, ph:TN_PH[idx]}; return; }
+    commit(quickMatch(T(pair[0]), T(pair[1])), {idx, lg:'TN', slot, ph:TN_PH[idx]}); n++;
+  });
+  return {user, n};
+}
+function tnAdvance(idx){
+  const win = S.tn.res[idx].map(x => x.w);
+  if(idx === 3){ S.tn.champ = win[0]; S.done = true; } else S.tn.rounds[idx + 1] = tnPairs(win);
+}
+/* SI Points por colocação: grupo 0 = campeão … 4 = eliminado nas oitavas */
+function tnAward(){
+  const e = EVENTS[S.tn.ev], grp = {};
+  S.tn.res.forEach((rd, r) => rd.forEach(x => { grp[x.w === x.a ? x.b : x.a] = 4 - r; }));
+  grp[S.tn.champ] = 0;
+  Object.entries(grp).forEach(([id, g]) => { T(id).si += e.pts[g]; });
+  if(S.tn.ev === 'ewc'){ Object.values(S.teams).forEach(t => t.ewc = false); const c = T(S.tn.champ); c.ewc = true; c.si += EWC_BONUS; }
+  return grp;
+}
+/* fecha o evento: colocação do usuário, prêmio em dinheiro e (no Major de novembro) a lista de classificados ao SI */
+function closeEvent(){
+  const u = T(S.userId), e = EVENTS[S.ev]; let lab = 'Não participou', cash = 0;
+  if(S.tn){ const g = tnAward(); if(g[u.id] != null){ lab = TN_LAB[g[u.id]]; cash = e.cash[g[u.id]]; } }
+  else { const pl = S.final[u.league].indexOf(u.id) + 1; lab = pl + 'º lugar'; cash = Math.round(PLACE_PTS[pl - 1] / 2); }
+  S.club.cash += cash; S.season.cash += cash; S.season.log.push({ev:S.ev, lab, cash});
+  if(S.ev === 'major2'){ const g = g16Status(); S.qual = g.tb.slice(0, G16).map(r => r.t.id); S.season.rank = g.rank; S.season.pts = g.pts; }
+  S.evres = {ev:S.ev, lab, cash, si:u.si - (S.si0 || 0)};
+}
+
+/* ---------- avanço do calendário ---------- */
+function setupLeague(){
+  LEAGUES.forEach(l => S.sched[l.id] = roundRobin(shuffle(Object.values(S.teams).filter(t => t.league === l.id).map(t => t.id))));
+  Object.values(S.teams).forEach(t => Object.assign(t, {w:0, l:0, rw:0, rl:0}));
+  S.lgName = evName(S.ev);
+}
+function startEvent(){
+  const id = S.cal[S.ei];
+  Object.assign(S, {ev:id, md:0, cur:null, report:null, snap:null, done:false, results:[], final:{}, po:{}, tn:null, evres:null, si0:T(S.userId).si});
+  if(EVENTS[id].lg) setupLeague(); else setupTournament(id);
+  globalTable('proj').forEach(r => r.t.rkPrev = r.rank);
+}
+function advanceEvent(){
+  S.offers = []; S.win = null;
+  if(S.ei + 1 >= S.cal.length) return null;
+  S.ei++; S.club.week++; startWeek(); startEvent();
+  if(S.ev === 'stage1'){ const n = cpuMarket('mid'); S.win = 'mid'; S.offers = genOffers(); addNews(`Janela de meio de temporada: ${n} transferências entre times da CPU`); }
+  save(); return S.ev;
+}
 function startMatchday(){
   const idx = S.md, t0 = performance.now(), pre = g16Status();
-  S.offers = [];                                             // ao iniciar a rodada a janela fecha
+  S.offers = []; S.win = null;                               // ao iniciar a rodada a janela fecha
   S.snap = {rank:pre.rank, si:T(S.userId).si, inn:pre.in, pts:pre.pts, cash:S.club.cash};
   pre.tb.forEach(r => { r.t.siPrev = r.t.si; r.t.rkPrev = r.rank; });
-  const r = simStage(idx);
+  const r = S.tn ? simTournRound(idx) : simStage(idx);
   S.cur = {idx, user:r.user, sim:r.n, ms:Math.max(.1, +(performance.now() - t0).toFixed(1))};
   save(); return S.cur;
 }
 function finishMatchday(userRes){
   const idx = S.cur.idx, u = T(S.userId);
-  closeStage(idx);
-  if(idx === totalMD() - 1){                              // liga do usuário encerrada: o resto do circuito é simulado até o fim
-    for(let i = idx + 1; i < 40 && LEAGUES.some(l => !S.final[l.id]); i++){ simStage(i); closeStage(i); }
-    S.done = true;
+  if(S.tn) tnAdvance(idx);
+  else {
+    closeStage(idx);
+    if(idx === totalMD() - 1){                            // liga do usuário encerrada: o resto do circuito é simulado até o fim
+      for(let i = idx + 1; i < 40 && LEAGUES.some(l => !S.final[l.id]); i++){ simStage(i); closeStage(i); }
+      S.done = true;
+    }
   }
   S.md = idx + 1;
-  if(!S.done && S.md === midMD()){ const n = cpuMarket('mid'); S.offers = genOffers(); addNews(`Janela de meio de temporada: ${n} transferências entre times da CPU`); }
-  const after = g16Status(), sn = S.snap, place = S.final[u.league] ? S.final[u.league].indexOf(S.userId) + 1 : null;
+  if(S.done) closeEvent();                                // antes do relatório: os pontos de colocação entram no ganho de SI
+  const after = g16Status(), sn = S.snap, place = S.done ? S.evres.lab : null;
   S.report = {idx, label:mdLabel(idx), res:userRes || null, dSI:u.si - sn.si, rankBefore:sn.rank, rankAfter:after.rank, inn:after.in,
     dropped:sn.inn && !after.in, gained:!sn.inn && after.in, place, sim:S.cur.sim, ms:S.cur.ms, dCash:0};
   S.cur = null;
@@ -924,7 +1019,7 @@ function finishUserMatch(m, meta){
   t.players.forEach(p => { p.stress = clamp(p.stress + Math.round((5 + (won ? 0 : 4)) * psy()), 0, 100); p.sat = clamp(p.sat + (won ? 3 : -3), 0, 100); });
   t.conf = clamp(t.conf + (won ? 2 : -3), 15, 80); t.chem = clamp(t.chem + (won ? 1 : -1), 0, 90);
   if(won) c.cash += Math.round(12 * (1 + .3 * c.staff.md));
-  S.uh.push({idx:meta.idx, opp:m.t.b.id, won, sa:m.score.a, sb:m.score.b, ot:m.wasOT, map:m.map.name});
+  S.uh.push({ev:S.ev, idx:meta.idx, opp:m.t.b.id, won, sa:m.score.a, sb:m.score.b, ot:m.wasOT, map:m.map.name});
   return finishMatchday({won, sa:m.score.a, sb:m.score.b, opp:m.t.b.id, ot:m.wasOT, map:m.map.name, mvp:mvpOf(m)});
 }
 
@@ -939,17 +1034,34 @@ function startWeek(){
   t.players.forEach(p => { p.stress = clamp(p.stress - 6, 0, 100); p.form = Math.round(p.form * 5) / 10; p.sat = clamp(Math.round(p.sat - (p.sat - 65) * .2), 0, 100); });
   c.talk = pickTalk();
 }
+const TR_STATS = {aim:'Aim', gs:'Gamesense', ...ATTR_LONG};
+const TR_ICO = {aim:'🎯', gs:'🧠', clu:'🔥', led:'🎖️', tw:'🤝', roam:'🏃', open:'⚡', util:'💨', men:'🧘', info:'📡', cons:'📈', adp:'🔄'};
 const ACTS = {
   aim: {name:'Treino de Mira',        ico:'🎯', txt:'+Aim para todo o elenco, mas cansa (+Estresse).'},
   vod: {name:'Sessão de VOD',         ico:'📼', txt:'+Gamesense, leve estresse e leitura do próximo rival.'},
-  rest:{name:'Descanso / Psicólogo',  ico:'🛌', txt:'−Estresse e +Satisfação. O Psicólogo potencializa.'}
+  rest:{name:'Descanso / Psicólogo',  ico:'🛌', txt:'−Estresse e +Satisfação. O Psicólogo potencializa.'},
+  map: {name:'Treino de Mapa',        ico:'📍', txt:`Escolha um mapa: +${MAP_TR_STEP} de afinidade (máx. +${MAP_TR_MAX}) para os vetos e rounds.`},
+  ind: {name:'Treino Individual',     ico:'🏋️', txt:'Escolha um atleta e um dos 12 focos (Aim, Gamesense, Clutch, Liderança, Abertura, Utilidade, Mental…). Evolui mais rápido que o treino coletivo.'}
 };
-function doDay(act){
+function doDay(act, o = {}){
   const c = S.club, t = T(S.userId); if(c.day >= 3 || !ACTS[act]) return null;
   const before = new Set(t.players.filter(isBurnout).map(p => p.name)), gain = v => rnd() < (v >= 90 ? .15 : v >= 82 ? .35 : .5) ? 1 : 0;
   let txt;
   if(act === 'aim'){ t.players.forEach(p => { p.aim = Math.min(99, p.aim + gain(p.aim)); p.stress = clamp(p.stress + Math.round(14 * psy()), 0, 100); recalc(p); }); txt = 'Treino de mira intenso: Aim em alta, elenco cansado.'; }
-  else if(act === 'vod'){ t.players.forEach(p => { p.gs = Math.min(99, p.gs + gain(p.gs)); p.stress = clamp(p.stress + Math.round(5 * psy()), 0, 100); recalc(p); }); t.chem = clamp(t.chem + 1, 0, 100); c.scout = true; txt = 'VOD do rival revisado: Gamesense em alta e tendências mapeadas.'; }
+  else if(act === 'vod'){ t.players.forEach(p => { p.gs = Math.min(99, p.gs + gain(p.gs)); if(rnd() < .3) p.tw = Math.min(99, attr(p, 'tw') + 1); p.stress = clamp(p.stress + Math.round(5 * psy()), 0, 100); recalc(p); }); t.chem = clamp(t.chem + 1, 0, 100); c.scout = true; txt = 'VOD do rival revisado: Gamesense em alta e tendências mapeadas.'; }
+  else if(act === 'map'){                                   // afinidade do time com o mapa escolhido
+    const mp = MAPS.find(x => x.id === o.map); if(!mp) return null;
+    t.mapTr = t.mapTr || {}; t.mapTr[mp.id] = Math.min(MAP_TR_MAX, Math.round(((t.mapTr[mp.id] || 0) + MAP_TR_STEP) * 10) / 10);
+    t.players.forEach(p => { p.stress = clamp(p.stress + Math.round(7 * psy()), 0, 100); }); t.chem = clamp(t.chem + 1, 0, 100);
+    txt = `Treino em ${mp.name}: afinidade ${aff(t, mp.id) >= 0 ? '+' : ''}${aff(t, mp.id).toFixed(1)} (treino +${t.mapTr[mp.id].toFixed(1)}).`;
+  }
+  else if(act === 'ind'){                                   // treino focado em um atleta: mais ganho, limitado ao potencial +2
+    const p = t.players.find(x => x.id === o.pid), st = TR_STATS[o.stat] ? o.stat : 'aim'; if(!p) return null;
+    const v = attr(p, st), main = st === 'aim' || st === 'gs', room = main ? p.pot + 2 - p.ovr : p.pot + 8 - v, pr = v >= 90 ? .3 : v >= 82 ? .6 : .85, nm = TR_STATS[st];
+    const g = room > 0 ? Math.min(2, (rnd() < pr ? 1 : 0) + (p.age <= 22 && rnd() < .4 ? 1 : 0)) : 0;
+    p[st] = Math.min(99, v + g); recalc(p); p.stress = clamp(p.stress + Math.round(9 * psy()), 0, 100); p.sat = clamp(p.sat + 3, 0, 100);
+    txt = g ? `${p.name} treinou ${nm} com a comissão: +${g}.` : room > 0 ? `${p.name} treinou ${nm}, sem evolução visível desta vez.` : `${p.name} já está no teto do potencial: treino sem ganho.`;
+  }
   else { const r = 20 + 4 * c.staff.ps; t.players.forEach(p => { p.stress = clamp(p.stress - r, 0, 100); p.sat = clamp(p.sat + 6, 0, 100); }); txt = 'Dia de descanso: o elenco respira e a moral sobe.'; }
   c.acts.push({act, txt}); c.day++; save();
   return {txt, burn:t.players.filter(p => isBurnout(p) && !before.has(p.name)).map(p => p.name)};
@@ -990,7 +1102,7 @@ const TALKS = [
     {t:'Aumentar o salário (−40 K$)', fx:{cash:-40, p1sat:12}, r:'O jogador renova o compromisso.'},
     {t:'Apelar ao projeto', roll:.6, ok:{p1sat:6, chem:2}, ko:{p1sat:-10, chem:-2}, r:'A conversa decide se o discurso convenceu.'},
     {t:'Ignorar o rumor', fx:{p1sat:-10}, r:'O silêncio é lido como desinteresse.'}]},
-  {id:'igl', w:() => 1, who:'igl', title:'Discussão de calls', text:c => `${c.p1} (IGL) e ${c.p2} discutem sobre a call do último round decisivo.`, opts:[
+  {id:'igl', w:c => c.ps.some(p => p.igl) ? 1 : 0, who:'igl', title:'Discussão de calls', text:c => `${c.p1} (IGL) e ${c.p2} discutem sobre a call do último round decisivo.`, opts:[
     {t:'Apoiar o IGL', fx:{p1sat:4, p2sat:-5, chem:1}, r:'A cadeia de comando se mantém.'},
     {t:'Ouvir o argumento do outro', fx:{p2sat:6, p1sat:-5, chem:-1}, r:'O IGL sente a autoridade abalada.'},
     {t:'Adotar call compartilhada', fx:{chem:4, gs:1, stress:2}, r:'As decisões passam a ser mais colaborativas.'}]},
@@ -1015,6 +1127,7 @@ function talkCtx(){
   let streak = 0; for(let i = S.uh.length - 1; i >= 0 && S.uh[i].won; i--) streak++;
   return {t, ps, lastLoss, streak, an:c.staff.an, maxStress:Math.max(...ps.map(p => p.stress)), rp};
 }
+const whoTk = (t, id, name) => t.players.find(p => p.id === id) || (id == null ? t.players.find(p => p.name === name) : null);      // por id; talks antigos (sem id) caem no nick
 function pickTalk(){
   const ctx = talkCtx(), pool = TALKS.map(x => ({x, w:x.w(ctx)})).filter(o => o.w > 0), ch = wpick(pool, o => o.w).x;
   let p1;
@@ -1022,7 +1135,7 @@ function pickTalk(){
   else if(ch.who === 'igl') p1 = ctx.ps.find(p => p.igl) || ctx.rp();
   else p1 = ctx.rp();
   const p2 = pick(ctx.ps.filter(p => p !== p1));
-  return {id:ch.id, p1:p1.name, p2:p2.name, done:null};
+  return {id:ch.id, p1:p1.name, p2:p2.name, i1:p1.id, i2:p2.id, done:null};
 }
 const talkDef = id => TALKS.find(x => x.id === id);
 function talkView(){
@@ -1031,7 +1144,7 @@ function talkView(){
   return {def:d, title:d.title, text:d.text(c), opts:d.opts.map(o => ({t:o.t.replace('${p1}', tk.p1), req:o.req, locked:o.req && !S.club.staff[o.req]}))};
 }
 function applyFx(fx){
-  const t = T(S.userId), tk = S.club.talk, P1 = t.players.find(p => p.name === tk.p1), P2 = t.players.find(p => p.name === tk.p2), c = S.club;
+  const t = T(S.userId), tk = S.club.talk, P1 = whoTk(t, tk.i1, tk.p1), P2 = whoTk(t, tk.i2, tk.p2), c = S.club;
   const K = 1 + .3 * c.staff.md;
   for(const [k, v] of Object.entries(fx)){
     if(k === 'chem') t.chem = clamp(t.chem + v, 0, 100);
@@ -1062,22 +1175,20 @@ function resolveTalk(i){
    os atletas envelhecem/evoluem, veteranos se aposentam, nascem promessas e o calendário reinicia.
    ===================================================================== */
 const squad = t => t.players.concat(t.bench);
-const midMD = () => Math.floor(nG(userLid()) / 2);
-const windowOpen = () => !!S && !S.cur && !S.done && (S.md === 0 || S.md === midMD());
-const winLabel = () => S.md === 0 ? 'pré-temporada' : 'meio da temporada';
+const windowOpen = () => !!S && !!S.win && !S.cur && !S.done;          // janelas: pré-temporada e antes do Stage 1
+const winLabel = () => S.win === 'pre' ? 'pré-temporada' : 'meio da temporada';
 const rnd5 = v => Math.round(v / 5) * 5;
 /* valor de mercado: cresce com o rating, cai com a idade e ganha prêmio de potencial nos jovens */
 const pval = p => rnd5(Math.max(10, (20 + Math.pow(Math.max(0, p.ovr - 70), 1.5) * 2) * (p.age <= 20 ? 1.35 : p.age <= 23 ? 1.15 : p.age <= 27 ? 1 : p.age <= 30 ? .8 : .55) + (p.age <= 23 ? Math.max(0, p.pot - p.ovr) * 4 : 0)));
-const faCost = p => Math.max(5, rnd5(pval(p) * .6));
+const faCost = p => Math.max(5, rnd5(pval(p) * (p.t2 ? 1.1 : .6)));       // sem contrato: 60% · tier 2 sob contrato: valor +10%
+const takeFA = p => { S.fa.splice(S.fa.indexOf(p), 1); delete p.org; delete p.t2; };
 const buyCost = (t, p) => rnd5(pval(p) * (t.players.includes(p) ? 1.3 : 1.1) * (t.star === p.name ? 1.4 : 1));
-const winId = () => S.year + ':' + S.md;                 // identifica a janela atual; quem chega nela não pode ser revendido nela
+const winId = () => S.year + ':' + S.ei;               // identifica a janela atual; quem chega nela não pode ser revendido nela
 const flipMsg = 'Contratado nesta janela — só pode ser revendido na próxima.';
 const scoreP = p => p.ovr + (p.age <= 21 ? (p.pot - p.ovr) * .25 : 0);      // como a CPU enxerga um jogador
 const weakest = t => t.players.reduce((b, p) => scoreP(p) < scoreP(b) ? p : b);
 const takenNow = () => { const s = namesOf(S.teams); S.fa.forEach(p => s.add(p.name.toLowerCase())); return s; };
-const nameClash = (t, p) => squad(t).some(x => x.name.toLowerCase() === p.name.toLowerCase());
 function refreshPower(t){ t.power = Math.round(t.players.reduce((s, p) => s + p.ovr, 0) / t.players.length); }
-function ensureIgl(t){ if(!t.players.some(p => p.igl)) t.players.reduce((b, p) => p.gs > b.gs ? p : b).igl = true; }
 function addNews(txt, ovr = 0){ S.news.unshift({y:S.year, t:txt, o:ovr}); if(S.news.length > 80) S.news.length = 80; }
 
 /* reposição imediata de um titular que saiu: melhor free agent que o time paga → senão promessa da base */
@@ -1085,7 +1196,7 @@ function backfill(t, ref){
   let p = null;
   if(t.id !== S.userId){
     p = S.fa.filter(x => faCost(x) <= t.bud && x.ovr >= ref.ovr - 12).sort((a, b) => b.ovr - a.ovr)[0];
-    if(p){ S.fa.splice(S.fa.indexOf(p), 1); t.bud -= faCost(p); }
+    if(p){ const c = faCost(p); takeFA(p); t.bud -= c; }
   }
   return p || mkPlayer({name:genName(takenNow()), ovr:clamp(ref.ovr - rint(6, 12), 55, 85), age:rint(17, 20), pot:clamp(ref.ovr + rint(0, 8), 60, 95)});
 }
@@ -1097,7 +1208,7 @@ function takeOut(t, p){
   let r;
   if(t.bench.length){ r = t.bench.reduce((b, x) => x.ovr > b.ovr ? x : b); t.bench.splice(t.bench.indexOf(r), 1); } else r = backfill(t, p);
   r.role = p.role; r.igl = false; p.igl = false; t.players[si] = r;
-  ensureIgl(t); refreshPower(t); return r;
+  refreshPower(t); return r;
 }
 function keepBench(t, p){
   if(t.bench.length < CPU_BENCH) t.bench.push(p);
@@ -1106,10 +1217,13 @@ function keepBench(t, p){
 /* p chega a um time da CPU: entra no lugar do titular mais fraco se for upgrade; senão vai ao banco */
 function cpuAdd(t, p){
   p.igl = false; const W = weakest(t);
-  if(scoreP(p) > scoreP(W)){ p.role = W.role; W.igl = false; t.players[t.players.indexOf(W)] = p; keepBench(t, W); ensureIgl(t); refreshPower(t); }
+  if(scoreP(p) > scoreP(W)){ p.role = W.role; W.igl = false; t.players[t.players.indexOf(W)] = p; keepBench(t, W); refreshPower(t); }
   else keepBench(t, p);
 }
-const trimFA = () => { if(S.fa.length > FA_CAP) S.fa = S.fa.sort((a, b) => pval(b) - pval(a)).slice(0, FA_CAP); };
+const trimFA = () => {                          // o limite vale só para os gerados; jogadores reais do db.js (p.org) ficam até serem contratados
+  const gen = S.fa.filter(p => !p.org);
+  if(gen.length > FA_CAP){ const keep = new Set(gen.sort((a, b) => pval(b) - pval(a)).slice(0, FA_CAP)); S.fa = S.fa.filter(p => p.org || keep.has(p)); }
+};
 
 /* ---------- mercado da CPU: cada time tenta melhorar seu titular mais fraco dentro do orçamento ---------- */
 function cpuMarket(kind){
@@ -1129,7 +1243,7 @@ function cpuMarket(kind){
       if(!best) continue;
       const {p, src, price} = best;
       t.bud -= price;
-      if(src){ src.bud += price; takeOut(src, p); sold[src.id] = 1; } else S.fa.splice(S.fa.indexOf(p), 1);
+      if(src){ src.bud += price; takeOut(src, p); sold[src.id] = 1; } else takeFA(p);
       cpuAdd(t, p); deals++;
       addNews(`${t.short} contrata ${p.name} (${p.ovr}) ${src ? 'de ' + src.short : 'como agente livre'} por ${price} K$`, p.ovr);
     }
@@ -1155,7 +1269,7 @@ function genOffers(){
 }
 function syncTalk(){
   const tk = S.club.talk, ps = T(S.userId).players;
-  if(tk && !tk.done && !(ps.some(p => p.name === tk.p1) && ps.some(p => p.name === tk.p2))) S.club.talk = pickTalk();
+  if(tk && !tk.done && !(whoTk({players:ps}, tk.i1, tk.p1) && whoTk({players:ps}, tk.i2, tk.p2))) S.club.talk = pickTalk();
 }
 
 /* ---------- ações do usuário ---------- */
@@ -1164,16 +1278,14 @@ function txGuard(){ return windowOpen() ? null : 'A janela de transferências es
 function signFA(id){
   const u = T(S.userId), p = S.fa.find(x => x.id === id), g = txGuard(); if(g) return g; if(!p) return 'Jogador indisponível.';
   if(u.bench.length >= MAX_BENCH) return `Banco cheio (máx. ${MAX_BENCH} reservas). Venda ou dispense alguém antes.`;
-  if(nameClash(u, p)) return 'Já existe um jogador com esse nome no elenco.';
   const c = faCost(p); if(S.club.cash < c) return 'Caixa insuficiente.';
-  S.club.cash -= c; S.fa.splice(S.fa.indexOf(p), 1); p.sat = 70; p.tx = winId(); u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
+  S.club.cash -= c; takeFA(p); p.sat = 70; p.tx = winId(); u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
   addNews(`${u.short} assina ${p.name} (${p.ovr}) como agente livre por ${c} K$`, p.ovr); save(); return null;
 }
 function buyPlayer(tid, id){
   const u = T(S.userId), t = T(tid), g = txGuard(); if(g) return g;
   const p = t && t.id !== S.userId ? squad(t).find(x => x.id === id) : null; if(!p) return 'Jogador indisponível.';
   if(u.bench.length >= MAX_BENCH) return `Banco cheio (máx. ${MAX_BENCH} reservas). Venda ou dispense alguém antes.`;
-  if(nameClash(u, p)) return 'Já existe um jogador com esse nome no elenco.';
   const c = buyCost(t, p); if(S.club.cash < c) return 'Caixa insuficiente.';
   S.club.cash -= c; t.bud += c; takeOut(t, p); p.igl = false; p.sat = 70; p.tx = winId(); u.bench.push(p); u.chem = clamp(u.chem - 3, 0, 100);
   addNews(`${u.short} contrata ${p.name} (${p.ovr}) de ${t.short} por ${c} K$`, p.ovr); save(); return null;
@@ -1199,7 +1311,16 @@ function swapLineup(benchId, starterId){
   const u = T(S.userId); if(S.cur || (CM && !CM.finished)) return 'Não é possível mexer na escalação durante a rodada.';
   const b = u.bench.find(p => p.id === benchId), s = u.players.find(p => p.id === starterId); if(!b || !s) return 'Jogador não encontrado.';
   [b.role, s.role] = [s.role, b.role]; u.players[u.players.indexOf(s)] = b; u.bench[u.bench.indexOf(b)] = s;
-  s.igl = false; ensureIgl(u); refreshPower(u); syncTalk(); save(); return null;
+  refreshPower(u); syncTalk(); save(); return null;
+}
+/* muda a função de um titular; quem já joga nela assume a dele. Os dois se adaptam por 2 rodadas (−3 de rating). */
+function setRole(pid, role){
+  if(S.cur || (CM && !CM.finished)) return 'Não é possível trocar funções durante a rodada.';
+  const u = T(S.userId), p = u.players.find(x => x.id === pid); if(!p || !ROLES.includes(role)) return 'Jogador não encontrado.';
+  if(p.role === role) return null;
+  const o = u.players.find(x => x !== p && x.role === role);
+  if(o){ o.role = p.role; o.adapt = 2; }
+  p.role = role; p.adapt = 2; save(); return null;
 }
 function answerOffer(i, yes){
   const o = S.offers[i]; if(!o) return 'Proposta expirada.';
@@ -1213,21 +1334,25 @@ function progress(p){
   let d = a <= 20 ? rint(2, 5) : a <= 23 ? rint(0, 4) : a <= 27 ? rint(-1, 2) : a <= 30 ? rint(-2, 1) : rint(-4, -1);
   if(d > 0) d = Math.min(d, Math.max(0, p.pot - p.ovr));
   p.aim = clamp(p.aim + d + n, 45, 99); p.gs = clamp(p.gs + d - n, 45, 99); recalc(p);
+  for(const k of Object.keys(ATTRS)){                        // liderança, mental e consistência amadurecem com a idade; o duelo de abertura (reflexo) cai cedo
+    const exp = k === 'led' || k === 'men' || k === 'cons';
+    p[k] = clamp(attr(p, k) + (exp ? (a >= 25 ? rint(0, 2) : rint(-1, 1)) : d + rint(-2, 2) - (k === 'open' && a >= 28 ? 1 : 0)), 45, 99);
+  }
   p.pot = a >= 26 ? p.ovr : Math.max(p.pot, p.ovr);
 }
 const retires = p => p.age >= 33 && rnd() < Math.min(1, (p.age - 32) * .3);
 const seasonBase = t => Math.round(Math.max(0, (t.power - 72) * 4.5) + rnd() * 22);
 function nextSeason(){
-  const u = T(S.userId), g = g16Status(), place = S.final[u.league].indexOf(S.userId) + 1, prize = Math.round(PLACE_PTS[place - 1] / 2) + (g.in ? 100 : 0);
-  S.hist.push({year:S.year, lg:u.league, place, rank:g.rank, pts:g.pts, inn:g.in, prize, champ:S.final[u.league][0], top:g.tb[0].t.id, topPts:g.tb[0].pts});
+  const u = T(S.userId), sl = S.season.log.find(x => x.ev === 'si');
+  S.hist.push({year:S.year, inn:!!S.qual && S.qual.includes(u.id), si:sl ? sl.lab : null, rank:S.season.rank, pts:S.season.pts, champ:S.tn && S.tn.champ, cash:S.season.cash});
   const before = {}; squad(u).forEach(p => before[p.id] = p.ovr);
-  const info = {year:S.year + 1, prize, place, retired:[], legends:[], ups:[], young:[], deals:0, myRetired:[]};
+  const info = {year:S.year + 1, prize:S.season.cash, place:sl ? sl.lab : 'Não classificado', retired:[], legends:[], ups:[], young:[], deals:0, myRetired:[]};
   S.year++;
   Object.values(S.teams).forEach(t => {
-    const pl = S.final[t.league].indexOf(t.id);
-    squad(t).forEach(p => { p.age++; progress(p); p.stress = rint(15, 30); p.sat = Math.round(p.sat + (70 - p.sat) * .5); p.form = 0; p.k = p.d = p.r = p.fk = p.cl = 0; });
+    if(t.mapTr) Object.keys(t.mapTr).forEach(k => t.mapTr[k] = Math.round(t.mapTr[k] * 5) / 10);      // o treino de mapas perde metade do efeito na virada
+    squad(t).forEach(p => { p.adapt = 0; p.age++; progress(p); p.stress = rint(15, 30); p.sat = Math.round(p.sat + (70 - p.sat) * .5); p.form = 0; p.k = p.d = p.r = p.fk = p.cl = 0; });
     refreshPower(t);
-    t.bud = Math.min(600, t.bud + 80 + Math.max(0, t.power - 70) * 6 + Math.round(PLACE_PTS[pl] / 4));
+    t.bud = Math.min(600, t.bud + 80 + Math.max(0, t.power - 70) * 6 + Math.min(90, Math.round(t.si / 15)));      // quem pontuou mais na temporada arrecada mais
     const gone = squad(t).filter(retires).sort((a, b) => t.bench.includes(b) - t.bench.includes(a));
     gone.forEach(p => { takeOut(t, p); if(t.id === S.userId) info.myRetired.push(p); if(p.ovr >= 85) info.legends.push({p, t}); });
   });
@@ -1237,14 +1362,13 @@ function nextSeason(){
   info.deals = cpuMarket('pre');
   info.news = S.news.slice(0, info.deals).filter(n => n.o >= 85);
   Object.values(S.teams).forEach(t => {
-    refreshPower(t); ensureIgl(t); const b = seasonBase(t);
+    refreshPower(t); const b = seasonBase(t);
     Object.assign(t, {w:0, l:0, rw:0, rl:0, form:[], note:'', conf:60, chem:t.id === S.userId ? Math.round(60 + (t.chem - 60) * .5) : 60, si:b, siBase:b, siPrev:b});
   });
-  LEAGUES.forEach(l => S.sched[l.id] = roundRobin(shuffle(Object.values(S.teams).filter(t => t.league === l.id).map(t => t.id))));
-  Object.assign(S, {md:0, cur:null, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null});
-  Object.assign(S.club, {cash:S.club.cash + prize, week:1, day:0, acts:[], scout:false, fin:null});
+  Object.assign(S, {cal:CAL_FULL.slice(), ei:0, uh:[], season:newSeason(), qual:null, win:'pre'});
+  Object.assign(S.club, {week:1, day:0, acts:[], scout:false, fin:null});
+  startEvent();                                           // abre a temporada pelo Kickoff
   S.club.talk = pickTalk(); S.offers = genOffers();
-  globalTable('proj').forEach(r => r.t.rkPrev = r.rank);
   info.ups = squad(u).map(p => ({p, d:p.ovr - (before[p.id] == null ? p.ovr : before[p.id])}));
   addNews(`Começa a temporada ${S.year}: ${info.deals} transferências na janela da CPU`);
   save(); return info;
@@ -1255,12 +1379,12 @@ function nextSeason(){
    ===================================================================== */
 const UI = {pickLeague:'SAL', selTeam:null, lgTab:null, gTab:'ALL', gMode:'proj', sFilter:'ALL', view:'select', sell:null,
   mk:{tab:'fa', lg:'ALL', role:'ALL', sort:'ovr', q:'', afford:false},
-  plan:{atk:{cad:3, route:0}, def:{cad:3, route:0}}, speed:1, auto:false, phase:'idle', rs:null, ev:null, clock:0, frozen:false, timer:null, ivTimer:null, plantAt:null};
+  speed:1, auto:false, phase:'idle', rs:null, ev:null, clock:0, frozen:false, timer:null, plantAt:null};
 let CM = null;                                  // partida em andamento
 let PREVIEW = buildAll();
 
 const logo = (t, cls = '') => `<span class="logo ${cls}" style="--c:${t.color}">${esc(t.tag)}</span>`;
-const tn = (t, cls = '') => `<span class="tn">${logo(t, cls || 'xs')}<span>${esc(t.name)}${t.ewc ? ' <span title="Campeã da Esports World Cup 2026">🏆</span>' : ''}</span></span>`;
+const tn = (t, cls = '') => `<span class="tn">${logo(t, cls || 'xs')}<span>${esc(t.name)}${t.ewc ? ' <span title="Campeã da Esports World Cup">🏆</span>' : ''}</span></span>`;
 const lgb = id => `<span class="lg" style="color:${LG[id].color}">${LG[id].tag}</span>`;
 const styleName = t => STYLE[t.style].name;
 const diffLabel = p => p >= 93 ? ['ELITE','red'] : p >= 89 ? ['FAVORITO','gold'] : p >= 84 ? ['COMPETITIVO','cyan'] : p >= 79 ? ['DESAFIO','green'] : ['ZEBRA','mut'];
@@ -1305,7 +1429,7 @@ function renderSide(){
     if(!rs.length) return;
     list += `<div class="gh">${mdLabel(i)}</div>` + rs.map((r, n) => {
       const W = T(r.w), Lz = T(r.w === r.a ? r.b : r.a), sw = r.w === r.a ? r.sa : r.sb, sl = r.w === r.a ? r.sb : r.sa;
-      return `<div class="gi ${r.user ? 'me' : ''}" style="--i:${Math.min(n, 30)}">${lgb(r.lg)}<span class="w" style="color:${W.color}">${esc(W.short)}</span> vence <span class="l">${esc(Lz.short)}</span> por <b>${sw}-${sl}</b> ${esc(r.map)}${r.ph !== 'g' ? ` <span class="tag cyan">${r.ph === 'f' ? 'final' : 'semi'}</span>` : ''}${r.ot ? ' <span class="tag gold">OT</span>' : ''}${r.up ? ' <span class="tag orange">🔥 zebra</span>' : ''}${r.user ? ' <span class="tag cyan">você</span>' : ''}</div>`;
+      return `<div class="gi ${r.user ? 'me' : ''}" style="--i:${Math.min(n, 30)}">${lgb(r.lg)}<span class="w" style="color:${W.color}">${esc(W.short)}</span> vence <span class="l">${esc(Lz.short)}</span> por <b>${sw}-${sl}</b> ${esc(r.map)}${r.ph !== 'g' ? ` <span class="tag cyan">${phTag(r.ph)}</span>` : ''}${r.ot ? ' <span class="tag gold">OT</span>' : ''}${r.up ? ' <span class="tag orange">🔥 zebra</span>' : ''}${r.user ? ' <span class="tag cyan">você</span>' : ''}</div>`;
     }).join('');
   });
   const rep = S.cur || S.report;
@@ -1343,7 +1467,7 @@ function selectHTML(){
       <div class="nm">${esc(t.name)}${t.ewc ? ' 🏆' : ''}</div>
       <div class="row"><span class="tag ${dc}">${dl}</span><span class="mut" style="font-size:11px">${styleName(t)}</span></div>
       <div class="ros">${t.players.map(p => esc(p.name)).join(' · ')}</div></button>`; }).join('');
-  let detail = `<div class="card detail"><h3>Sua organização</h3><p class="mut">Escolha um time. Você herda o elenco titular completo e a força base. Meta: terminar cada Stage 2 entre os <b class="gold">16 melhores do mundo</b> em SI Points (vaga direta ao Six Invitational — em 2026, Paris). Entre as rodadas você gere rotina, vestiário e staff; nas janelas de transferências negocia jogadores com todos os times; e ao fim de cada temporada a carreira segue para a próxima, sem limite.</p></div>`;
+  let detail = `<div class="card detail"><h3>Sua organização</h3><p class="mut">Escolha um time. Você herda o elenco titular completo e a força base. Meta: acumular SI Points ao longo da temporada (Kickoff, Majors, Stages e EWC) e terminar entre os <b class="gold">16 melhores do mundo</b> para jogar o Six Invitational (em 2026, Paris). Entre as rodadas você gere rotina, vestiário e staff; nas janelas de transferências negocia jogadores com todos os times; e ao fim de cada temporada a carreira segue para a próxima, sem limite.</p></div>`;
   if(sel){
     const mp = bestWorstMaps(sel), lt = Object.values(PREVIEW).filter(t => t.league === sel.league).sort((a, b) => b.power - a.power), pos = lt.findIndex(t => t.id === sel.id) + 1;
     detail = `<div class="card detail"><div class="row">${logo(sel, 'lg')}<div><div class="big" style="font-size:22px">${esc(sel.name)}</div><div class="mut">${LG[sel.league].name} · ${pos}º em força na liga</div></div></div>
@@ -1370,21 +1494,32 @@ function selectHTML(){
       <div>${detail}</div></div>`;
 }
 
+/* ---------- calendário: avançar evento e chaveamento ---------- */
+const nextBtn = () => S.ei + 1 >= S.cal.length
+  ? `<button class="btn gold" data-act="next-season">▶ Iniciar temporada ${S.year + 1}-${String(S.year + 2).slice(2)}</button>`
+  : `<button class="btn gold" data-act="next-event">▶ Próximo: ${esc(evName(S.cal[S.ei + 1]))}</button>`;
+function bracketHTML(){
+  const bk = S.tn; if(!bk) return '';
+  const cols = TN_NAMES.map((nm, r) => `<div><div class="mut" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">${nm}</div>${(bk.rounds[r] || []).map((pair, s) => { const x = bk.res[r][s];
+    return `<div style="border:1px solid var(--line);border-radius:5px;padding:4px 8px;margin-bottom:8px;background:var(--bg2)">${pair.map(id => `<div class="kv" style="border:0;padding:3px 0;${x && x.w !== id ? 'opacity:.45' : ''}"><span>${tn(T(id), 'xs')}</span><b>${x ? (x.a === id ? x.sa : x.sb) : ''}</b></div>`).join('')}</div>`; }).join('') || '<div class="mut" style="font-size:12px">a definir</div>'}</div>`).join('');
+  return `<div class="card"><h3>${esc(evName(bk.ev))} · chaveamento</h3><div class="scroll"><div style="display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:12px">${cols}</div></div>${bk.champ ? `<div class="gold" style="margin-top:6px;font-weight:800">🏆 Campeão: ${esc(T(bk.champ).name)}</div>` : ''}</div>`;
+}
+
 /* ---------- painel ---------- */
 function dashHTML(){
   const u = T(S.userId), lg = LG[u.league], c = S.club, al = computeAlerts(), g = g16Status();
   const alerts = al.map(a => `<div class="alert ${a.lv}"><div class="ic">${a.ic}</div><div><h4>${esc(a.t)}</h4><p>${esc(a.x)}</p></div></div>`).join('');
   const tb = leagueTable(u.league), rankL = (S.final[u.league] || tb.map(t => t.id)).indexOf(S.userId) + 1, tot = totalMD();
-  const phase = Array.from({length:tot}, (_, i) => { const h = S.uh.find(x => x.idx === i), cls = h ? 'done ' + (h.won ? 'W' : 'L') : i === S.md && !S.done ? 'cur' : '';
-    return `<span class="ph ${cls}">${i < nG(u.league) ? 'R' + (i + 1) : i === nG(u.league) ? 'SF' : 'F'}${h ? ` ${h.sa}-${h.sb}` : ''}</span>`; }).join('');
+  const phase = Array.from({length:tot}, (_, i) => { const h = S.uh.find(x => x.idx === i && (x.ev || S.ev) === S.ev), cls = h ? 'done ' + (h.won ? 'W' : 'L') : i === S.md && !S.done ? 'cur' : '';
+    return `<span class="ph ${cls}">${S.tn ? ['O16', 'QF', 'SF', 'F'][i] : i < nG(u.league) ? 'R' + (i + 1) : i === nG(u.league) ? 'SF' : 'F'}${h ? ` ${h.sa}-${h.sb}` : ''}</span>`; }).join('');
   let hero;
   if(S.done){
-    const pl = S.final[u.league].indexOf(S.userId) + 1;
-    const prize = Math.round(PLACE_PTS[pl - 1] / 2) + (g.in ? 100 : 0);
-    hero = `<div class="card"><h3>Stage 2 ${S.year} encerrado</h3><div class="big gold" style="margin-bottom:6px">${pl}º lugar na ${lg.tag}</div>
-      <p class="mut">${u.name} fecha o Stage 2 com <b class="txt">${u.si} SI Points</b> — #${g.rank} no ranking mundial. ${g.in ? `<b class="green">Classificado direto ao Six Invitational ${siTag()} (G16).</b>` : '<b class="red">Sem vaga direta no G16.</b>'}</p>
-      <p class="mut" style="margin-top:6px">Ao virar a temporada: prêmio de <b class="gold">+${prize} K$</b>, os atletas envelhecem e evoluem, veteranos se aposentam, novas promessas surgem e a CPU abre a janela de transferências.</p>
-      <div class="row" style="margin-top:14px;flex-wrap:wrap"><button class="btn gold" data-act="next-season">▶ Iniciar temporada ${S.year + 1}</button><button class="btn" data-act="global">Ver Global Standings</button><button class="btn sm danger" data-act="newcareer">Nova carreira</button></div></div>`;
+    const er = S.evres || {lab:'Encerrado', cash:0, si:0}, champ = S.tn ? S.tn.champ : S.final[u.league][0];
+    hero = `<div class="card"><h3>${esc(evName(S.ev))} encerrado</h3><div class="big gold" style="margin-bottom:6px">${esc(er.lab)}</div>
+      <p class="mut">${u.name}: <b class="txt">+${er.si} SI Points</b> no evento e prêmio de <b class="gold">+${er.cash} K$</b> — #${g.rank} no ranking mundial (${g.pts} pts). ${S.tn ? 'Campeão' : 'Campeão da liga'}: <b class="txt">${esc(T(champ).name)}</b>.</p>
+      ${S.ev === 'major2' && S.qual ? `<p style="margin-top:6px">${S.qual.includes(u.id) ? `<b class="green">Classificado direto ao Six Invitational ${siTag()} (G16).</b>` : '<b class="red">Sem vaga direta no Six Invitational.</b>'}</p>` : ''}
+      ${S.ei + 1 >= S.cal.length ? '<p class="mut" style="margin-top:6px">Ao virar a temporada: os atletas envelhecem e evoluem, veteranos se aposentam, novas promessas surgem, os SI Points zeram e a CPU abre a janela de transferências.</p>' : ''}
+      <div class="row" style="margin-top:14px;flex-wrap:wrap">${nextBtn()}<button class="btn" data-act="global">Ver Global Standings</button><button class="btn sm danger" data-act="newcareer">Nova carreira</button></div></div>`;
   } else {
     const f = userFixture(), lbl = mdLabel(S.md), resume = S.cur && S.cur.user;
     if(f){
@@ -1394,40 +1529,63 @@ function dashHTML(){
         <div style="margin:14px 0"><div class="row" style="justify-content:space-between;font-size:12px"><span class="cyan"><b>${Math.round(p * 100)}%</b> vitória (simulação com seu estado atual)</span><span class="mut">${Math.round((1 - p) * 100)}%</span></div><div class="bar" style="margin-top:4px"><i style="width:${p * 100}%"></i></div></div>
         <div class="kv"><span>Estilo do adversário</span><b>${styleName(o)}</b></div>
         <div class="kv"><span>Forma recente</span>${fdots(o)}</div>
-        <div class="kv"><span>Mapas fortes do rival</span><b class="orange">${c.staff.an > 0 ? mp.best.map(x => x.n).join(', ') : '🔒 requer Analista de Dados'}</b></div>
-        <div class="kv"><span>Operadores assinatura</span><b>${o.sigA} / ${o.sigD}</b></div>
-        <div class="row" style="margin-top:14px;flex-wrap:wrap">${ok ? `<button class="btn gold" data-act="md-start">▶ ${resume ? 'Retomar partida' : 'Iniciar ' + lbl}</button>` : `<button class="btn gold" data-act="nav" data-v="week">📋 Complete a rotina da semana</button>`}<span class="mut" style="font-size:12px">Ao iniciar, todas as outras ligas são simuladas instantaneamente.</span></div></div>`;
+        <div class="kv"><span>Mapas fortes do rival</span><b class="orange">${hasIntel() ? mp.best.map(x => x.n).join(', ') : '🔒 requer Analista ou VOD'}</b></div>
+        <div class="kv"><span>Operadores assinatura</span><b>${hasIntel() ? o.sigA + ' / ' + o.sigD : '🔒 requer Analista ou VOD'}</b></div>
+        <div class="row" style="margin-top:14px;flex-wrap:wrap">${ok ? `<button class="btn gold" data-act="md-start">▶ ${resume ? 'Retomar partida' : 'Iniciar ' + lbl}</button>` : `<button class="btn gold" data-act="nav" data-v="week">📋 Complete a rotina da semana</button>`}<button class="btn" data-act="sim-event" title="Simula todas as rodadas restantes, inclusive as suas">⏩ Simular ${esc(EVENTS[S.ev].name)} inteiro</button></div><div class="mut" style="font-size:12px;margin-top:8px">Ao iniciar, todas as outras ligas são simuladas instantaneamente.</div></div>`;
     } else {
-      hero = `<div class="card"><h3>${lbl}</h3><p class="mut" style="margin-bottom:12px">${userInPlayoffs() === false || stageOf(u.league, S.md).ph !== 'g' ? 'Sua organização não está mais na disputa dos playoffs da ' + lg.tag + '.' : 'Sua organização não joga nesta etapa.'} O circuito segue sem você — o G16 depende da tabela mundial.</p>
-        <button class="btn gold" data-act="md-start">⏩ Simular ${lbl}</button></div>`;
+      const why = S.tn ? (S.tn.teams.includes(u.id) ? 'Sua organização já foi eliminada de ' + EVENTS[S.ev].name + '.' : 'Sua organização não disputa ' + EVENTS[S.ev].name + '.')
+        : userInPlayoffs() === false || stageOf(u.league, S.md).ph !== 'g' ? 'Sua organização não está mais na disputa dos playoffs da ' + lg.tag + '.' : 'Sua organização não joga nesta etapa.';
+      hero = `<div class="card"><h3>${lbl}</h3><p class="mut" style="margin-bottom:12px">${why} O circuito segue sem você — o G16 depende da tabela mundial.</p>
+        <div class="row" style="flex-wrap:wrap"><button class="btn gold" data-act="md-start">⏩ Simular ${lbl}</button><button class="btn" data-act="sim-event">⏩ Simular ${esc(EVENTS[S.ev].name)} inteiro</button></div></div>`;
     }
   }
-  const last = S.results.filter(r => r.lg === u.league).slice(-8).reverse().map(r => { const W = T(r.w), Lz = T(r.w === r.a ? r.b : r.a);
+  const last = S.results.filter(r => r.lg === u.league || r.lg === 'TN').slice(-8).reverse().map(r => { const W = T(r.w), Lz = T(r.w === r.a ? r.b : r.a);
     return `<div class="kv"><span>${phLabel(r.ph, r.i).replace('Rodada ', 'R').replace('Semifinal', 'SF').replace('Final', 'F')}</span><span style="text-align:right"><b style="color:${W.color}">${esc(W.short)}</b> ${r.w === r.a ? r.sa : r.sb}-${r.w === r.a ? r.sb : r.sa} <span class="mut">${esc(Lz.short)}</span>${r.user ? ' <span class="tag cyan">você</span>' : ''}</span></div>`; }).join('');
   const miniTb = tb.map((t, i) => `<tr class="${t.id === S.userId ? 'me' : ''} ${i < 4 ? 'q' : ''}"><td>${i + 1}</td><td>${tn(t)}</td><td class="num">${t.w}-${t.l}</td><td class="num">${t.rw - t.rl > 0 ? '+' : ''}${t.rw - t.rl}</td></tr>`).join('');
   const avgS = Math.round(u.players.reduce((s, p) => s + p.stress, 0) / 5), avgSat = Math.round(u.players.reduce((s, p) => s + p.sat, 0) / 5);
   const win = windowOpen() ? `<div class="alert info"><div class="ic">🔁</div><div style="flex:1"><h4>Janela de transferências aberta · ${winLabel()}</h4><p>Compre, venda e dispense jogadores. Ela fecha quando você iniciar a próxima rodada.${S.offers.length ? ` Você tem <b class="gold">${S.offers.length} proposta(s)</b> por seus atletas.` : ''}</p></div><button class="btn sm cyan" data-act="nav" data-v="market">Ir ao Mercado</button></div>` : '';
-  const hist = S.hist.length ? `<div class="card"><h3>Histórico de temporadas</h3><div class="scroll"><table class="tbl mini"><thead><tr><th>Ano</th><th>Liga</th><th class="num">Colocação</th><th class="num">Ranking mundial</th><th>G16</th><th>Campeão da liga</th><th class="num">Prêmio</th></tr></thead><tbody>${S.hist.slice().reverse().map(h => `<tr><td>${h.year}</td><td>${lgb(h.lg)}</td><td class="num">${h.place}º</td><td class="num">#${h.rank} · ${h.pts} pts</td><td>${h.inn ? '<span class="tag fill">G16</span>' : '<span class="mut">—</span>'}</td><td>${tn(T(h.champ))}</td><td class="num gold">+${h.prize} K$</td></tr>`).join('')}</tbody></table></div></div>` : '';
-  return `<div class="stack">${win}${alerts}
-    <div class="grid g2" style="align-items:start">${hero}
-      <div class="card"><h3>${lg.tag} · classificação</h3><table class="tbl"><thead><tr><th>#</th><th>Time</th><th class="num">V-D</th><th class="num">SR</th></tr></thead><tbody>${miniTb}</tbody></table>
-        <div class="mut" style="font-size:11px;margin-top:6px"><span class="gold">▌</span> Top 4 avança aos playoffs</div></div></div>
+  const hist = S.hist.length ? `<div class="card"><h3>Histórico de temporadas</h3><div class="scroll"><table class="tbl mini"><thead><tr><th>Temporada</th><th>Six Invitational</th><th class="num">SI Points</th><th>G16</th><th>Campeão do SI</th><th class="num">Prêmios</th></tr></thead><tbody>${S.hist.slice().reverse().map(h => `<tr><td>${h.year}-${String(h.year + 1).slice(2)}</td><td>${esc(h.si || '—')}</td><td class="num">${h.rank ? `#${h.rank} · ${h.pts} pts` : '—'}</td><td>${h.inn ? '<span class="tag fill">G16</span>' : '<span class="mut">—</span>'}</td><td>${h.champ && S.teams[h.champ] ? tn(T(h.champ)) : '—'}</td><td class="num gold">+${h.cash != null ? h.cash : h.prize || 0} K$</td></tr>`).join('')}</tbody></table></div></div>` : '';
+  const cal = `<div class="card"><h3>Temporada ${seasonLabel()} · calendário</h3><div class="phase">${S.cal.map((id, i) => { const lgx = S.season.log.find(x => x.ev === id);
+    return `<span class="ph ${i < S.ei || (i === S.ei && S.done) ? 'done' : i === S.ei ? 'cur' : ''}" title="${esc(evName(id))}">${esc(EVENTS[id].name.replace('BLAST R6 ', ''))}${lgx ? ' · ' + esc(lgx.lab) : ''}</span>`; }).join('')}</div>
+    <div class="mut" style="margin-top:8px;font-size:12px">Kickoff → Major → Stage 1 → EWC → Stage 2 → Major → Six Invitational. SI Points acumulam até o Major de novembro: os 16 melhores jogam o Invitational.</div></div>`;
+  const side = S.tn ? bracketHTML() : `<div class="card"><h3>${lg.tag} · classificação</h3><table class="tbl"><thead><tr><th>#</th><th>Time</th><th class="num">V-D</th><th class="num">SR</th></tr></thead><tbody>${miniTb}</tbody></table>
+        <div class="mut" style="font-size:11px;margin-top:6px"><span class="gold">▌</span> Top 4 avança aos playoffs</div></div>`;
+  return `<div class="stack">${win}${alerts}${cal}
+    <div class="grid g2" style="align-items:start">${hero}${side}</div>
     <div class="grid g3">
       <div class="card"><h3>Calendário</h3><div class="phase">${phase}</div>${S.done ? '' : `<div class="mut" style="margin-top:10px;font-size:12px">Semana ${c.week} · rotina ${Math.min(c.day, 3)}/3 ${c.talk && !c.talk.done ? '· <b class="orange">Talk pendente</b>' : ''}</div>`}</div>
-      <div class="card"><h3>SI Points</h3><div class="big gold">${u.si}</div><div class="mut" style="margin:4px 0 8px">Projeção de fim de Stage: <b class="cyan">${g.pts}</b> · #${g.rank} mundial</div>
+      <div class="card"><h3>SI Points</h3><div class="big gold">${u.si}</div><div class="mut" style="margin:4px 0 8px">${S.tn ? 'Ranking atual' : 'Projeção de fim de Stage'}: <b class="cyan">${g.pts}</b> · #${g.rank} mundial</div>
         <div class="kv"><span>Colocação na liga</span><b>${rankL}º</b></div><div class="kv"><span>Linha G16</span><b>${g.cutPts} pts</b></div></div>
       <div class="card"><h3>Estado do elenco</h3><div class="kv"><span>Estresse médio</span><b>${avgS}</b></div>${meter(avgS, stressCls(avgS))}<div class="kv" style="margin-top:6px"><span>Satisfação média</span><b>${avgSat}</b></div>${meter(avgSat, 'g')}<div class="kv" style="margin-top:6px"><span>Química · Confiança</span><b>${u.chem} · ${u.conf}</b></div></div></div>
     <div class="card"><h3>Resultados da ${lg.tag}</h3><div class="grid g2">${last || '<div class="mut">Sem partidas jogadas.</div>'}</div></div>${hist}</div>`;
 }
 
+/* ---------- menus de treino (consomem um dia da rotina) ---------- */
+function openTrain(kind){
+  const u = T(S.userId), c = S.club; if(c.day >= 3) return;
+  const head = t => `<div class="mhead"><h2><b>${t}</b> · dia ${c.day + 1}/3</h2><div class="sp"></div><button class="btn sm" data-act="close">✕ Fechar</button></div>`;
+  if(kind === 'map'){
+    const rows = MAPS.map(mp => { const tr = (u.mapTr || {})[mp.id] || 0, a = aff(u, mp.id), max = tr >= MAP_TR_MAX;
+      return `<div class="kv" style="align-items:center"><span><b>${esc(mp.name)}</b><br><span class="mut" style="font-size:11px">afinidade <b class="${a > 0 ? 'green' : a < 0 ? 'red' : 'mut'}">${a > 0 ? '+' : ''}${a.toFixed(1)}</b> · treino +${tr.toFixed(1)}/${MAP_TR_MAX}</span></span>
+        <span style="min-width:120px">${meter(tr / MAP_TR_MAX * 100, 'g')}</span><button class="btn sm ${max ? '' : 'gold'}" data-act="train-map" data-m="${mp.id}" ${max ? 'disabled' : ''}>${max ? 'Máximo' : 'Treinar'}</button></div>`; }).join('');
+    openModal(`${head('Treino de mapas')}<p class="mut" style="margin-bottom:8px;font-size:12.5px">Cada sessão soma +${MAP_TR_STEP} à afinidade do time com o mapa (aparece no veto e pesa nos rounds). O efeito perde metade na virada de temporada.</p>${rows}`);
+  } else {
+    const rows = u.players.map(p => { const cap = p.ovr >= p.pot + 2;
+      return `<div class="kv" style="align-items:center"><span><b>${esc(p.name)}</b> <span class="mut" style="font-size:11px">${p.role} · ${p.age} anos</span><br><span class="mut" style="font-size:11px">Aim ${p.aim} · GS ${p.gs} · OVR ${p.ovr}/POT ${p.pot} · estresse ${p.stress}<br>Destaques: ${topAttrs(p, 3).map(x => `${ATTR_LONG[x.k]} ${attr(p, x.k)}`).join(' · ')}</span></span>
+        <span class="row" style="gap:6px"><select id="tr-${p.id}">${Object.entries(TR_STATS).map(([k, n]) => `<option value="${k}" ${(k === 'aim' || k === 'gs') && cap ? 'disabled' : ''}>${TR_ICO[k]} ${n} (${attr(p, k)})</option>`).join('')}</select><button class="btn sm gold" data-act="train-ind" data-p="${p.id}">Treinar</button></span></div>`; }).join('');
+    openModal(`${head('Treino individual')}<p class="mut" style="margin-bottom:8px;font-size:12.5px">Foque um atleta: ganho maior que o treino coletivo (jovens evoluem mais rápido). Aim e Gamesense vão até o potencial +2; os demais atributos, até o potencial +8. Custa estresse só dele.</p>${rows}`);
+  }
+}
+const afterDay = r => { if(!r) return; if(r.burn.length) toast(`<b class="red">🔥 BURNOUT</b><br>${r.burn.map(esc).join(', ')} passou de 80 de estresse: −15 de rating em jogo.`, 'crit'); closeModal(); render(); };
+
 /* ---------- rotina semanal + Talk ---------- */
 function weekHTML(){
   const c = S.club, u = T(S.userId), tv = talkView();
-  if(S.done) return `<div class="card"><h3>Rotina</h3><p class="mut" style="margin-bottom:12px">O Stage 2 ${S.year} terminou. Inicie a próxima temporada para voltar à rotina.</p><button class="btn gold" data-act="next-season">▶ Iniciar temporada ${S.year + 1}</button></div>`;
+  if(S.done) return `<div class="card"><h3>Rotina</h3><p class="mut" style="margin-bottom:12px">${esc(evName(S.ev))} terminou. Avance no calendário para voltar à rotina.</p>${nextBtn()}</div>`;
   const days = [0, 1, 2].map(i => {
     const a = c.acts[i];
     if(a) return `<div class="card"><h3>Dia ${i + 1}</h3><div class="big" style="font-size:22px">${ACTS[a.act].ico} ${ACTS[a.act].name}</div><p class="mut" style="margin-top:6px;font-size:12.5px">${esc(a.txt)}</p></div>`;
-    if(i === c.day) return `<div class="card" style="border-color:var(--gold)"><h3>Dia ${i + 1} · escolha</h3><div class="stack" style="gap:8px">${Object.entries(ACTS).map(([k, v]) => `<button class="st" data-act="day" data-a="${k}"><span class="ic">${v.ico}</span><span class="n">${v.name}</span><span class="d">${v.txt}</span></button>`).join('')}</div></div>`;
+    if(i === c.day) return `<div class="card" style="border-color:var(--gold)"><h3>Dia ${i + 1} · escolha</h3><div class="stack" style="gap:8px">${Object.entries(ACTS).map(([k, v]) => `<button class="st" data-act="${k === 'map' || k === 'ind' ? 'train-menu' : 'day'}" data-a="${k}"><span class="ic">${v.ico}</span><span class="n">${v.name}</span><span class="d">${v.txt}</span></button>`).join('')}</div></div>`;
     return `<div class="card"><h3>Dia ${i + 1}</h3><p class="mut">Aguardando o dia anterior.</p></div>`;
   }).join('');
   const rows = u.players.map(p => `<div class="pcard"><div class="row"><b>${esc(p.name)}</b>${p.igl ? '<span class="tag gold">IGL</span>' : ''}${isBurnout(p) ? '<span class="tag red">BURNOUT</span>' : ''}<span class="sp"></span><span class="mut" style="font-size:11px">Aim ${p.aim} · GS ${p.gs}</span></div>
@@ -1447,10 +1605,12 @@ function weekHTML(){
 }
 
 /* ---------- elenco ---------- */
+const attrRows = p => `<div class="ag">${Object.entries(ATTRS).map(([k, n]) => `<div class="mrow" title="${ATTR_LONG[k]}"><span>${n}</span>${meter(attr(p, k), 'g')}<b>${attr(p, k)}</b></div>`).join('')}</div>`;
 function benchHTML(u){
   const ok = windowOpen(), free = !S.cur && !(CM && !CM.finished);
   const cards = u.bench.map(p => `<div class="pcard"><div class="row"><div><b style="font-size:16px">${esc(p.name)}</b><div class="mut" style="font-size:11px">${p.role} · ${p.age} anos · POT ${p.pot}</div></div><span class="sp"></span><div class="right"><div class="big" style="font-size:26px">${p.ovr}</div><div class="mut" style="font-size:10px;letter-spacing:.15em">RATING</div></div></div>
     <div class="mrow"><span>Aim</span>${meter(p.aim)}<b>${p.aim}</b></div><div class="mrow"><span>Gamesense</span>${meter(p.gs, 'g')}<b>${p.gs}</b></div>
+    <div class="mut" style="font-size:11px;margin-top:6px">${topAttrs(p, 3).map(x => `${ATTR_LONG[x.k]} ${attr(p, x.k)}`).join(' · ')}</div>
     <div class="mut" style="font-size:11px;margin-top:8px">Promover no lugar de:</div>
     <div class="swp">${u.players.map(s => `<button class="btn sm" data-act="swap" data-b="${p.id}" data-s="${s.id}" ${free ? '' : 'disabled'}>↔ ${esc(s.name)}</button>`).join('')}</div>
     <div class="row" style="margin-top:8px"><span class="mut" style="font-size:12px">Valor ${pval(p)} K$</span><span class="sp"></span><button class="btn sm" data-act="sell" data-id="${p.id}" ${ok ? '' : 'disabled'}>💸 Vender</button><button class="btn sm danger" data-act="release" data-id="${p.id}" ${ok ? '' : 'disabled'}>Dispensar</button></div></div>`).join('');
@@ -1459,9 +1619,11 @@ function benchHTML(u){
 function squadHTML(){
   const u = T(S.userId), mp = bestWorstMaps(u);
   const cards = u.players.map(p => `<div class="pcard"><div class="row"><div><b style="font-size:16px">${esc(p.name)}</b> ${p.igl ? '<span class="tag gold">IGL</span>' : ''}${u.star === p.name ? ' <span class="gold">★</span>' : ''}${isBurnout(p) ? ' <span class="tag red">BURNOUT −15</span>' : ''}<div class="mut" style="font-size:11px">${p.role} · ${p.age} anos · POT ${p.pot}</div></div><span class="sp"></span><div class="right"><div class="big" style="font-size:26px">${p.ovr}</div><div class="mut" style="font-size:10px;letter-spacing:.15em">RATING</div></div></div>
-    <div class="mrow"><span>Aim</span>${meter(p.aim, '')}<b>${p.aim}</b></div><div class="mrow"><span>Gamesense</span>${meter(p.gs, 'g')}<b>${p.gs}</b></div>
+    <div class="mrow"><span>Aim</span>${meter(p.aim, '')}<b>${p.aim}</b></div><div class="mrow"><span>Gamesense</span>${meter(p.gs, 'g')}<b>${p.gs}</b></div>${attrRows(p)}
     <div class="mrow"><span>Estresse</span>${meter(p.stress, stressCls(p.stress))}<b>${p.stress}</b></div><div class="mrow"><span>Satisfação</span>${meter(p.sat, 'g')}<b>${p.sat}</b></div>
     <div class="mut" style="font-size:12px;margin-top:6px">K/D ${p.k}-${p.d} · FK ${p.fk} · Rating ${rating(p).toFixed(2)} · Forma ${p.form > 0 ? '+' : ''}${p.form}</div>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap"><span class="mut" style="font-size:12px">Função</span><select data-rl="${p.id}" ${S.cur || (CM && !CM.finished) ? 'disabled' : ''}>${ROLES.map(r => `<option ${p.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+      <span class="mut" style="font-size:12px" title="Entry/Roamer preferem Aim alto; Support/Anchor, Gamesense alto">encaixe <b class="${roleFit(p) > .2 ? 'green' : roleFit(p) < -.2 ? 'red' : 'mut'}">${roleFit(p) > 0 ? '+' : ''}${roleFit(p).toFixed(1)}</b></span>${p.adapt ? ` <span class="tag orange">adaptando ${p.adapt}</span>` : ''}</div>
     <div class="row" style="margin-top:8px"><span class="mut" style="font-size:12px">Valor de mercado ${pval(p)} K$</span><span class="sp"></span><button class="btn sm" data-act="sell" data-id="${p.id}" ${windowOpen() ? '' : 'disabled'} title="${windowOpen() ? 'Ver propostas' : 'Janela fechada'}">💸 Vender</button></div></div>`).join('');
   const all = Object.values(S.teams).flatMap(t => t.players.filter(p => p.r >= 6).map(p => ({p, t}))).sort((a, b) => rating(b.p) - rating(a.p)).slice(0, 10);
   const top = all.map((x, i) => `<tr class="${x.t.id === S.userId ? 'me' : ''}"><td>${i + 1}</td><td><b>${esc(x.p.name)}</b></td><td>${logo(x.t, 'xs')} <span class="mut">${esc(x.t.short)}</span></td><td class="num">${x.p.k}-${x.p.d}</td><td class="num gold"><b>${rating(x.p).toFixed(2)}</b></td></tr>`).join('');
@@ -1469,7 +1631,7 @@ function squadHTML(){
       <div style="min-width:220px"><div class="mrow"><span>Química</span>${meter(u.chem, '')}<b>${u.chem}</b></div><div class="mrow"><span>Confiança</span>${meter(u.conf, 'g')}<b>${u.conf}</b></div></div></div></div>
     <div class="grid g3">${cards}</div>${benchHTML(u)}
     <div class="grid g2"><div class="card"><h3>Perfil tático</h3>
-      <div class="kv"><span>Estilo</span><b>${styleName(u)}</b></div><div class="kv"><span>Operadores assinatura</span><b>${u.sigA} / ${u.sigD}</b></div>
+      <div class="kv"><span>Estilo</span><b>${styleName(u)}</b></div><div class="kv"><span>Líder do elenco</span><b>${(l => `${esc(l.name)} <span class="gold">${attr(l, 'led')}</span>`)(u.players.reduce((b, p) => attr(p, 'led') > attr(b, 'led') ? p : b))}</b></div><div class="kv"><span>Operadores assinatura</span><b>${u.sigA} / ${u.sigD}</b></div>
       <div class="kv"><span>Mapas fortes</span><b class="green">${mp.best.map(x => x.n).join(', ')}</b></div><div class="kv"><span>Mapas fracos</span><b class="red">${mp.worst.map(x => x.n).join(', ')}</b></div>
       <p class="mut" style="font-size:12px;margin-top:8px">Burnout (estresse &gt; 80) tira 15 de rating em jogo. Estresse alto e moral baixa também cobram seu preço.</p></div>
       <div class="card"><h3>Top 10 do circuito · Rating</h3><table class="tbl mini"><tbody>${top || '<tr><td class="mut">Jogue algumas rodadas para gerar estatísticas.</td></tr>'}</tbody></table></div></div></div>`;
@@ -1478,7 +1640,7 @@ function squadHTML(){
 /* ---------- gestão: staff e finanças ---------- */
 function mgmtHTML(){
   const c = S.club, cards = Object.entries(STAFF).map(([k, s]) => {
-    const lv = c.staff[k], cost = staffCost(k), eff = {an:`Vetos com ${lv * 25}% mais precisão · scouting de rota/mapas`, ps:`Estresse acumulado −${lv * 20}% · Descanso +${lv * 4}`, md:`Patrocínios +${lv * 30}% · bônus de vitória +${lv * 30}%`}[k];
+    const lv = c.staff[k], cost = staffCost(k), eff = {an:`Veto com leitura do rival: mapas fortes e operadores-assinatura`, ps:`Estresse acumulado −${lv * 20}% · Descanso +${lv * 4}`, md:`Patrocínios +${lv * 30}% · bônus de vitória +${lv * 30}%`}[k];
     return `<div class="card"><div class="row"><span style="font-size:30px">${s.ico}</span><div><div class="big" style="font-size:19px">${s.name}</div><div class="mut" style="font-size:12px">${s.txt}</div></div></div>
       <div class="row" style="margin:12px 0">${[1, 2, 3].map(i => `<span class="tag ${lv >= i ? 'fill' : 'mut'}">Nv ${i}</span>`).join('')}<span class="sp"></span><span class="mut" style="font-size:12px">Salário: ${15 * lv} K$/semana</span></div>
       <div class="kv"><span>Efeito atual</span><b>${lv ? eff : 'Não contratado'}</b></div>
@@ -1502,13 +1664,13 @@ function mkRows(){
 function mkListHTML(){
   const u = T(S.userId), open = windowOpen(), cash = S.club.cash, full = u.bench.length >= MAX_BENCH, {n, rows} = mkRows();
   const body = rows.map(({p, t, price}) => {
-    const why = !open ? 'Janela fechada' : full ? 'Banco cheio' : price > cash ? 'Caixa insuficiente' : nameClash(u, p) ? 'Nome repetido no elenco' : '';
-    return `<tr><td><b>${esc(p.name)}</b>${t && t.star === p.name ? ' <span class="gold">★</span>' : ''}</td><td>${p.role}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num ${p.pot > p.ovr ? 'green' : 'mut'}">${p.pot}</td>
-      <td>${t ? `${tn(t)}<span class="mut" style="font-size:11px">${t.players.includes(p) ? 'titular' : 'reserva'}</span>` : '<span class="mut">Agente livre</span>'}</td>
+    const why = !open ? 'Janela fechada' : full ? 'Banco cheio' : price > cash ? 'Caixa insuficiente' : '';
+    return `<tr><td><b>${esc(p.name)}</b>${t && t.star === p.name ? ' <span class="gold">★</span>' : ''}</td><td>${p.role}</td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num ${p.pot > p.ovr ? 'green' : 'mut'}">${p.pot}</td><td class="mut" style="font-size:11px;white-space:nowrap" title="${Object.keys(ATTRS).map(k => ATTR_LONG[k] + ' ' + attr(p, k)).join(' · ')}">${topAttrs(p, 2).map(x => `${ATTRS[x.k]} ${attr(p, x.k)}`).join(' · ')}</td>
+      <td>${t ? `${tn(t)}<span class="mut" style="font-size:11px">${t.players.includes(p) ? 'titular' : 'reserva'}</span>` : p.org ? `<span class="${p.t2 ? 'cyan' : 'mut'}">${p.t2 ? 'Tier 2' : 'Sem contrato'} · ${esc(p.org)}</span>` : '<span class="mut">Agente livre</span>'}</td>
       <td class="num gold"><b>${price}</b></td><td><button class="btn sm ${why ? '' : 'gold'}" data-act="${t ? 'buy' : 'sign'}" data-id="${p.id}"${t ? ` data-t="${t.id}"` : ''} ${why ? 'disabled' : ''} title="${why}">Contratar</button></td></tr>`;
   }).join('');
   return `<div class="mut" style="font-size:12px;margin-bottom:6px">${n} jogador(es)${n > 50 ? ' — mostrando os 50 primeiros; refine os filtros' : ''}</div>
-    <div class="scroll"><table class="tbl"><thead><tr><th>Jogador</th><th>Função</th><th class="num">Idade</th><th class="num">OVR</th><th class="num">POT</th><th>Time</th><th class="num">Preço K$</th><th></th></tr></thead><tbody>${body || '<tr><td colspan="8" class="mut">Nenhum jogador com esses filtros.</td></tr>'}</tbody></table></div>`;
+    <div class="scroll"><table class="tbl"><thead><tr><th>Jogador</th><th>Função</th><th class="num">Idade</th><th class="num">OVR</th><th class="num">POT</th><th title="Os atributos em que o jogador mais se destaca (acima do próprio rating)">Destaques</th><th>Time</th><th class="num">Preço K$</th><th></th></tr></thead><tbody>${body || '<tr><td colspan="9" class="mut">Nenhum jogador com esses filtros.</td></tr>'}</tbody></table></div>`;
 }
 function mineHTML(){
   const u = T(S.userId), open = windowOpen();
@@ -1529,9 +1691,9 @@ function marketHTML(){
   const u = T(S.userId), f = UI.mk, open = windowOpen(), nOff = open ? S.offers.length : 0;
   const tabs = [['offers', 'Propostas' + (nOff ? ` (${nOff})` : '')], ['fa', 'Agentes livres'], ['buy', 'Outros times'], ['mine', 'Meu elenco'], ['news', 'Movimentações']]
     .map(([k, n]) => `<button data-act="mk-tab" data-tab="${k}" class="${f.tab === k ? 'on' : ''}">${n}</button>`).join('');
-  const st = S.done ? ['warn', '⏸', 'Mercado fechado', 'A temporada acabou. Inicie a próxima para abrir a janela de pré-temporada.']
+  const st = S.done ? ['warn', '⏸', 'Mercado fechado', 'As janelas abrem na pré-temporada (antes do Kickoff) e antes do Stage 1. Avance no calendário.']
     : open ? ['ok', '🔁', `Janela aberta · ${winLabel()}`, 'Ela fecha quando você iniciar a próxima rodada. Os times da CPU também negociam entre si a cada janela (veja Movimentações).']
-    : ['warn', '⏸', 'Janela fechada', S.md < midMD() ? `Reabre no meio da temporada (após a Rodada ${midMD()}) e na próxima pré-temporada.` : 'Reabre na próxima pré-temporada.'];
+    : ['warn', '⏸', 'Janela fechada', S.cal.indexOf('stage1') > S.ei ? 'Reabre antes do Stage 1 e na próxima pré-temporada.' : 'Reabre na próxima pré-temporada.'];
   const filt = f.tab === 'fa' || f.tab === 'buy' ? `<div class="filt">
       ${f.tab === 'buy' ? `<select data-mk="lg"><option value="ALL">Todas as ligas</option>${LEAGUES.map(l => `<option value="${l.id}" ${f.lg === l.id ? 'selected' : ''}>${l.tag}</option>`).join('')}</select>` : ''}
       <select data-mk="role"><option value="ALL">Todas as funções</option>${ROLES.map(r => `<option ${f.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
@@ -1561,7 +1723,7 @@ function openSell(id){
 function showSeason(info){
   const ups = info.ups.slice().sort((a, b) => b.p.ovr - a.p.ovr).map(({p, d}) => `<tr><td><b>${esc(p.name)}</b></td><td class="num">${p.age}</td><td class="num">${ovrB(p.ovr)}</td><td class="num ${d > 0 ? 'up' : d < 0 ? 'dn' : 'mut'}">${d > 0 ? '▲' + d : d < 0 ? '▼' + -d : '•'}</td><td class="num">${p.pot}</td></tr>`).join('');
   openModal(`<div class="mhead"><h2><b>Temporada ${info.year}</b> · virada</h2></div>
-    <div class="kv"><span>Prêmio pelo ${info.place}º lugar na liga</span><b class="gold">+${info.prize} K$</b></div><div class="kv"><span>Caixa</span><b>${S.club.cash} K$</b></div>
+    <div class="kv"><span>Six Invitational da temporada anterior</span><b>${esc(info.place)}</b></div><div class="kv"><span>Prêmios ganhos na temporada</span><b class="gold">${info.prize} K$</b></div><div class="kv"><span>Caixa</span><b>${S.club.cash} K$</b></div>
     <div class="kv"><span>Transferências entre times da CPU</span><b>${info.deals}</b></div>
     ${info.myRetired.length ? `<div class="alert warn" style="margin:10px 0"><div class="ic">🎖️</div><div><h4>Aposentadoria no seu elenco</h4><p>${info.myRetired.map(p => `${esc(p.name)} (${p.age})`).join(', ')} se aposentou. Um reserva ou uma promessa da base assumiu a vaga.</p></div></div>` : ''}
     <div class="h3" style="margin-top:12px">Seu elenco após a evolução</div>
@@ -1592,8 +1754,8 @@ function leagueHTML(){
     bracket = `<div class="card"><h3>Playoffs ${LG[lid].tag}</h3><div class="grid g3"><div><div class="mut" style="font-size:11px;margin-bottom:6px">SEMIFINAL 1 (1º × 4º)</div><div class="kv"><span>${nm(po.sf[0][0])}</span></div><div class="kv"><span>${nm(po.sf[0][1])}</span></div><div class="mut" style="font-size:12px;margin-top:4px">Vencedor: ${nm(po.sfW[0])}</div></div>
       <div><div class="mut" style="font-size:11px;margin-bottom:6px">SEMIFINAL 2 (2º × 3º)</div><div class="kv"><span>${nm(po.sf[1][0])}</span></div><div class="kv"><span>${nm(po.sf[1][1])}</span></div><div class="mut" style="font-size:12px;margin-top:4px">Vencedor: ${nm(po.sfW[1])}</div></div>
       <div><div class="mut" style="font-size:11px;margin-bottom:6px">GRANDE FINAL</div><div class="kv"><span>${nm(po.final && po.final[0])}</span></div><div class="kv"><span>${nm(po.final && po.final[1])}</span></div><div class="gold" style="font-size:13px;margin-top:4px">🏆 Campeão: ${po.champ ? nm(po.champ) : '—'}</div></div></div></div>`; }
-  return `<div class="stack"><div class="tabs">${tabs}</div>
-    <div class="card"><h3>${LG[lid].name} · Stage 2 ${S.year}${S.final[lid] ? ' · <span class="gold">FINAL</span>' : ''}</h3><div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Time</th><th class="num">V</th><th class="num">D</th><th class="num">SR</th><th>Forma</th><th class="num">Poder</th><th class="num">SI Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
+  return `<div class="stack">${bracketHTML()}<div class="tabs">${tabs}</div>
+    <div class="card"><h3>${LG[lid].name} · ${esc(S.lgName || 'Stage 2 ' + S.year)}${S.final[lid] ? ' · <span class="gold">FINAL</span>' : ''}</h3><div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Time</th><th class="num">V</th><th class="num">D</th><th class="num">SR</th><th>Forma</th><th class="num">Poder</th><th class="num">SI Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="mut" style="font-size:11px;margin-top:6px"><span class="gold">▌</span> Top 4 → playoffs · Colocação final paga ${PLACE_PTS.join(' / ')} pts SI · vitória na fase de grupos +${WIN_PTS}, playoffs +${PO_WIN_PTS}${S.final[lid] ? ` · <b>Campeão: ${esc(T(rk[0]).name)}</b>` : ''}</div></div>
     ${bracket}<div class="grid g2">${rounds}</div></div>`;
 }
@@ -1628,29 +1790,55 @@ function startUserMatch(){
   const u = T(cur.user.a), o = T(cur.user.b);
   CM = newMatch(u, o, 'a', false, S.club.staff.an);
   CM.meta = {idx:cur.idx, lg:cur.user.lg, slot:cur.user.slot, ph:cur.user.ph, user:true}; CM.ready = false; CM.finished = false;
-  doVeto(CM);
-  clearInterval(UI.timer); clearInterval(UI.ivTimer);
-  Object.assign(UI, {phase:'veto', auto:false, rs:null, ev:null, clock:0, frozen:false, skip:false, plantAt:null, plan:{atk:{cad:3, route:0}, def:{cad:3, route:0}}});
-  UI.view = 'match'; render(); runVeto();
+  CM.vp = {pool:MAPS.slice(), turn:rnd() < .5 ? 'a' : 'b', stage:'map'};          // veto interativo: você decide mapas e operadores
+  clearInterval(UI.timer);
+  Object.assign(UI, {phase:'veto', auto:false, rs:null, ev:null, clock:0, frozen:false, skip:false, plantAt:null});
+  UI.view = 'match'; render();
+  feedAdd({c:'big', h:`🗺 VETO · ${esc(CM.t.a.short)} × ${esc(CM.t.b.short)} · ${esc(CM.t[CM.vp.turn].short)} bane primeiro`});
+  vetoStep();
 }
-function runVeto(){
-  const m = CM; let i = 0;
-  feedAdd({c:'big', h:`🗺 VETO AUTOMÁTICO · ${esc(m.t.a.short)} × ${esc(m.t.b.short)}${m.an ? ` · Analista Nv ${m.an}` : ''}`});
-  const step = () => {
-    if(CM !== m) return;
-    if(i < m.veto.length){
-      const v = m.veto[i++], tm = v.team === '-' ? null : m.t[v.team], nm = tm ? `<b style="color:${tm.color}">${esc(tm.short)}</b>` : '';
-      if(v.type === 'map') feedAdd({c:'sys', h:`${nm} bane <b>${esc(v.what)}</b>`});
-      else if(v.type === 'pick') feedAdd({c:'sys', h:`🗺 Mapa da partida: <b class="gold">${esc(v.what)}</b>`});
-      else feedAdd({c:'sys', h:`${nm} bane ${v.type === 'atkop' ? 'atacante' : 'defensor'} <b>${esc(v.what)}</b>${v.hit ? ` <span class="orange">— operador-assinatura de ${esc(m.t[v.vs].short)}: −2 no ${v.type === 'atkop' ? 'ataque' : 'defesa'}</span>` : ''}`});
-      setTimeout(step, 60);
-    } else {
-      m.ready = true; UI.phase = 'prep';
-      feedAdd({c:'big', h:`▶ ${esc(m.t[m.first].short)} começa no ATAQUE · MD12 (primeiro a 7) · lados invertidos após o 6º round`});
-      updateMatch();
-    }
-  };
-  step();
+/* conhecimento do rival no veto: Analista de Dados ou VOD da semana revelam afinidade de mapas e operadores-assinatura */
+const hasIntel = () => S.club.staff.an > 0 || S.club.scout;
+const vetoMsg = (m, v) => { const nm = v.team === '-' ? '' : `<b style="color:${m.t[v.team].color}">${esc(m.t[v.team].short)}</b>`;
+  return v.type === 'map' ? `${nm} bane <b>${esc(v.what)}</b>` : v.type === 'pick' ? `🗺 Mapa da partida: <b class="gold">${esc(v.what)}</b>`
+    : `${nm} bane ${v.type === 'atkop' ? 'atacante' : 'defensor'} <b>${esc(v.what)}</b>${v.hit ? ` <span class="orange">— operador-assinatura de ${esc(m.t[v.vs].short)}: −2 no ${v.type === 'atkop' ? 'ataque' : 'defesa'}</span>` : ''}`; };
+function banMap(m, mp, team){
+  m.vp.pool = m.vp.pool.filter(x => x !== mp); const v = {team, type:'map', what:mp.name}; m.veto.push(v);
+  feedAdd({c:'sys', h:vetoMsg(m, v)}); m.vp.turn = other(team);
+}
+function vetoStep(){
+  const m = CM; if(!m || !m.vp || m.vp.stage !== 'map') return;
+  if(m.vp.pool.length === 1){
+    m.map = m.vp.pool[0]; const v = {team:'-', type:'pick', what:m.map.name}; m.veto.push(v); feedAdd({c:'sys', h:vetoMsg(m, v)});
+    m.vp.stage = 'ops'; updateMatch(); return;
+  }
+  if(m.vp.turn === 'b') setTimeout(() => { if(CM === m && m.vp.stage === 'map' && m.vp.turn === 'b'){ banMap(m, aiMapBan(m, m.vp.pool, 'b'), 'b'); vetoStep(); } }, 450);
+  updateMatch();
+}
+function confirmOps(){
+  const m = CM, a = $('#vb-atk'), d = $('#vb-def'); if(!m || !m.vp || m.vp.stage !== 'ops' || !a || !d) return;
+  setOpBans(m, 'a', a.value, d.value); setOpBans(m, 'b', ...aiOpBans(m, 'b'));
+  m.veto.slice(-4).forEach(v => feedAdd({c:'sys', h:vetoMsg(m, v)}));
+  m.vp = null; m.ready = true; UI.phase = 'prep';
+  feedAdd({c:'big', h:`▶ ${esc(m.t[m.first].short)} começa no ATAQUE · MD12 (primeiro a 7) · lados invertidos após o 6º round · a comissão conduz os rounds`});
+  updateMatch();
+}
+function vetoHTML(m){
+  const v = m.vp, u = m.t.a, o = m.t.b, know = hasIntel();
+  if(v.stage === 'map'){
+    const mine = v.turn === 'a';
+    const rows = v.pool.map(mp => { const au = aff(u, mp.id), ao = aff(o, mp.id), cl = x => x > 0 ? 'green' : x < 0 ? 'red' : 'mut', f = x => (x > 0 ? '+' : '') + x.toFixed(1);
+      return `<button class="rt" data-act="veto-map" data-m="${mp.id}" ${mine ? '' : 'disabled'}><span>${esc(mp.name)}</span><small>você <b class="${cl(au)}">${f(au)}</b> · rival ${know ? `<b class="${cl(ao)}">${f(ao)}</b>` : '<span class="mut">🔒</span>'}</small></button>`; }).join('');
+    return `<h3>Veto de mapas · ${v.pool.length} restantes</h3><div class="mut" style="font-size:12px;margin-bottom:8px">${mine ? '<b class="gold">Sua vez de banir.</b> Bana onde o rival é forte e você é fraco.' : 'O rival está escolhendo…'} O último mapa fica.</div>
+      <div class="stack" style="gap:6px">${rows}</div>
+      <div class="mut" style="font-size:11.5px;margin-top:10px">Afinidade de −2 a +2. ${know ? '' : '🔒 A afinidade do rival é revelada com o Analista de Dados ou uma Sessão de VOD.'}</div>`;
+  }
+  const opt = (list, sig) => list.map(x => `<option value="${x}" ${know && x === sig ? 'selected' : ''}>${x}${know && x === sig ? ' ★ assinatura do rival' : ''}</option>`).join('');
+  return `<h3>Bans de operadores · ${esc(m.map.name)}</h3>
+    <div class="mut" style="font-size:12px;margin-bottom:10px">Escolha um atacante e um defensor do rival para banir. ${know ? 'Banir o operador-assinatura de ' + esc(o.short) + ' custa −2 ao lado dele.' : '🔒 Sem Analista/VOD você não sabe quais são os operadores-assinatura do rival.'}</div>
+    <div class="mut" style="font-size:11px;margin-bottom:3px">Atacante banido</div><select id="vb-atk" style="width:100%;margin-bottom:10px">${opt(OPS.atk, o.sigA)}</select>
+    <div class="mut" style="font-size:11px;margin-bottom:3px">Defensor banido</div><select id="vb-def" style="width:100%;margin-bottom:12px">${opt(OPS.def, o.sigD)}</select>
+    <button class="btn gold" style="width:100%" data-act="veto-ops">✔ Confirmar bans</button>`;
 }
 function feedAdd(l, ts){
   const f = $('#feed'); if(!f) return;
@@ -1672,7 +1860,7 @@ function updateMatch(){
     <div class="mid"><div class="score">${m.score.a}<i>:</i>${m.score.b}</div><div class="clk" id="clk">3:00</div><div class="bar" style="margin:4px auto;width:170px"><i id="clkbar" style="width:0"></i></div><div class="inf">${rlab} · ${half}</div></div>
     <div class="side r">${logo(B, 'lg')}<div><div class="nm" style="color:${B.color}">${esc(B.name)}</div><div>${m.done ? '' : side('b')} <span class="mut" style="font-size:11px">PWR ${B.power}</span></div></div></div></div>`;
   updateClock();
-  $('#mapbar').innerHTML = `<span>MAPA</span><span class="mp">${esc(m.map.name)}</span><span>· Bans: ${esc(A.short)} → <b>${m.bans.a.atk}</b>/<b>${m.bans.a.def}</b> · ${esc(B.short)} → <b>${m.bans.b.atk}</b>/<b>${m.bans.b.def}</b></span>${m.pen.a.atk + m.pen.a.def + m.pen.b.atk + m.pen.b.def ? '<span class="orange">· operador-assinatura banido (−2)</span>' : ''}`;
+  $('#mapbar').innerHTML = !m.map ? `<span>MAPA</span><span class="mp">a definir no veto…</span>` : m.vp ? `<span>MAPA</span><span class="mp">${esc(m.map.name)}</span><span>· definindo os bans de operadores</span>` : `<span>MAPA</span><span class="mp">${esc(m.map.name)}</span><span>· Bans: ${esc(A.short)} → <b>${m.bans.a.atk}</b>/<b>${m.bans.a.def}</b> · ${esc(B.short)} → <b>${m.bans.b.atk}</b>/<b>${m.bans.b.def}</b></span>${m.pen.a.atk + m.pen.a.def + m.pen.b.atk + m.pen.b.def ? '<span class="orange">· operador-assinatura banido (−2)</span>' : ''}`;
   let strip = '';
   for(let i = 0; i < 12; i++){
     const h = m.hist[i], cls = h ? (h.w === m.userKey ? 'w' : 'l') : (i === m.played && !m.done && !m.inOT ? 'next' : '');
@@ -1695,29 +1883,22 @@ function updateClock(){
 }
 function planHTML(m){
   if(m.done) return `<h3>Partida encerrada</h3><button class="btn gold" style="width:100%" data-act="result">🏁 Ver resultado</button>`;
-  const my = sideOfUser(m), pl = UI.plan[my], prep = UI.phase === 'prep', live = UI.phase === 'live' || UI.phase === 'interv', opp = m.t.b, u = m.t.a;
-  const cads = CAD[my].map((n, i) => `<button class="cad ${pl.cad === i + 1 ? 'on' : ''}" data-act="cad" data-v="${i + 1}" ${prep ? '' : 'disabled'}><b>${i + 1}</b></button>`).join('');
-  const routes = m.map.routes.map((r, i) => { const a = raff(u, m.map.id, i); return `<button class="rt ${pl.route === i ? 'on' : ''}" data-act="route" data-v="${i}" ${prep ? '' : 'disabled'}><span>${esc(r)}</span><small class="${a > 0 ? 'green' : a < 0 ? 'red' : 'mut'}">afinidade ${a > 0 ? '+' : ''}${a.toFixed(1)}</small></button>`; }).join('');
-  const seen = m.hist.slice(-3).reverse().map(h => h.ak === m.userKey ? `Defendeu forte em <b>${esc(m.map.routes[h.stack])}</b> (agr. ${h.dcad})` : `Atacou por <b>${esc(m.map.routes[h.route])}</b> (cad. ${h.cad})`);
-  const know = m.an >= 2 || S.club.scout, w = STYLE[opp.style].c;
-  const scout = know ? `<div class="mut" style="font-size:11px;margin:6px 0 2px">Tendência de cadência do rival (${styleName(opp)}):</div>` + w.map((v, i) => `<div class="mrow"><span>${i + 1}</span>${meter(v * 250, '')}<b>${Math.round(v * 100)}%</b></div>`).join('')
-    : `<div class="mut" style="font-size:12px;margin:6px 0">🔒 Tendências detalhadas: faça uma Sessão de VOD ou contrate o Analista Nv 2.</div>`;
-  const ctrl = prep ? `<button class="btn gold" style="width:100%" data-act="start-round" ${m.ready ? '' : 'disabled'}>▶ Iniciar round <kbd>Espaço</kbd></button>
-      <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn sm sp" data-act="tout" ${m.tos.a > 0 && m.ready ? '' : 'disabled'}>⏱ Timeout técnico (${m.tos.a})</button><button class="btn sm cyan sp" data-act="auto" ${m.ready ? '' : 'disabled'}>${UI.auto ? '⏸ Parar auto' : '⏩ Auto-rounds'}</button><button class="btn sm sp" data-act="simall" ${m.ready ? '' : 'disabled'}>⚡ Simular tudo</button></div>`
+  if(UI.phase === 'veto') return vetoHTML(m);
+  const my = sideOfUser(m), prep = UI.phase === 'prep', live = UI.phase === 'live', u = m.t.a;
+  const ctrl = prep ? `<button class="btn gold" style="width:100%" data-act="start-round" ${m.ready ? '' : 'disabled'}>▶ Próximo round <kbd>Espaço</kbd></button>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn sm cyan sp" data-act="auto" ${m.ready ? '' : 'disabled'}>${UI.auto ? '⏸ Parar auto' : '⏩ Assistir tudo'}</button><button class="btn sm sp" data-act="simall" ${m.ready ? '' : 'disabled'}>⚡ Simular tudo</button></div>`
     : live ? `<div class="row"><span class="mut" style="font-size:12px">Velocidade</span>${[1, 2, 4].map(s => `<button class="btn sm ${UI.speed === s ? 'gold' : ''}" data-act="speed" data-v="${s}">×${s}</button>`).join('')}<button class="btn sm sp" data-act="skip-round">⏭ Pular round</button></div>` : '';
-  return `<h3>Pré-round · você ${my === 'atk' ? 'ATACA' : 'DEFENDE'}</h3>
-    <div class="mut" style="font-size:12px;margin-bottom:4px">${my === 'atk' ? 'Cadência' : 'Agressividade'} <kbd>1-5</kbd></div><div class="cads">${cads}</div><div style="font-size:13px;margin:6px 0 10px"><b class="gold">${CAD[my][pl.cad - 1]}</b></div>
-    <div class="mut" style="font-size:12px;margin-bottom:4px">Foco de rota — ${my === 'atk' ? 'por onde entrar' : 'onde reforçar o setup'}</div><div class="stack" style="gap:6px">${routes}</div>
-    <div class="mut" style="font-size:11.5px;margin:10px 0 4px">Rota igual à do rival = confronto direto (penaliza o ataque). Cadência alta bate roam; cadência baixa bate ancoragem.</div>
-    <div style="margin:8px 0">${seen.length ? seen.map(s => `<div class="mut" style="font-size:12px">• ${s}</div>`).join('') : '<div class="mut" style="font-size:12px">Sem leitura do rival ainda.</div>'}</div>${scout}
+  return `<h3>${live ? 'Round em andamento' : 'Pré-round'} · você ${my === 'atk' ? 'ATACA' : 'DEFENDE'}</h3>
+    <p class="mut" style="font-size:12.5px;margin-bottom:10px">A comissão técnica conduz os rounds (estilo <b>${styleName(u)}</b>). A sua decisão foi o veto: mapa e operadores banidos.</p>
+    <div class="kv"><span>Mapa</span><b class="gold">${esc(m.map.name)}</b></div>
+    <div class="kv"><span>Seus bans</span><b>${esc(m.bans.a.atk)} / ${esc(m.bans.a.def)}</b></div><div class="kv"><span>Bans do rival</span><b>${esc(m.bans.b.atk)} / ${esc(m.bans.b.def)}</b></div>
     <div class="mrow" style="margin:10px 0"><span>Confiança</span>${meter(m.conf.a, 'g')}<b>${Math.round(m.conf.a)}</b></div>${ctrl}`;
 }
 
 /* ---------- loop de tempo real ---------- */
 function startRound(){
   const m = CM; if(!m || !m.ready || UI.phase !== 'prep' || m.done) return;
-  const side = sideOfUser(m);
-  UI.rs = roundInit(m, UI.plan[side], true); UI.clock = 0; UI.plantAt = null; UI.frozen = false; UI.skip = false; UI.phase = 'live';
+  UI.rs = roundInit(m, null, false); UI.clock = 0; UI.plantAt = null; UI.frozen = false; UI.skip = false; UI.phase = 'live';
   UI.ev = roundNext(UI.rs); drain(); updateMatch();
   clearInterval(UI.timer); UI.timer = setInterval(tick, 50);
 }
@@ -1734,7 +1915,6 @@ function drain(){
   const rs = UI.rs;
   while(UI.ev && UI.ev.t <= UI.clock && !UI.frozen){
     const ev = UI.ev; UI.ev = null;
-    if(ev.type === 'interv'){ openInterv(ev); return; }
     showEvent(ev);
     if(ev.type === 'end'){ endOfRound(); return; }
     UI.ev = roundNext(rs);
@@ -1747,39 +1927,10 @@ function endOfRound(){
   if(m.done) onMatchEnd();
   else if(UI.auto) setTimeout(() => { if(CM === m && UI.phase === 'prep' && UI.auto) startRound(); }, 900);
 }
-function openInterv(ev){
-  UI.frozen = true; UI.phase = 'interv'; UI.ivKind = ev.kind; const u = ev.unit, iv = $('#iv');
-  const A = ev.kind === 'A';
-  const title = A ? (ev.reason === 'fb' ? '⚠ SOFREMOS O FIRST BLOOD' : '⚠ PERDEMOS O HARD BREACHER') : '💣 O INIMIGO PLANTOU O DESATIVADOR';
-  const sub = A ? (ev.reason === 'fb' ? `${esc(u.p.name)} ${opU(u)} caiu na abertura do round.` : `${esc(u.p.name)} ${opU(u)} foi eliminado antes de abrir a parede.`) : `Restam ${PLANT_SEC}s. O relógio está correndo!`;
-  const opts = A ? [['retreat','↩ Recuar para o Retake tardio','+3 nos duelos · ' + (UI.rs.ak === CM.userKey ? 'plant mais lento' : 'o plant do rival fica mais fácil')], ['vertical','🕳 Mudar Rota e forçar verticalidade','Aposta: até +7 se der certo, −4 se falhar (Gamesense ajuda)']]
-    : [['axes','🔀 Avanço Simultâneo de eixos','Aposta: +6 e defuse mais fácil, ou −3 se desalinhar (Gamesense ajuda)'], ['utility','💨 Gastar Utilitários (Fumaça/Flash)','+3 garantido e defuse um pouco mais fácil']];
-  iv.innerHTML = `<div class="ivbox"><div class="ivt">${title}</div><p>${sub}</p><div class="ivb"><i id="ivbar"></i></div>
-    <div class="stack" style="gap:8px;margin-top:12px">${opts.map(([k, n, d]) => `<button class="st" data-act="iv" data-o="${k}"><span class="n">${n}</span><span class="d">${d}</span></button>`).join('')}</div><div class="mut" style="font-size:11px;margin-top:8px">O round está congelado. Sem decisão em 10s o time hesita (−2).</div></div>`;
-  iv.classList.add('open'); let left = 10;
-  clearInterval(UI.ivTimer);
-  UI.ivTimer = setInterval(() => { left -= .1; const b = $('#ivbar'); if(b) b.style.width = (left * 10) + '%'; if(left <= 0) resolveInterv('timeout'); }, 100);
-}
-function resolveInterv(opt){
-  if(!UI.frozen) return;
-  clearInterval(UI.ivTimer); $('#iv').classList.remove('open');
-  const txt = applyInterv(UI.rs, UI.ivKind, opt);
-  feedAdd({c:'clutch', h:txt}, Math.min(UI.clock, ROUND_SEC));
-  UI.frozen = false; UI.phase = 'live'; UI.ev = roundNext(UI.rs); drain(); updateMatch();
-}
-function openTimeout(){
-  const m = CM; if(!m || UI.phase !== 'prep' || m.tos.a < 1) return;
-  openModal(`<div class="mhead"><h2><b>Timeout</b> técnico</h2><div class="sp"></div><button class="btn sm" data-act="close">✕</button></div>
-    <p class="mut" style="margin-bottom:12px">1 pausa por mapa. Escolha o discurso: a confiança do time (${Math.round(m.conf.a)}) será redefinida e o momentum do rival, zerado.</p>
-    <div class="stack" style="gap:8px">
-      <button class="st" data-act="tpost" data-p="ear"><span class="ic">😤</span><span class="n">Puxão de orelha</span><span class="d">Confiança volta a ${m.conf.a < 50 ? 68 : 55}. Custa moral (−5 Satisfação) e sobe o estresse. Funciona melhor com o time em baixa.</span></button>
-      <button class="st" data-act="tpost" data-p="motiv"><span class="ic">🔥</span><span class="n">Motivacional</span><span class="d">Confiança volta a 65, sobe a satisfação e a química do grupo.</span></button>
-      <button class="st" data-act="tpost" data-p="adjust"><span class="ic">📋</span><span class="n">Ajuste estratégico</span><span class="d">Confiança volta a 55, mas o plano corrigido dá +3 nos duelos nos próximos 3 rounds.</span></button></div>`, true);
-}
 function simAll(){
   const m = CM; if(!m || m.done || !m.ready || UI.phase === 'live' || UI.phase === 'interv') return;
   UI.auto = false;
-  while(!m.done){ const {lines} = runRoundAuto(m, UI.plan[sideOfUser(m)]); lines.forEach(l => feedAdd(l, untimed(l.c) ? null : l.t)); }
+  while(!m.done){ const {lines} = runRoundAuto(m, null); lines.forEach(l => feedAdd(l, untimed(l.c) ? null : l.t)); }
   UI.phase = 'done'; updateMatch(); onMatchEnd();
 }
 function onMatchEnd(){
@@ -1788,6 +1939,35 @@ function onMatchEnd(){
   const rep = finishUserMatch(m, m.meta); m.report = rep;
   updateMatch(); renderTop(); renderSide();
   setTimeout(() => { if(CM === m) showReport(rep); }, 700);
+}
+
+/* ---------- simular evento inteiro ---------- */
+function simEvent(){
+  if(S.done || (CM && !CM.finished)) return;
+  openModal(`<div class="mhead"><h2><b>Simulando</b> · ${esc(evName(S.ev))}</h2></div><p class="mut" id="simprog">Preparando…</p><div class="bar" style="margin-top:10px"><i id="simbar" style="width:0%"></i></div>`, true);
+  const step = () => {
+    if(S.done){ closeModal(); UI.view = 'dash'; render(); showEventEnd(); return; }
+    const c = S.cur || startMatchday();
+    if(c.user) finishUserMatch(quickMatch(T(c.user.a), T(c.user.b)), {idx:c.idx, lg:c.user.lg, slot:c.user.slot, ph:c.user.ph, user:true});
+    else finishMatchday(null);
+    const p = $('#simprog'), b = $('#simbar');
+    if(p) p.textContent = S.done ? 'Concluído' : mdLabel(Math.min(S.md, totalMD() - 1)) + '…';
+    if(b) b.style.width = Math.min(100, Math.round(S.md / totalMD() * 100)) + '%';
+    setTimeout(step, 0);                                  // uma rodada por vez: a tela não trava
+  };
+  setTimeout(step, 30);
+}
+function showEventEnd(){
+  const u = T(S.userId), er = S.evres, g = g16Status(), mine = S.uh.filter(h => h.ev === S.ev), w = mine.filter(h => h.won).length;
+  const champ = S.tn ? S.tn.champ : S.final[u.league][0];
+  openModal(`<div class="mhead"><h2><b>${esc(evName(S.ev))}</b> · resumo</h2></div>
+    <div class="kv"><span>Sua colocação</span><b class="gold">${esc(er.lab)}</b></div>
+    <div class="kv"><span>Partidas jogadas</span><b>${mine.length} · ${w}V ${mine.length - w}D</b></div>
+    <div class="kv"><span>${S.tn ? 'Campeão' : 'Campeão da liga'}</span><b>${esc(T(champ).name)}</b></div>
+    <div class="kv"><span>SI Points no evento</span><b class="gold">+${er.si}</b></div><div class="kv"><span>Prêmio</span><b class="gold">+${er.cash} K$</b></div>
+    <div class="kv"><span>Ranking mundial</span><b>#${g.rank} · ${g.pts} pts ${g.in ? '<span class="tag fill">G16</span>' : ''}</b></div>
+    ${computeAlerts().map(a => `<div class="alert ${a.lv}" style="margin-top:8px"><div class="ic">${a.ic}</div><div><h4>${esc(a.t)}</h4><p>${esc(a.x)}</p></div></div>`).join('')}
+    <div class="row" style="margin-top:16px;flex-wrap:wrap"><button class="btn gold" data-act="close">Continuar</button><button class="btn" data-act="global">Global Standings</button></div>`, true);
 }
 
 /* ---------- relatório pós-rodada ---------- */
@@ -1803,7 +1983,7 @@ function showReport(rep){
   const drama = rep.dropped ? `<div class="alert crit" style="margin-top:8px"><div class="ic">📉</div><div><h4>VOCÊ CAIU DA LINHA DE CORTE DO G16!</h4><p>O ranking mundial mudou: você despencou para #${rep.rankAfter}. A pressão é máxima.</p></div></div>`
     : rep.gained ? `<div class="alert ok" style="margin-top:8px"><div class="ic">📈</div><div><h4>Você entrou no G16!</h4><p>Subiu para #${rep.rankAfter} no ranking mundial projetado.</p></div></div>` : '';
   const dr = rep.rankBefore - rep.rankAfter;
-  const fin = S.done ? `<div class="alert info" style="margin-top:8px"><div class="ic">🏁</div><div><h4>Stage 2 encerrado — ${rep.place}º na ${LG[u.league].tag}</h4><p>Colocação final creditada: +${PLACE_PTS[rep.place - 1]} pts SI.</p></div></div>` : '';
+  const fin = S.done ? `<div class="alert info" style="margin-top:8px"><div class="ic">🏁</div><div><h4>${esc(evName(S.ev))} encerrado — ${esc(rep.place)}</h4><p>Prêmio de +${S.evres.cash} K$ e ${S.evres.si} SI Points no evento. Volte ao Painel para avançar no calendário.</p></div></div>` : '';
   const burn = u.players.filter(isBurnout);
   openModal(`<div class="mhead"><h2><b>${esc(rep.label)}</b> · relatório</h2></div>${head}
     <div class="kv"><span>SI Points ganhos</span><b class="gold">+${rep.dSI}</b></div>
@@ -1833,24 +2013,27 @@ document.addEventListener('click', e => {
     case 'gmode': UI.gMode = d.m; openGlobal(); break;
     case 'sfilter': UI.sFilter = d.l; renderSide(); break;
     case 'lgtab': UI.lgTab = d.l; render(); break;
-    case 'day': { const r = doDay(d.a); if(r){ if(r.burn.length) toast(`<b class="red">🔥 BURNOUT</b><br>${r.burn.map(esc).join(', ')} passou de 80 de estresse: −15 de rating em jogo.`, 'crit'); render(); } break; }
+    case 'day': afterDay(doDay(d.a)); break;
+    case 'train-menu': openTrain(d.a); break;
+    case 'train-map': afterDay(doDay('map', {map:d.m})); break;
+    case 'train-ind': afterDay(doDay('ind', {pid:+d.p, stat:($('#tr-' + d.p) || {}).value})); break;
     case 'skip-routine': skipRoutine(); render(); break;
     case 'talk': { const r = resolveTalk(+d.i); if(r != null) render(); break; }
     case 'hire': if(hireStaff(d.k)){ toast(`${STAFF[d.k].ico} <b>${STAFF[d.k].name}</b> agora é nível ${S.club.staff[d.k]}.`, 'ok'); render(); } break;
     case 'md-start': startUserMatch(); break;
-    case 'cad': UI.plan[sideOfUser(CM)].cad = +d.v; updateMatch(); break;
-    case 'route': UI.plan[sideOfUser(CM)].route = +d.v; updateMatch(); break;
     case 'start-round': startRound(); break;
+    case 'veto-map': { const m = CM; if(m && m.vp && m.vp.stage === 'map' && m.vp.turn === 'a'){ const mp = m.vp.pool.find(x => x.id === d.m); if(mp){ banMap(m, mp, 'a'); vetoStep(); } } break; }
+    case 'veto-ops': confirmOps(); break;
     case 'speed': UI.speed = +d.v; updateMatch(); break;
     case 'skip-round': UI.skip = true; break;
-    case 'tout': openTimeout(); break;
-    case 'tpost': { const r = doTimeout(CM, 'a', d.p); closeModal(); feedAdd({c:'sys', h:`⏱ <b>TIMEOUT TÉCNICO</b> — ${{ear:'Puxão de orelha', motiv:'Discurso motivacional', adjust:'Ajuste estratégico'}[d.p]}: confiança ${Math.round(r.pre)} → ${Math.round(r.post)}.`}); updateMatch(); break; }
-    case 'iv': resolveInterv(d.o); break;
     case 'auto': UI.auto = !UI.auto; updateMatch(); if(UI.auto && UI.phase === 'prep') startRound(); break;
     case 'simall': simAll(); break;
     case 'result': if(CM && CM.report) showReport(CM.report); break;
     case 'report-ok': closeModal(); CM = null; UI.phase = 'idle'; UI.view = S.done ? 'dash' : 'week'; render(); break;
-    case 'next-season': if(S.done){ const info = nextSeason(); CM = null; UI.lgTab = null; UI.gTab = 'ALL'; UI.mk.tab = S.offers.length ? 'offers' : 'fa'; UI.view = 'dash'; render(); showSeason(info); } break;
+    case 'sim-event': simEvent(); break;
+    case 'next-event': if(S.done && S.ei + 1 < S.cal.length){ const id = advanceEvent(); UI.lgTab = null; UI.view = 'dash'; render();
+      toast(`<b>${esc(evName(id))}</b> começou.${S.win ? ' A <b>janela de transferências</b> está aberta.' : ''}`, 'ok'); } break;
+    case 'next-season': if(S.done && S.ei + 1 >= S.cal.length){ const info = nextSeason(); CM = null; UI.lgTab = null; UI.gTab = 'ALL'; UI.mk.tab = S.offers.length ? 'offers' : 'fa'; UI.view = 'dash'; render(); showSeason(info); } break;
     case 'season-ok': closeModal(); UI.view = d.v; render(); break;
     case 'mk-tab': UI.mk.tab = d.tab; rerender(); break;
     case 'mk-afford': UI.mk.afford = !UI.mk.afford; rerender(); break;
@@ -1880,10 +2063,11 @@ document.addEventListener('keydown', e => {
   if((e.key === 'g' || e.key === 'G') && S && UI.view !== 'select') openGlobal();
   if(UI.view === 'match' && CM && !$('#modal').classList.contains('open') && !UI.frozen){
     if((e.key === ' ' || e.key === 'Enter') && UI.phase === 'prep'){ e.preventDefault(); startRound(); }
-    if(UI.phase === 'prep' && /^[1-5]$/.test(e.key)){ UI.plan[sideOfUser(CM)].cad = +e.key; updateMatch(); }
   }
 });
-document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.mk; if(!k || k === 'q' || !S) return; UI.mk[k] = e.target.value; rerender(); });
+document.addEventListener('change', e => {
+  if(S && e.target.dataset && e.target.dataset.rl){ const r = setRole(+e.target.dataset.rl, e.target.value); if(r) toast(esc(r), 'warn'); rerender(); return; }
+  const k = e.target.dataset && e.target.dataset.mk; if(!k || k === 'q' || !S) return; UI.mk[k] = e.target.value; rerender(); });
 document.addEventListener('input', e => { if(!S || !e.target.dataset || e.target.dataset.mk !== 'q') return; UI.mk.q = e.target.value; const l = $('#mk-list'); if(l) l.innerHTML = mkListHTML(); });
 $('#modal').addEventListener('click', e => { if(e.target.id === 'modal') closeModal(); });
 
