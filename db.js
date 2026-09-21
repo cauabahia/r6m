@@ -349,10 +349,10 @@ const TEAM_ROWS = [
   ['furia','FURIA','FURIA','SAL',91,'HerdsZ:Entry=95{age:26},DiasLucas:Sup1=92{age:24},volpz*=94{age:23},Loira:Entry=91{age:21},Bokzera:Flex=93{age:20}',{rivals:['fluxo'],tag:'FUR',color:'#e8e8e8',src:1}],
   ['loud','LOUD','LOUD','SAL',84,'live*=86{age:26},Flastry:Sup1=86{age:24},resetz:Sup2=84{age:23},Stemp:Entry=86,Gabu:Flex=83',{tag:'LLL',color:'#35e08a'}],
   ['los','LOS','LOS','SAL',84,'Dash*=88{age:24},peres:Entry=88{age:23},Nuxxga:Sup1=84,Daffodil:Flex=84{age:22},Dodez:Entry=87{age:25}',{tag:'LOS',color:'#ffd23f'}],
-  ['l5','Lucky Five','L5','SAL',82,'Psycho*=82{age:27},pino:Flex=81{age:25},Bassetto:Sup1=89{age:25},Neskin:Flex=81{age:24},Wizard:Sup2=83',{tag:'L5',color:'#7be07b'}],
+  ['l5','Lucky Five','L5','SAL',82,'Psycho:Sup1=82{age:27},pino:Flex=81{age:25},Bassetto*=89{age:25},Neskin:Flex=81{age:24},Wizard:Sup2=83',{tag:'L5',color:'#7be07b'}],
   ['bd','Black Dragons','B. Dragons','SAL',83,'R4re*=80{age:24},Romeo:Sup2=85{age:32},Mr6otlaw:Entry=83,Swag:Entry=79{age:24},Guto:Sup1=84',{tag:'BD',color:'#d94d4d'}],
   ['imp','Imperial Esports','Imperial','SAL',79,'xS3xyCake*=82{age:27},NearZ:Flex=80{age:22},mitrix:Sup1=76,Legacy:Sup2=79,Hasaqui:Entry=78',{tag:'IMP',color:'#5aa7ff'}],
-  ['intz','INTZ','INTZ','SAL',78,'Rappz:Sup1=77{age:24},Ar7hr*=83{age:24},naka:Sup2=81,Stk:Entry=79{age:25},AngelzZ:Entry=85',{tag:'INT',color:'#4f7cff'}],
+  ['intz','INTZ','INTZ','SAL',78,'Rappz:Sup1=77{age:24},Ar7hr:Sup2=83{age:24},naka*=81,Stk:Entry=79{age:25},AngelzZ:Entry=85',{tag:'INT',color:'#4f7cff'}],
   // ---- NAL ----
   ['dz','DarkZero Esports','DarkZero','NAL',92,'Fultz*=93{age:25},njr:Flex=89{age:24},J9O:Sup1=95{age:24},Kyno:Sup2=91{age:24},Nuers:Entry=92{age:23}|Koshi=87',{rivals:['m80','wild'],tag:'DZ',color:'#ff5a1f',src:1,note:'Campeã de Major'}],
   ['wild','Wildcard Gaming','Wildcard','NAL',91,'Kanzen:Entry=92{age:24},Spiker*=94{age:21},Bae:Entry=88{age:21},Adrian:Sup1=91{age:21},bbySharKK:Flex=90{age:21}',{tag:'WC',color:'#b06cff',src:1,note:'Campeã do Stage 1'}],

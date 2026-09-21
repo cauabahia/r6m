@@ -362,7 +362,7 @@ const TEAM_DB = TEAM_ROWS.map(([id, name, short, league, power, ros, o]) => {
 /* Posições reais do R6: Entry, Flex, Sup1, Sup2 e IGL (o IGL é uma das cinco posições do time) */
 const ROLES = ['Entry','Flex','Sup1','Sup2','IGL'], ROLES_GEN = ROLES.slice(0, 4);
 const isIgl = p => p.role === 'IGL';
-const HB = new Set(['Thermite','Hibana','Ace']);          // hard breachers
+const HB = new Set(['Thermite','Hibana','Ace','Maverick']);          // hard breachers: abrem parede reforçada (os demais "Breach" só abrem parede comum)
 
 /* Mapas (pool de 7) · atk = viés de lado · routes = rotas de entrada/foco · calls = callouts do feed */
 const MAPS = [
@@ -374,43 +374,60 @@ const MAPS = [
   {id:'skyscraper',name:'Arranha-Céu',      loc:'no Arranha-Céu',      atk:.5,  routes:['Casa de Chá','Karaokê / Exposição','Cozinha / Bar'],                   calls:['Casa de Chá','Karaokê','Exposição','Cozinha','Bar','Sala Zen']},
   {id:'nighthaven',name:'Nighthaven Labs',  loc:'em Nighthaven Labs',  atk:-.4, routes:['Laboratório','Sala de Servidores','Doca de Carga'],                    calls:['Laboratório','Sala de Servidores','Doca de Carga','Câmara de Testes','Corredor Sul','Depósito']}
 ];
-const OPS = {
-  atk:['Ash','Zofia','Sledge','Thermite','Ace','Hibana','Sens','Grim','Flores','Osa','Zero','Iana','Ram','Nomad','Fuze','Twitch','Thatcher','Buck','Lion','Finka','Jackal','Dokkaebi'],
-  def:['Jäger','Bandit','Mute','Smoke','Rook','Ela','Vigil','Melusi','Aruni','Thunderbird','Azami','Mira','Alibi','Maestro','Kaid','Mozzie','Clash','Castle','Frost','Wamai','Goyo','Lesion']
+/* Operadores e funções conforme a Liquipedia (categoria "Operator": campos function e function2 do infobox; conferido em 09/2026, sem os Recruits).
+   Ataque: Breach · Front Line · Intel · Support · Map Control · Anti-Gadget  —  Defesa: Anti-Entry · Anti-Gadget · Crowd Control · Intel · Support · Trapper. */
+const OP_DB = {
+  atk:[['Ash','Breach','Front Line'], ['Zofia','Anti-Gadget','Breach'], ['Sledge','Breach','Anti-Gadget'], ['Thatcher','Anti-Gadget','Support'], ['Thermite','Breach','Support'],
+    ['Twitch','Anti-Gadget','Intel'], ['Montagne','Intel','Support'], ['Glaz','Intel','Support'], ['Fuze','Anti-Gadget'], ['Blitz','Front Line','Map Control'],
+    ['IQ','Intel','Support'], ['Buck','Breach','Support'], ['Blackbeard','Breach','Front Line'], ['Capitão','Front Line','Map Control'], ['Hibana','Breach','Front Line'],
+    ['Jackal','Intel','Map Control'], ['Ying','Front Line','Map Control'], ['Dokkaebi','Intel','Map Control'], ['Lion','Intel','Map Control'], ['Finka','Front Line','Support'],
+    ['Maverick','Breach','Front Line'], ['Nomad','Front Line','Map Control'], ['Gridlock','Support','Map Control'], ['Nøkk','Front Line','Map Control'], ['Amaru','Front Line','Map Control'],
+    ['Kali','Anti-Gadget','Support'], ['Iana','Front Line','Intel'], ['Ace','Breach','Anti-Gadget'], ['Zero','Anti-Gadget','Intel'], ['Flores','Anti-Gadget','Intel'],
+    ['Osa','Intel','Support'], ['Sens','Support','Map Control'], ['Grim','Front Line','Map Control'], ['Brava','Intel','Anti-Gadget'], ['Ram','Breach','Anti-Gadget'],
+    ['Deimos','Intel','Map Control'], ['Striker','Support'], ['Rauora','Support','Map Control'], ['Solid Snake','Intel','Front Line']],
+  def:[['Mute','Anti-Gadget','Crowd Control'], ['Smoke','Anti-Entry','Trapper'], ['Castle','Anti-Entry','Support'], ['Pulse','Intel','Support'], ['Doc','Support'], ['Rook','Support'],
+    ['Kapkan','Anti-Entry','Trapper'], ['Tachanka','Anti-Entry','Crowd Control'], ['Jäger','Anti-Gadget','Support'], ['Bandit','Anti-Entry','Anti-Gadget'], ['Frost','Anti-Entry','Trapper'],
+    ['Valkyrie','Intel','Support'], ['Caveira','Intel','Crowd Control'], ['Echo','Intel','Crowd Control'], ['Mira','Intel','Support'], ['Lesion','Anti-Entry','Trapper'],
+    ['Ela','Trapper','Crowd Control'], ['Vigil','Anti-Gadget','Crowd Control'], ['Alibi','Intel','Trapper'], ['Maestro','Anti-Gadget','Intel'], ['Clash','Intel','Crowd Control'],
+    ['Kaid','Anti-Entry','Anti-Gadget'], ['Mozzie','Anti-Gadget','Intel'], ['Warden','Anti-Gadget','Intel'], ['Goyo','Anti-Entry','Trapper'], ['Wamai','Anti-Gadget','Trapper'],
+    ['Oryx','Support'], ['Melusi','Crowd Control','Intel'], ['Aruni','Anti-Entry','Anti-Gadget'], ['Thunderbird','Support'], ['Thorn','Anti-Entry','Trapper'],
+    ['Azami','Anti-Entry','Support'], ['Solis','Intel','Support'], ['Fenrir','Trapper','Crowd Control'], ['Tubarao','Anti-Entry','Anti-Gadget'], ['Sentry','Support'],
+    ['Skopós','Intel','Support'], ['Denari','Anti-Entry','Crowd Control']]
 };
-/* Tipos de operador (o que cada um faz pelo time). Ataque: hb Hard Breacher · ent Entry · inf Info/drones · sup Suporte. Defesa: anc Âncora · roam Roamer · inf Info.
-   Cada tipo pesa num atributo do jogador (encaixe) e a composição dos cinco define bônus e penalidades do round (ver compOf). */
-const OP_T = {};
-[['hb','Thermite','Hibana','Ace'], ['ent','Ash','Zofia','Sledge','Ram'], ['inf','Twitch','Dokkaebi','Jackal','Lion','Iana','Grim','Zero','Maestro','Mozzie','Wamai'],
- ['sup','Thatcher','Finka','Buck','Nomad','Fuze','Osa','Flores','Sens'], ['anc','Jäger','Bandit','Mute','Smoke','Rook','Melusi','Aruni','Thunderbird','Azami','Mira','Kaid','Castle','Goyo'],
- ['roam','Vigil','Ela','Lesion','Frost','Alibi','Clash']].forEach(([t, ...ops]) => ops.forEach(o => OP_T[o] = t));
-const OP_LAB = {hb:'Hard Breacher', ent:'Entry', inf:'Info', sup:'Suporte', anc:'Âncora', roam:'Roamer'};
-const OP_FIT = {hb:'util', ent:'open', inf:'info', sup:'tw', anc:'cons', roam:'roam'};
-/* encaixe jogador × operador: o atributo que o operador exige (Entry também usa o Aim) acima do rating do jogador; pesa direto no rating do duelo */
-const fitOf = (p, op) => { const t = OP_T[op]; return clamp(((attr(p, OP_FIT[t]) - p.ovr) + (t === 'ent' ? p.aim - p.ovr : 0)) * .15, -2, 2); };
-/* composição dos cinco operadores → {mods: bônus nos duelos do round, plant: chance de plant (só ataque), first: 1º duelo (só ataque), notes}. Centrada no sorteio da CPU (média ≈ 0). */
-const COMP_MEAN = {atk:{mods:1, plant:-.008, first:.29}, def:{mods:2.25, plant:0, first:0}};      // médias medidas em 6000 rounds sorteados
+const OPS = {atk:OP_DB.atk.map(o => o[0]), def:OP_DB.def.map(o => o[0])};
+const OP_F = {};                                                 // operador → suas funções (1 ou 2)
+[...OP_DB.atk, ...OP_DB.def].forEach(([n, ...f]) => OP_F[n] = f);
+const OP_TAG = {'Breach':'Breach', 'Front Line':'Linha de frente', 'Intel':'Intel', 'Support':'Suporte', 'Map Control':'Controle de mapa', 'Anti-Gadget':'Anti-gadget',
+  'Anti-Entry':'Anti-entrada', 'Crowd Control':'Controle de multidão', 'Trapper':'Armadilhas'};
+const opTags = o => OP_F[o].map(t => OP_TAG[t]).join(' / ');
+/* cada função pesa num atributo do jogador: quanto ele passa do próprio rating naquele atributo é o encaixe (Linha de frente também usa o Aim) */
+const TAG_FIT = {'Breach':'util', 'Front Line':'open', 'Intel':'info', 'Support':'tw', 'Map Control':'roam', 'Anti-Gadget':'gs', 'Anti-Entry':'cons', 'Crowd Control':'roam', 'Trapper':'util'};
+const fitOf = (p, op) => { const f = OP_F[op]; return clamp(f.reduce((s, t) => s + (attr(p, TAG_FIT[t]) - p.ovr) + (t === 'Front Line' ? p.aim - p.ovr : 0), 0) / f.length * .15, -2, 2); };
+/* composição dos cinco operadores (cada operador conta as suas duas funções) → {mods: bônus nos duelos do round, plant: chance de plant (só ataque),
+   first: 1º duelo (só ataque), notes}. Centrada no sorteio da CPU (média ≈ 0). */
+const COMP_MEAN = {atk:{mods:1.48, plant:-.017, first:.82}, def:{mods:3.07, plant:0, first:0}};      // médias medidas em 6000 rounds sorteados      // médias medidas em 6000 rounds sorteados
 function compOf(side, ops){
-  const c = {}; ops.forEach(o => { const t = OP_T[o]; c[t] = (c[t] || 0) + 1; });
-  let mods = 0, plant = 0, first = 0; const notes = [];
+  const c = {}; ops.forEach(o => OP_F[o].forEach(t => c[t] = (c[t] || 0) + 1));
+  const g = t => c[t] || 0; let mods = 0, plant = 0, first = 0; const notes = [];
+  const intel = Math.min(g('Intel'), 3), sup = Math.min(g('Support'), 2), ag = Math.min(g('Anti-Gadget'), 2);
   if(side === 'atk'){
-    const hb = c.hb || 0, en = c.ent || 0, inf = c.inf || 0, sp = c.sup || 0;
-    if(!hb){ plant -= .12; mods -= .8; notes.push('sem Hard Breacher: plant mais difícil'); } else if(hb > 2){ mods -= .8; notes.push('breachers demais'); }
-    if(!en){ first -= 1; notes.push('sem Entry: abertura fraca'); } else first += Math.min(en, 2) * .8;
-    if(en >= 4){ mods -= .8; notes.push('só entradas: falta suporte'); }
-    if(!inf){ mods -= .8; notes.push('sem info/drones'); } else mods += inf === 2 ? .9 : .5;
-    mods += Math.min(sp, 2) * .4;
+    const hb = ops.filter(o => HB.has(o)).length, fl = g('Front Line');
+    if(!hb){ plant -= .2; mods -= 1; notes.push('sem Hard Breacher: plant muito mais difícil'); } else if(hb > 2){ mods -= .8; notes.push('breachers demais'); }
+    if(!g('Breach')){ mods -= .6; notes.push('sem Breach: ninguém abre o site'); }
+    if(!fl){ first -= 1; notes.push('sem Linha de frente: abertura fraca'); } else first += Math.min(fl, 3) * .5;
+    if(fl >= 5){ mods -= .8; notes.push('só entradas: falta suporte e info'); }
+    if(!intel){ mods -= .8; notes.push('sem Intel: ataque às cegas'); } else mods += intel * .3;
+    mods += sup * .35 + Math.min(g('Map Control'), 2) * .25 + ag * .3;
   } else {
-    const an = c.anc || 0, ro = c.roam || 0, inf = c.inf || 0;
-    if(!an){ mods -= 1.6; notes.push('sem Âncora: o site fica exposto'); } else mods += [0, .4, 1, 1.4, 1.2, 0][an];
-    if(an >= 5) notes.push('todos ancorando: sem pressão de roam');
-    mods += [0, .9, 1.2, .3, -.5, -.9][ro];
-    if(ro >= 3) notes.push('roamers demais: âncoras faltando');
-    mods += [0, .6, .8, .8, .8, .8][inf];
+    const ae = g('Anti-Entry'), cc = g('Crowd Control');
+    if(!ae){ mods -= 1.6; notes.push('sem Anti-entrada: o site fica exposto'); } else mods += [0, .4, 1, 1.4, 1.2, 1][Math.min(ae, 5)];
+    mods += [0, .6, .9, .6, .2, 0][Math.min(cc, 5)];
+    if(cc >= 4){ notes.push('controle demais: faltam âncoras'); }
+    mods += Math.min(g('Trapper'), 2) * .3 + [0, .5, .8, .9][intel] + sup * .3 + ag * .3;
   }
   const M = COMP_MEAN[side];
   return {mods:+(mods - M.mods).toFixed(2), plant:+(plant - M.plant).toFixed(3), first:+(first - M.first).toFixed(2), notes,
-    txt:Object.entries(c).map(([t, n]) => `${n} ${OP_LAB[t]}`).join(' · ')};
+    txt:Object.entries(c).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${n}× ${OP_TAG[t]}`).join(' · ')};
 }
 /* Cadência: ataque 1 = lento/guardar drones … 5 = rush · defesa 1 = ancoragem … 5 = roam total */
 const CAD = {
@@ -420,8 +437,7 @@ const CAD = {
 const STYLE = {agg:{name:'Agressivo', c:[.05,.12,.25,.3,.28]}, meth:{name:'Metódico', c:[.28,.3,.25,.12,.05]}, bal:{name:'Equilibrado', c:[.1,.25,.3,.25,.1]}};
 
 /* ---------- parâmetros de balanceamento ---------- */
-const PLACE_PTS = [350,280,220,170,120,80,45,20,10,0];    // pontos SI pela colocação final na liga (ligas têm 8 ou 10 times)
-const WIN_PTS = 10, PO_WIN_PTS = 15, EWC_BONUS = 400, G16 = 16;
+
 const DS = 18, ATK_BIAS = 0, ROUND_SEC = 180, PLANT_SEC = 45;
 const SAVE_KEY = 'r6mgr.stage2.2026.v2';             // mesma chave: saves antigos (v2) são migrados para v3
 const START_YEAR = 2026, MAX_BENCH = 3, CPU_BENCH = 2, FA_CAP = 70;
@@ -553,7 +569,7 @@ function buildTeam(d){
   players.forEach((p, i) => applySlot(p, d.slots[i]));
   const custom = d.slots.some(s => s.ovr != null || s.attrs.aim != null || s.attrs.gs != null);      // ratings definidos no db.js: o poder do time passa a ser a média deles
   const pw = custom ? Math.round(players.reduce((s, p) => s + p.ovr, 0) / players.length) : d.power;
-  const base = Math.round(Math.max(0, (pw - 72) * 4.5) + r() * 22) + (d.ewc ? EWC_BONUS : 0);
+  const base = Math.round(Math.max(0, (pw - 72) * 40) + r() * 160);          // escala real (Major vale até 1500): a temporada já vai no Stage 2
   return {
     id:d.id, name:d.name, short:d.short, tag:d.tag || d.short.slice(0, 3).toUpperCase(), league:d.league, power:pw, color:d.color,
     style:['agg','meth','bal'][hstr('s' + d.id) % 3], ewc:!!d.ewc, star:d.star || null, coach:d.coach || null, note:d.note || d.ex || '', src:!!d.src, bench:mkBench(d.benchSlots, pw, r2), bud:budFor(pw),
@@ -631,10 +647,31 @@ function aiPlan(m, k, side){
   let cad = wpick([1,2,3,4,5], c => w[c - 1]), route = rint(0, 2);
   if(pl && pl.side !== side){
     if(rnd() < .28) cad = side === 'atk' ? (pl.cad > 3 ? 5 : pl.cad < 3 ? 1 : 3) : (pl.cad > 3 ? 1 : pl.cad < 3 ? 5 : 3);
-    if(rnd() < .35) route = side === 'def' ? pl.route : (rnd() < .75 ? (pl.route + rint(1, 2)) % 3 : route);
+    if(side === 'atk' && rnd() < .35) route = rnd() < .75 ? (pl.route + rint(1, 2)) % 3 : route;      // (a rota real do ataque é decidida depois do reconhecimento com drones)
   }
+  const ml = m.last[k]; if(side === 'def' && ml && ml.side === 'def' && route === ml.route && rnd() < .65) route = (route + rint(1, 2)) % 3;      // a defesa costuma trocar o site da bomb
   return {cad, route};
 }
+
+/* ---------- fase de preparação (45 s antes do round) ----------
+   Defesa: escolhe o SITE DA BOMB (um dos 3 sites do mapa) e o SETUP (cadência da defesa: ancoragem ↔ roam), e pode caçar drones.
+   Ataque: usa DRONES para descobrir a bomb (até `reconCap` sites; cada leitura acerta com chance reconP) e depois escolhe cadência e site de ataque.
+   No round: atacar o site da bomb sabendo onde ela está rende muito; atacar o site errado custa tempo (girar) e chance de plant. */
+const SITE_C = -1.8;                                // recentra o termo de site no valor do modelo antigo (−0,33 em média); medido em 8000 rounds CPU × CPU
+const reconP = (tA, tD, cadA, cadD, intelA, counterD, hunt) => clamp(.5 + .06 * intelA - .05 * counterD + (3 - cadA) * .04 - (cadD >= 4 ? .06 : 0) + (tA.info - tD.info) * .01 - (hunt ? .15 : 0), .15, .9);
+const reconCap = (intelA, cadA) => Math.min(3, 1 + (intelA >= 2 ? 1 : 0) + (cadA <= 2 ? 1 : 0));
+const tagN = (ops, t) => ops.filter(o => o && OP_F[o] && OP_F[o].includes(t)).length;
+function reconResult(bomb, sites, p){                // cada drone: no site da bomb → 'bomb' ou 'unk'; em outro site → 'empty' (confiável) ou 'unk'
+  const res = {}; sites.forEach(x => { const ok = rnd() < p; res[x] = x === bomb ? (ok ? 'bomb' : 'unk') : (ok ? 'empty' : 'unk'); });
+  const found = sites.filter(x => res[x] === 'bomb'), empty = new Set(sites.filter(x => res[x] === 'empty'));
+  const cands = found.length ? found : [0, 1, 2].filter(x => !empty.has(x));
+  return {res, cands, know:cands.length === 1 ? 2 : cands.length === 2 ? 1 : 0};
+}
+function newPrep(m){                                 // uma por round do usuário: defaults da comissão que o usuário pode alterar
+  const uk = m.userKey, side = atkKey(m) === uk ? 'atk' : 'def';
+  return {id:m.hist.length, side, plan:aiPlan(m, uk, side), aiPlan:side === 'atk' ? aiPlan(m, other(uk), 'def') : null, hunt:false, sent:false, scout:[], res:{}, cands:[0, 1, 2], know:0, p:null, counter:rint(0, 2)};
+}
+const ensurePrep = m => (!m.prep || m.prep.id !== m.hist.length) ? (m.prep = newPrep(m)) : m.prep;
 /* Timeout técnico (entre rounds; 1 por mapa, +1 na prorrogação). Sempre corta o embalo do rival (zera a sequência de rounds dele) e escolhe um foco:
    · 'adjust' (tático): +v no confronto por 3 rounds e o rival perde a leitura dos padrões do time; v sobe com Analista e Treinador (só no time do usuário)
    · 'motiv'  (mental): a confiança sobe até um piso (65 + Psicólogo + liderança) e, por 3 rounds, cai só pela metade ao perder round
@@ -669,17 +706,14 @@ function applyLoadout(units, side, sel, banned){
 function roundInit(m, userPlan, interactive){
   const ak = atkKey(m), dk = other(ak), AT = m.t[ak], DT = m.t[dk], V = !m.quiet, pre = [];
   const fix = p => ({cad:clamp(Math.round(p.cad), 1, 5), route:clamp(Math.round(p.route), 0, 2)});
-  const pA = fix(ak === m.userKey && userPlan ? userPlan : aiPlan(m, ak, 'atk'));
-  const pD = fix(dk === m.userKey && userPlan ? userPlan : aiPlan(m, dk, 'def'));
+  const P = m.userKey && m.prep && m.prep.id === m.hist.length ? m.prep : null;      // fase de preparação do usuário neste round (se houver)
+  const pD = fix(dk === m.userKey ? (userPlan || (P ? P.plan : aiPlan(m, dk, 'def'))) : (P && P.aiPlan ? P.aiPlan : aiPlan(m, dk, 'def')));
+  const manualAtk = !!(P && ak === m.userKey && !m.commTo && !userPlan), pA0 = fix(ak === m.userKey ? (userPlan || (P ? P.plan : aiPlan(m, ak, 'atk'))) : aiPlan(m, ak, 'atk'));
   for(const k of ['a','b']) if((k !== m.userKey || m.commTo) && m.tos[k] > 0 && (m.streak[other(k)] >= 3 || m.conf[k] < 35) && rnd() < .6){      // o usuário só é "auto" quando a comissão conduz (Assistir/Simular tudo)
     const po = k === m.userKey ? (m.streak[other(k)] >= 3 && m.conf[k] >= 40 ? 'adjust' : 'motiv') : pick(['ear','motiv','adjust']), r = doTimeout(m, k, po);
     if(V) pre.push({c:'sys', h:`⏱ <b>TIMEOUT TÉCNICO</b> — <b style="color:${m.t[k].color}">${esc(m.t[k].name)}</b> ${TO_DESC[po](r)}.`});
   }
   const tacv = k => m.tac[k].n > 0 ? m.tac[k].v : 0, tA = teamMods(AT), tD = teamMods(DT);
-  const base = 2 * (pA.cad - 3) * (pD.cad - 3) + (pA.route === pD.route ? -5 : 2) + (tA.led - tD.led) / 30 + (tA.tw - tD.tw) * .12 + (tA.info - tD.info) * .08
-    + raff(AT, m.map.id, pA.route) - raff(DT, m.map.id, pD.route)
-    + (m.conf[ak] - m.conf[dk]) / 10 + (m.chem[ak] - m.chem[dk]) / 12 + tacv(ak) - tacv(dk)
-    + aff(AT, m.map.id) - aff(DT, m.map.id) - m.pen[ak].atk + m.pen[dk].def + m.map.atk + ATK_BIAS;
   const mk = (T, k) => T.players.map((p, i) => ({p, i, k, alive:true, kills:0, op:null, hb:false, eff:effP(p) + jitter(p)}));
   const A = mk(AT, ak), D = mk(DT, dk);
   const assign = (units, side, banned, sig) => {
@@ -693,10 +727,25 @@ function roundInit(m, userPlan, interactive){
   A.forEach(u => u.hb = HB.has(u.op));
   [A, D].forEach(us => us.forEach(u => { u.eff += fitOf(u.p, u.op); }));
   const cA = compOf('atk', A.map(u => u.op)), cD = compOf('def', D.map(u => u.op));
+  /* preparação: o ataque descobre (ou não) onde está a bomb. Usuário: drones que ele mandou. Comissão/CPU: drones automáticos com as operadoras da rodada. */
+  const hunt = !!(P && dk === m.userKey && P.hunt);
+  let pA = pA0, know = 0, cands = [0, 1, 2], scouted = [], pr = null;
+  if(manualAtk){ know = P.know; cands = P.cands; scouted = P.scout; pr = P.p; }
+  else {
+    const intelA = tagN(A.map(u => u.op), 'Intel'), counterD = tagN(D.map(u => u.op), 'Anti-Gadget');
+    pr = reconP(tA, tD, pA0.cad, pD.cad, intelA, counterD, hunt); scouted = shuffle([0, 1, 2]).slice(0, reconCap(intelA, pA0.cad));
+    const r = reconResult(pD.route, scouted, pr); know = r.know; cands = r.cands; pA = {...pA0, route:r.cands.length === 1 ? r.cands[0] : pick(r.cands)};      // sem certeza: chuta entre os candidatos
+  }
+  const hit = pA.route === pD.route, siteT = SITE_C + (hit ? 1 + [0, 1.2, 3.5][know] : -2);                    // acertar o site com informação vale muito; o site errado custa tempo
+  const base = 2 * (pA.cad - 3) * (pD.cad - 3) + siteT + (tA.led - tD.led) / 30 + (tA.tw - tD.tw) * .12 + (tA.info - tD.info) * .08
+    + raff(AT, m.map.id, pA.route) - raff(DT, m.map.id, pD.route)
+    + (m.conf[ak] - m.conf[dk]) / 10 + (m.chem[ak] - m.chem[dk]) / 12 + tacv(ak) - tacv(dk)
+    + aff(AT, m.map.id) - aff(DT, m.map.id) - m.pen[ak].atk + m.pen[dk].def + m.map.atk + ATK_BIAS;
   m.tac.a.n = Math.max(0, m.tac.a.n - 1); m.tac.b.n = Math.max(0, m.tac.b.n - 1);
   return {m, ak, dk, AT, DT, pA, pD, base, A, D, t:0, planted:false, plantT:0, duels:0, kills:0, over:false, winner:null, type:null, started:false,
-    firstT:clamp(Math.round(105 - pA.cad * 17 + rint(-8, 8)), 12, 150), firstB:(3 - pA.cad) * .6 + cA.first, queue:[], pre, comp:{atk:cA, def:cD, user:uSide},
-    mods:{[ak]:cA.mods, [dk]:cD.mods}, plantAdj:cA.plant, defuseAdj:0, flags:{A:false,B:false}, cand:{a:null,b:null}, interactive:!!interactive, rec:null, tm:{[ak]:tA, [dk]:tD}};
+    firstT:clamp(Math.round(105 - pA.cad * 17 + rint(-8, 8)) + (hit ? 0 : 10), 12, 150), firstB:(3 - pA.cad) * .6 + cA.first, queue:[], pre, comp:{atk:cA, def:cD, user:uSide},
+    prep:{bomb:pD.route, hit, know, cands, scouted, p:pr, hunt, siteT, manual:manualAtk, byUser:!!P && !m.commTo},
+    mods:{[ak]:cA.mods, [dk]:cD.mods - (hunt ? .4 : 0)}, plantAdj:cA.plant - (hit ? 0 : .08), defuseAdj:0, flags:{A:false,B:false}, cand:{a:null,b:null}, interactive:!!interactive, rec:null, tm:{[ak]:tA, [dk]:tD}};
 }
 const alive = arr => arr.filter(u => u.alive);
 const pnU = (m, u) => `<b class="pl" style="color:${m.t[u.k].color}">${esc(u.p.name)}</b>`;
@@ -712,7 +761,11 @@ function roundNext(rs){
     const rl = m.inOT ? `OT ${m.otPlayed + 1}` : `Round ${m.played + 1}`, mine = rs.ak === m.userKey ? rs.pA : rs.pD, sd = rs.ak === m.userKey ? 'atk' : 'def';
     const L = rs.pre.slice();
     if(V){
-      L.push({c:'hdr', h:`${rl} · <span style="color:${rs.AT.color}">${esc(rs.AT.short)}</span> ATACA × <span style="color:${rs.DT.color}">${esc(rs.DT.short)}</span> DEFENDE${m.userKey ? ` · plano da comissão: cadência ${mine.cad} · ${esc(m.map.routes[mine.route])}` : ''}`});
+      L.push({c:'hdr', h:`${rl} · <span style="color:${rs.AT.color}">${esc(rs.AT.short)}</span> ATACA × <span style="color:${rs.DT.color}">${esc(rs.DT.short)}</span> DEFENDE${m.userKey ? ` · ${rs.prep.byUser ? 'seu plano' : 'plano da comissão'}: ${sd === 'atk' ? 'ataca' : 'bomb em'} ${esc(m.map.routes[mine.route])} · ${sd === 'atk' ? 'cadência' : 'setup'} ${mine.cad}` : ''}`});
+      if(m.userKey){ const pp = rs.prep, R = i => `<b>${esc(m.map.routes[i])}</b>`, us = sd === 'atk';
+        const info = pp.know === 2 ? `bomb localizada em ${R(pp.cands[0])}` : pp.know === 1 ? `sem certeza: a bomb está em ${pp.cands.map(R).join(' ou ')}` : 'sem informação sobre a bomb';
+        L.push({c:'sys', h:us ? `🛰 <b>Preparação</b>: ${pp.scouted.length ? `${pp.scouted.length} drone(s) — ${info}` : 'nenhum drone enviado — ataque às cegas'} → ${pp.hit ? '✔ você ataca o site da bomb' : `✖ você ataca o site errado (a bomb estava em ${R(pp.bomb)}): gira e perde tempo`}.`
+          : `🛰 <b>Preparação</b>: sua bomb está em ${R(pp.bomb)}${pp.hunt ? ' · caçando drones' : ''}. O ataque ${pp.know === 2 ? `<b class="red">achou a bomb</b> e vai direto` : pp.know === 1 ? 'tem dúvida entre dois sites' : 'não achou a bomb'} → ${pp.hit ? 'ataca o site certo' : `<b class="green">errou o site</b> (atacou ${R(rs.pA.route)})`}.`}); }
       if(m.userKey){ const uc = rs.comp[rs.comp.user], fx = uc.mods + (rs.comp.user === 'atk' ? uc.first : 0);
         L.push({c:'sys', h:`🎭 <b>Composição ${rs.comp.user === 'atk' ? 'de ataque' : 'de defesa'}</b>: ${uc.txt} <b class="${fx > .05 ? 'green' : fx < -.05 ? 'red' : 'mut'}">(${fx > 0 ? '+' : ''}${fx.toFixed(1)})</b>${uc.notes.length ? ` <span class="orange">— ${uc.notes.join('; ')}</span>` : ''}`}); }
       L.push({c:'sys', h: rs.pA.cad <= 2 ? `🔍 Fase de drones: o ataque testa ${esc(m.map.routes[rs.pA.route])} sem gastar utilidade.` : rs.pA.cad >= 4 ? `⚡ O ataque sai rápido e pressiona ${esc(m.map.routes[rs.pA.route])}.` : `Ataque monta o controle de mapa de forma padrão.`});
@@ -835,7 +888,7 @@ function endRound(rs, type, winner){
   if(V){
     const rl = 'round';
     const why = {elim:winner === ak ? 'eliminando a defesa' : 'eliminando o ataque', defuse:'com o defuse', boom:'com a detonação', clock:'pelo relógio'}[type];
-    const opp = rs.ak === m.userKey ? `o rival defendia forte em <b>${esc(m.map.routes[rs.pD.route])}</b> (agressividade ${rs.pD.cad})` : `o rival atacou por <b>${esc(m.map.routes[rs.pA.route])}</b> (cadência ${rs.pA.cad})`;
+    const opp = rs.ak === m.userKey ? `a bomb do rival estava em <b>${esc(m.map.routes[rs.pD.route])}</b> (setup ${rs.pD.cad} · ${rs.prep.hit ? 'você acertou o site' : 'você atacou o site errado'})` : `o rival atacou <b>${esc(m.map.routes[rs.pA.route])}</b> (cadência ${rs.pA.cad}) e ${rs.prep.hit ? 'acertou' : 'errou'} o site da sua bomb`;
     L.push({c:'res ' + (m.userKey ? (winner === m.userKey ? 'win' : 'loss') : ''), h:`✔ <b>${esc(m.t[winner].short)}</b> vence o ${rl} ${why} · placar <b>${m.score.a}–${m.score.b}</b>${m.ot.a + m.ot.b ? ` <span class="mut">(OT ${m.ot.a}–${m.ot.b})</span>` : ''}`});
     if(m.userKey) L.push({c:'sys', h:`Leitura pós-round: ${opp}.`});
     if(!m.done && !m.inOT && m.played === 6) L.push({c:'big', h:`🔄 TROCA DE LADOS — ${esc(m.t[m.first].short)} vai para a defesa`});
@@ -897,7 +950,7 @@ const seriesProb = (p, bo) => bo >= 5 ? p * p * p * (10 - 15 * p + 6 * p * p) : 
 
 
 /* =====================================================================
-   3. CARREIRA · LIGAS · SI POINTS · G16 · ROTINA · TALK · STAFF
+   3. CARREIRA · LIGAS · MAJORS · LCQ · SI POINTS · G14 · STAFF
    ===================================================================== */
 let S = null;                                   // estado salvo
 const T = id => S.teams[id];
@@ -917,7 +970,7 @@ function loadSave(){
     const j = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if(!j || (j.v !== 2 && j.v !== 3)) return null;
     if(j.v === 2) upgrade(j);
-    if(!j.cal) Object.assign(j, {cal:CAL_FIRST.slice(), ei:0, ev:'stage2', tn:null, evres:null, qual:null, season:newSeason(), lgName:'Stage 2 ' + (j.year || START_YEAR), si0:j.teams[j.userId].si,
+    if(!j.cal) Object.assign(j, {cal:CAL_FIRST.slice(), ei:0, ev:'stage2', evres:null, qual:null, season:newSeason(), lgName:'Stage 2 ' + (j.year || START_YEAR), si0:j.teams[j.userId].si,
       win:!j.cur && !j.done && j.md === 0 ? 'pre' : null});           // saves anteriores ao calendário completo: continuam no Stage 2
     if(j.attrs !== 2){                               // saves anteriores: gera os atributos de especialidade que faltam a partir do rating, função e idade
       j.attrs = 2;
@@ -939,6 +992,10 @@ function loadSave(){
       Object.values(j.teams).forEach(t => { t.bud = Math.min(t.bud, budFor(t.power) + 120); t.players.concat(t.bench).forEach(p => { if(p.loy == null) p.loy = loyOf(p.name, p.age, p.role); }); });
       j.fa.forEach(p => { if(p.loy == null) p.loy = loyOf(p.name, p.age, p.role); });
     }
+    if(!j.comps){                                    // saves anteriores ao formato BLAST completo: o evento em andamento recomeça no novo formato (LCQ entra no calendário)
+      Object.assign(j, {comps:[], src:{}, lcq:null, mdl:[], legacyComps:true}); delete j.sched; delete j.po; delete j.final; delete j.tn;
+      if(j.cal && !j.cal.includes('lcq')){ const at = j.cal.indexOf('si'); if(at >= 0){ j.cal.splice(at, 0, 'lcq'); if(j.ei >= at) j.ei++; } }
+    }
     if(!j.fin2){                                     // saves anteriores: CPU ganhava dinheiro demais — orçamentos limitados à nova curva
       j.fin2 = true;
       Object.values(j.teams).forEach(t => { t.bud = Math.min(t.bud, budCap(t.power)); });
@@ -959,142 +1016,396 @@ function loadSave(){
 }
 function wipeSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
 
-const nG = lid => S.sched[lid].length;
 const siTag = () => S.year === START_YEAR ? 'Paris' : String(S.year + 1);      // 2026 → Six Invitational em Paris
 const userLid = () => T(S.userId).league;
-const totalMD = () => S.tn ? 4 : nG(userLid()) + 2;
-const stageOf = (lid, idx) => { const n = nG(lid); return idx < n ? {ph:'g', r:idx} : idx === n ? {ph:'sf'} : idx === n + 1 ? {ph:'f'} : null; };
-const mdLabel = idx => { if(S.tn) return TN_NAMES[idx]; const n = nG(userLid()); return idx < n ? 'Rodada ' + (idx + 1) : idx === n ? 'Semifinais' : 'Grande Final'; };
-const phLabel = (ph, idx) => ph === 'sf' || ph === 'T4' ? 'Semifinal' : ph === 'f' || ph === 'T2' ? 'Final' : ph === 'T16' ? 'Oitavas' : ph === 'T8' ? 'Quartas' : 'Rodada ' + (idx + 1);
-const phTag = ph => ({sf:'semi', f:'final', T16:'oitavas', T8:'quartas', T4:'semi', T2:'final'}[ph] || '');
-
-/* ---------- calendário competitivo (formato BLAST R6 2026-27) ----------
-   Kickoff → Major (maio) → Stage 1 → EWC → Stage 2 → Major (novembro) → Six Invitational.
-   Stages = liga regional + playoffs (motor original). Kickoff, Majors, EWC e SI = torneio de 16 times, eliminatória simples.
-   pts = SI Points por colocação [campeão, vice, semis, quartas, oitavas] · cash = prêmio em K$ para o usuário. */
-const EVENTS = {
-  kickoff:{name:'Kickoff',                    pts:[150,110,80,50,20],  cash:[40,25,15,8,0], bo:[1,1,3,3]},
-  major1: {name:'BLAST R6 Major · Maio',      pts:[500,400,300,200,100], cash:[200,140,100,60,20], bo:[1,3,3,5]},
-  stage1: {name:'Stage 1', lg:1},
-  ewc:    {name:'Esports World Cup',          pts:[0,0,0,0,0],         cash:[250,170,120,70,20], bo:[3,3,3,5]},   // o campeão ganha EWC_BONUS (vaga no SI)
-  stage2: {name:'Stage 2', lg:1},
-  major2: {name:'BLAST R6 Major · Novembro',  pts:[500,400,300,200,100], cash:[200,140,100,60,20], bo:[1,3,3,5]},
-  si:     {name:'Six Invitational',           pts:[0,0,0,0,0],         cash:[400,280,200,120,40], bo:[3,3,3,5]}
+/* =====================================================================
+   MOTOR DE COMPETIÇÕES · formato BLAST R6 2026-27 (fonte: Liquipedia)
+   Uma competição (comp) é uma sequência de fases; cada fase tem partes que andam em paralelo, uma rodada por dia de jogo:
+   · rr  pontos corridos (ligas regionais; grupos do Six Invitational)
+   · br  chave em grafo: eliminação simples (SE), dupla (DE), GSL de 4 e a chave de 16 do Six Invitational
+   · sw  sistema suíço (Major): 3 vitórias classificam, 3 derrotas eliminam
+   Tudo é dado puro (JSON), então entra no save. Cada partida: {id, a, b, bo, lab}.
+   ===================================================================== */
+const mk_ = (id, r, a, b, lab, o = {}) => ({id, r, a, b, lab, lr:o.lr || 0, wr:o.wr || 0, el:!!o.el, op:!!o.op, gf:!!o.gf, bo:1, done:false, w:null, l:null, sa:0, sb:0});
+const sd_ = i => ({s:i}), wn_ = id => ({w:id}), ls_ = id => ({l:id});
+/* fonte de cada vaga: {s:i} semente i · {w:id} vencedor · {l:id} perdedor. lr/wr = colocação de quem perde/vence a partida (0 = segue vivo). */
+const BR_T = {
+  se4:() => [mk_('SF1', 1, sd_(0), sd_(3), 'Semifinal', {lr:3, el:1, op:1}), mk_('SF2', 1, sd_(1), sd_(2), 'Semifinal', {lr:3, el:1, op:1}),
+    mk_('F', 2, wn_('SF1'), wn_('SF2'), 'Final', {lr:2, wr:1, el:1, gf:1})],
+  se8:() => [mk_('Q1', 1, sd_(0), sd_(7), 'Quartas', {lr:5, el:1, op:1}), mk_('Q2', 1, sd_(3), sd_(4), 'Quartas', {lr:5, el:1, op:1}), mk_('Q3', 1, sd_(1), sd_(6), 'Quartas', {lr:5, el:1, op:1}), mk_('Q4', 1, sd_(2), sd_(5), 'Quartas', {lr:5, el:1, op:1}),
+    mk_('S1', 2, wn_('Q1'), wn_('Q2'), 'Semifinal', {lr:3, el:1}), mk_('S2', 2, wn_('Q3'), wn_('Q4'), 'Semifinal', {lr:3, el:1}), mk_('F', 3, wn_('S1'), wn_('S2'), 'Grande Final', {lr:2, wr:1, el:1, gf:1})],
+  gsl:() => [mk_('A', 1, sd_(0), sd_(3), 'Abertura', {op:1}), mk_('B', 1, sd_(1), sd_(2), 'Abertura', {op:1}),
+    mk_('U', 2, wn_('A'), wn_('B'), 'Final da chave superior', {wr:1}), mk_('L', 2, ls_('A'), ls_('B'), 'Chave inferior', {lr:4, el:1}),
+    mk_('D', 3, ls_('U'), wn_('L'), 'Decisivo', {lr:3, wr:2, el:1})],
+  de6:() => [mk_('SA', 1, sd_(0), sd_(3), 'Semifinal superior', {op:1}), mk_('SB', 1, sd_(1), sd_(2), 'Semifinal superior', {op:1}),
+    mk_('LA', 2, sd_(4), ls_('SA'), 'Chave inferior R1', {lr:5, el:1}), mk_('LB', 2, sd_(5), ls_('SB'), 'Chave inferior R1', {lr:5, el:1}), mk_('U', 2, wn_('SA'), wn_('SB'), 'Final superior'),
+    mk_('L2', 3, wn_('LA'), wn_('LB'), 'Chave inferior R2', {lr:4, el:1}), mk_('LF', 4, wn_('L2'), ls_('U'), 'Final inferior', {lr:3, el:1}),
+    mk_('GF', 5, wn_('U'), wn_('LF'), 'Grande Final', {lr:2, wr:1, el:1, gf:1})],
+  de8:() => [mk_('Q1', 1, sd_(0), sd_(7), 'Quartas superior', {op:1}), mk_('Q2', 1, sd_(3), sd_(4), 'Quartas superior', {op:1}), mk_('Q3', 1, sd_(1), sd_(6), 'Quartas superior', {op:1}), mk_('Q4', 1, sd_(2), sd_(5), 'Quartas superior', {op:1}),
+    mk_('S1', 2, wn_('Q1'), wn_('Q2'), 'Semifinal superior'), mk_('S2', 2, wn_('Q3'), wn_('Q4'), 'Semifinal superior'),
+    mk_('L1', 2, ls_('Q1'), ls_('Q2'), 'Chave inferior R1', {lr:7, el:1}), mk_('L2', 2, ls_('Q3'), ls_('Q4'), 'Chave inferior R1', {lr:7, el:1}),
+    mk_('U', 3, wn_('S1'), wn_('S2'), 'Final superior'), mk_('L3', 3, wn_('L1'), ls_('S2'), 'Chave inferior R2', {lr:5, el:1}), mk_('L4', 3, wn_('L2'), ls_('S1'), 'Chave inferior R2', {lr:5, el:1}),
+    mk_('L5', 4, wn_('L3'), wn_('L4'), 'Chave inferior R3', {lr:4, el:1}), mk_('LF', 5, wn_('L5'), ls_('U'), 'Final inferior', {lr:3, el:1}),
+    mk_('GF', 6, wn_('U'), wn_('LF'), 'Grande Final', {lr:2, wr:1, el:1, gf:1})],
+  /* Six Invitational: entradas 0-3 = 1º dos grupos A-D · 4-7 = 2º · 8-11 = 3º · 12-15 = 4º. 2º e 3º abrem a chave superior; 4º entram na inferior. */
+  si16:() => [mk_('U1a', 1, sd_(4), sd_(9), 'Chave superior R1', {op:1}), mk_('U1b', 1, sd_(5), sd_(10), 'Chave superior R1', {op:1}), mk_('U1c', 1, sd_(6), sd_(11), 'Chave superior R1', {op:1}), mk_('U1d', 1, sd_(7), sd_(8), 'Chave superior R1', {op:1}),
+    mk_('U2a', 2, sd_(0), wn_('U1c'), 'Chave superior R2'), mk_('U2b', 2, sd_(1), wn_('U1d'), 'Chave superior R2'), mk_('U2c', 2, sd_(2), wn_('U1a'), 'Chave superior R2'), mk_('U2d', 2, sd_(3), wn_('U1b'), 'Chave superior R2'),
+    mk_('L1a', 2, sd_(12), ls_('U1c'), 'Chave inferior R1', {lr:13, el:1}), mk_('L1b', 2, sd_(13), ls_('U1d'), 'Chave inferior R1', {lr:13, el:1}), mk_('L1c', 2, sd_(14), ls_('U1a'), 'Chave inferior R1', {lr:13, el:1}), mk_('L1d', 2, sd_(15), ls_('U1b'), 'Chave inferior R1', {lr:13, el:1}),
+    mk_('SFa', 3, wn_('U2a'), wn_('U2b'), 'Semifinal superior'), mk_('SFb', 3, wn_('U2c'), wn_('U2d'), 'Semifinal superior'),
+    mk_('L2a', 3, wn_('L1a'), ls_('U2a'), 'Chave inferior R2', {lr:9, el:1}), mk_('L2b', 3, wn_('L1b'), ls_('U2b'), 'Chave inferior R2', {lr:9, el:1}), mk_('L2c', 3, wn_('L1c'), ls_('U2c'), 'Chave inferior R2', {lr:9, el:1}), mk_('L2d', 3, wn_('L1d'), ls_('U2d'), 'Chave inferior R2', {lr:9, el:1}),
+    mk_('UF', 4, wn_('SFa'), wn_('SFb'), 'Final superior'), mk_('L3a', 4, wn_('L2a'), wn_('L2b'), 'Chave inferior R3', {lr:7, el:1}), mk_('L3b', 4, wn_('L2c'), wn_('L2d'), 'Chave inferior R3', {lr:7, el:1}),
+    mk_('L4a', 5, wn_('L3a'), ls_('SFb'), 'Chave inferior R4', {lr:5, el:1}), mk_('L4b', 5, wn_('L3b'), ls_('SFa'), 'Chave inferior R4', {lr:5, el:1}),
+    mk_('L5', 6, wn_('L4a'), wn_('L4b'), 'Chave inferior R5', {lr:4, el:1}), mk_('LF', 7, wn_('L5'), ls_('UF'), 'Final inferior', {lr:3, el:1}), mk_('GF', 8, wn_('UF'), wn_('LF'), 'Grande Final', {lr:2, wr:1, el:1, gf:1})]
 };
-/* Duração das séries (bo = [oitavas, quartas, semis, final]). Oficial (Ubisoft/BLAST 2026): Stage = fase de grupos em Bo1 e playoffs em Bo3;
-   Six Invitational = tudo Bo3 e grand final Bo5; Major = Swiss com Bo1 nas rodadas iniciais e Bo3 nas decisivas, playoffs em Bo3.
-   Estimado (a fonte não detalha): final do Major e do EWC em Bo5, playoffs do Kickoff em Bo1/Bo3. As chaves aqui são simplificadas (eliminação simples). */
-const boFor = (ph, idx) => S.tn ? (EVENTS[S.ev].bo[idx] || 1) : (ph === 'g' ? 1 : 3);
-const boLabel = bo => 'Bo' + bo;
-const CAL_FULL = ['kickoff','major1','stage1','ewc','stage2','major2','si'];
-const CAL_FIRST = ['stage2','major2','si'];             // a 1ª temporada começa no Stage 2 (set/2026)
-const SLOTS = {SAL:3, NAL:3, EML:3, CNL:2, APLA:1, APLN:2, APLO:2};      // 16 vagas por região (Kickoff, Majors, EWC)
-const SEED16 = [1,16,8,9,4,13,5,12,2,15,7,10,3,14,6,11];
-const TN_PH = ['T16','T8','T4','T2'], TN_NAMES = ['Oitavas','Quartas','Semifinais','Grande Final'];
-const TN_LAB = ['Campeão','Vice-campeão','Semifinais (3º–4º)','Quartas (5º–8º)','Oitavas (9º–16º)'];
+const brM = (br, id) => br.m.find(x => x.id === id);
+function brRes(br, s){                                            // time que ocupa a vaga (null = ainda indefinido · 'BYE' = vaga vazia)
+  if(s.s != null) return br.teams[s.s] || 'BYE';
+  const m = brM(br, s.w || s.l); if(!m.done) return null;
+  return s.w ? m.w : m.l;
+}
+function brSettle(br){                                            // partidas com uma vaga vazia se resolvem sozinhas
+  for(let ch = true; ch;){ ch = false;
+    for(const m of br.m){ if(m.done) continue; const A = brRes(br, m.a), B = brRes(br, m.b); if(A === null || B === null) continue;
+      if(A === 'BYE' || B === 'BYE'){ m.done = true; m.bye = true; m.w = A === 'BYE' ? B : A; m.l = 'BYE'; ch = true; } } }
+}
+/* boFn(m) → melhor de N para cada partida */
+function brNew(kind, teams, boFn, name){
+  const m = BR_T[kind](); m.forEach(x => x.bo = boFn(x));
+  const br = {k:'br', kind, name:name || kind, teams:teams.slice(), m}; brSettle(br); return br;
+}
+function brFix(br){                                               // próxima rodada da chave: as partidas jogáveis de menor r
+  const pend = br.m.filter(m => !m.done && brRes(br, m.a) && brRes(br, m.b));
+  if(!pend.length) return [];
+  const r = Math.min(...pend.map(m => m.r));
+  return pend.filter(m => m.r === r).map(m => ({id:m.id, a:brRes(br, m.a), b:brRes(br, m.b), bo:m.bo, lab:m.lab}));
+}
+function brRep(br, id, w, sa, sb){                                // sa/sb = placar de a e b (ordem da partida)
+  const m = brM(br, id), A = brRes(br, m.a), B = brRes(br, m.b);
+  Object.assign(m, {done:true, w, l:w === A ? B : A, sa, sb}); brSettle(br);
+}
+const brDone = br => br.m.every(m => m.done);
+function brPlaces(br){                                            // colocações: [[1º], [2º], [3º], ...] (grupos empatados no mesmo balde)
+  const by = {};
+  br.m.forEach(m => { if(!m.done) return;
+    if(m.lr && m.l && m.l !== 'BYE') (by[m.lr] = by[m.lr] || []).push(m.l);
+    if(m.wr && m.w && m.w !== 'BYE') (by[m.wr] = by[m.wr] || []).push(m.w); });
+  return Object.keys(by).map(Number).sort((a, b) => a - b).map(k => by[k]);
+}
+const brAlive = br => { const gone = new Set(br.m.filter(m => m.done && m.lr && m.l).map(m => m.l)); return br.teams.filter(t => t && !gone.has(t)); };
+
+/* ---------- sistema suíço ---------- */
+function swNew(teams, name){ const rec = {}; teams.forEach(t => rec[t] = {w:0, l:0}); return {k:'sw', name:name || 'Suíço', teams:teams.slice(), rec, r:0, rounds:[], adv:[], out:[], played:{}}; }
+const swActive = p => p.teams.filter(t => !p.adv.includes(t) && !p.out.includes(t));
+function swPairGroup(p, list){                                    // 1º da lista x último, sem repetir confronto (recua se preciso)
+  const seed = t => p.teams.indexOf(t), ls = list.slice().sort((a, b) => seed(a) - seed(b));
+  const go = (rest, allowRe) => { if(!rest.length) return [];
+    const a = rest[0]; for(let i = rest.length - 1; i >= 1; i--){ const b = rest[i];
+      if(!allowRe && p.played[a + '|' + b]) continue;
+      const tail = go(rest.filter((x, j) => j !== 0 && j !== i), allowRe); if(tail) return [[a, b], ...tail]; }
+    return null; };
+  return go(ls, false) || go(ls, true) || [];
+}
+function swFix(p){
+  if(p.rounds.length === p.r){                                    // cria a rodada
+    const act = swActive(p); if(!act.length) return [];
+    let pairs;
+    if(p.r === 0) pairs = act.slice(0, act.length / 2).map((t, i) => [t, act[i + act.length / 2]]);
+    else { const g = {}; act.forEach(t => { const k = p.rec[t].w + '-' + p.rec[t].l; (g[k] = g[k] || []).push(t); }); pairs = Object.keys(g).sort().reverse().flatMap(k => swPairGroup(p, g[k])); }
+    p.rounds.push(pairs.map(([a, b]) => ({a, b, bo:(p.rec[a].l === 2 || p.rec[b].l === 2) ? 3 : 1, done:false, w:null, sa:0, sb:0})));
+  }
+  return p.rounds[p.r].map((m, i) => ({m, i})).filter(x => !x.m.done).map(({m, i}) => ({id:p.r + ':' + i, a:m.a, b:m.b, bo:m.bo, lab:`Suíço · rodada ${p.r + 1} (${p.rec[m.a].w}-${p.rec[m.a].l})`}));
+}
+function swRep(p, id, w, sa, sb){
+  const [r, i] = id.split(':').map(Number), m = p.rounds[r][i]; Object.assign(m, {done:true, w, sa, sb});
+  if(p.rounds[r].every(x => x.done) && r === p.r){               // fecha a rodada: atualiza campanhas, classifica e elimina
+    p.rounds[r].forEach(x => { const lo = x.w === x.a ? x.b : x.a; p.rec[x.w].w++; p.rec[lo].l++; p.played[x.a + '|' + x.b] = p.played[x.b + '|' + x.a] = 1; });
+    p.teams.forEach(t => { if(p.rec[t].w >= 3 && !p.adv.includes(t)) p.adv.push(t); else if(p.rec[t].l >= 3 && !p.out.includes(t)) p.out.push(t); });
+    p.r++;
+  }
+}
+const swDone = p => swActive(p).length === 0 && p.rounds.length === p.r;
+const swSeed = (p, t) => p.teams.indexOf(t);
+function swOrder(p){                                              // {adv:[ordem de classificação], outs:[[2-3],[1-3],[0-3]]}
+  const adv = p.adv.slice().sort((a, b) => (p.rec[a].l - p.rec[b].l) || (swSeed(p, a) - swSeed(p, b)));
+  const outs = [2, 1, 0].map(w => p.out.filter(t => p.rec[t].w === w).sort((a, b) => swSeed(p, a) - swSeed(p, b)));
+  return {adv, outs};
+}
+
+/* ---------- pontos corridos ---------- */
+function roundRobinIds(ids){                                      // método do círculo; número ímpar ganha uma vaga vazia (folga)
+  let arr = ids.slice(); if(arr.length % 2) arr.push(null);
+  const n = arr.length, rounds = [];
+  for(let r = 0; r < n - 1; r++){
+    const pairs = []; for(let i = 0; i < n / 2; i++){ const a = arr[i], b = arr[n - 1 - i]; if(a && b) pairs.push(r % 2 ? [b, a] : [a, b]); }
+    rounds.push(pairs); arr = [arr[0], arr[n - 1], ...arr.slice(1, n - 1)];
+  }
+  return rounds;
+}
+function rrNew(teams, bo, name){ return {k:'rr', name:name || 'Fase de grupos', teams:teams.slice(), sched:roundRobinIds(shuffle(teams.slice())), r:0, res:{}, bo}; }
+const rrFix = p => p.r < p.sched.length ? p.sched[p.r].map(([a, b], i) => ({id:p.r + ':' + i, a, b, bo:p.bo, lab:`Rodada ${p.r + 1}`})) : [];
+function rrRep(p, id, w, sa, sb, ra, rb){ const [r, i] = id.split(':').map(Number), [a, b] = p.sched[r][i]; p.res[id] = {a, b, w, sa, sb, ra, rb}; }
+const rrDone = p => p.r >= p.sched.length;
+/* tabela: pts (Bo1 = 1 por vitória · Bo3 = 4/3/1/0) → saldo de mapas → saldo de rounds → rounds ganhos → semente */
+function rrTable(p){
+  const st = {}; p.teams.forEach((t, i) => st[t] = {id:t, w:0, l:0, pts:0, md:0, rd:0, rw:0, rl:0, seed:i, n:0});
+  Object.values(p.res).forEach(x => {
+    const A = st[x.a], B = st[x.b], aw = x.w === x.a, ma = x.sa, mb = x.sb;
+    A.n++; B.n++; (aw ? A : B).w++; (aw ? B : A).l++;
+    if(p.bo >= 3){ const wm = aw ? ma : mb, lm = aw ? mb : ma; (aw ? A : B).pts += lm === 0 ? 4 : 3; (aw ? B : A).pts += lm === 0 ? 0 : 1; } else (aw ? A : B).pts += 1;
+    A.md += ma - mb; B.md += mb - ma; A.rd += x.ra - x.rb; B.rd += x.rb - x.ra; A.rw += x.ra; B.rw += x.rb; A.rl += x.rb; B.rl += x.ra;
+  });
+  return Object.values(st).sort((x, y) => y.pts - x.pts || y.md - x.md || y.rd - x.rd || y.rw - x.rw || x.seed - y.seed);
+}
+
+/* ---------- despacho por tipo de parte ---------- */
+const partFix = p => p.k === 'rr' ? rrFix(p) : p.k === 'br' ? brFix(p) : swFix(p);
+const partRep = (p, id, w, sa, sb, ra, rb) => p.k === 'rr' ? rrRep(p, id, w, sa, sb, ra, rb) : p.k === 'br' ? brRep(p, id, w, sa, sb) : swRep(p, id, w, sa, sb);
+const partDone = p => p.k === 'rr' ? rrDone(p) : p.k === 'br' ? brDone(p) : swDone(p);
+function partAdv(p, had){ if(p.k === 'rr' && had && p.r < p.sched.length) p.r++; }      // rr: passa a rodada; br e sw avançam sozinhos
+
+/* ---------- calendário competitivo (formato BLAST R6 2026-27, Liquipedia) ----------
+   Kickoff → Major (maio) → Stage 1 → EWC → Stage 2 → Major (novembro) → LCQs regionais → Six Invitational.
+   · Kickoff e Stages: liga regional (10 times, pontos corridos Bo1) + playoffs em dupla eliminação Bo3 (Kickoff: top 8 · Stage Finals: top 6)
+   · Major (20 times): Play-ins (2 grupos GSL) → Fase Suíça (16) → Playoffs (8; eliminação simples em maio, dupla em novembro; Bo3, final Bo5)
+   · EWC (22 times): Play-in (2 GSL) → Play-in 2 (4 times) → Grupos (2×8, dupla eliminação) → Playoffs (8)
+   · LCQ: 5 chaves regionais de 8 times (dupla eliminação Bo3); o campeão de cada uma vai ao Six Invitational
+   · Six Invitational (20 times: campeão da EWC + 14 do Global Standings + 5 dos LCQs): 4 grupos de 5 (Bo3) → playoffs de dupla eliminação (16)
+   pts = tabela de SI Points por colocação (posição 1, 2, 3…) · cash = prêmio em K$ ao usuário [até a posição N, valor] */
+const PTS = {
+  kickoff:[240,175,140,115,100,80,60,40,20,0],
+  stage:[420,300,250,200,175,140,100,70,35,0],
+  major:[1500,1200,1050,1050,900,900,900,900,650,650,650,500,500,500,350,350,300,300,250,250]
+};
+const EVENTS = {
+  kickoff:{name:'Kickoff',                   kind:'league', pts:'kickoff', po:8},
+  major1: {name:'BLAST R6 Major · Maio',     kind:'major', src:'kickoff', po:'se8', pts:'major', cash:[[1,200],[2,140],[4,100],[8,60],[16,20]]},
+  stage1: {name:'Stage 1',                   kind:'league', pts:'stage', po:6},
+  ewc:    {name:'Esports World Cup',         kind:'ewc', cash:[[1,250],[2,170],[4,120],[8,70],[16,20]]},                 // o campeão ganha vaga direta no SI
+  stage2: {name:'Stage 2',                   kind:'league', pts:'stage', po:6},
+  major2: {name:'BLAST R6 Major · Novembro', kind:'major', src:'stage2', po:'de8', pts:'major', cash:[[1,200],[2,140],[4,100],[8,60],[16,20]]},
+  lcq:    {name:'Last Chance Qualifiers',    kind:'lcq', cash:[[1,40],[2,15]]},
+  si:     {name:'Six Invitational',          kind:'si', cash:[[1,400],[2,280],[4,200],[8,120],[16,40]]}
+};
+const CAL_FULL = ['kickoff','major1','stage1','ewc','stage2','major2','lcq','si'];
+const CAL_FIRST = ['stage2','major2','lcq','si'];             // a 1ª temporada começa no Stage 2 (set/2026)
+const G14 = 14;                                                // vagas diretas no Six Invitational pelo Global Standings (fora o campeão da EWC)
+const LCQ_REG = {EML:['EML'], SAL:['SAL'], NAL:['NAL'], CNL:['CNL'], APAC:['APLA', 'APLN', 'APLO']};
 LG.TN = {id:'TN', tag:'TRN', name:'Torneio', region:'Global', color:'#ffcc00'};
 const evName = id => id === 'si' ? `Six Invitational ${siTag()}` : `${EVENTS[id].name} ${S.year}`;
 const seasonLabel = () => S.year + '-' + String(S.year + 1).slice(2);
 const bySI = (a, b) => b.si - a.si || b.power - a.power;
 const newSeason = () => ({log:[], cash:0, rank:0, pts:0});
+const boLabel = bo => 'Bo' + bo;
+const mdLabel = idx => (S.mdl && S.mdl[idx]) || 'Rodada ' + (idx + 1);
+const phTag = ph => !ph || /^Rodada/.test(ph) ? '' : /^Suíço/.test(ph) ? 'suíço' : ph.replace('Chave inferior', 'inf.').replace('Chave superior', 'sup.').replace('Semifinal', 'semi').replace('Grande Final', 'final').toLowerCase();
+const phLabel = ph => (ph || '').replace('Chave inferior', 'Inf.').replace('Chave superior', 'Sup.').replace(/^Rodada /, 'R');
+const cashFor = (ev, pos) => { const e = EVENTS[ev]; if(e.kind === 'league') return Math.round((PTS[e.pts][pos] || 0) / (ev === 'kickoff' ? 3 : 2)); const b = (e.cash || []).find(([n]) => pos < n); return b ? b[1] : 0; };
+const pointsFor = (ev, pos) => { const k = EVENTS[ev].pts; return k ? (PTS[k][pos] || 0) : 0; };
 
-function roundRobin(ids){
-  let arr = ids.slice(); const n = arr.length, rounds = [];
-  for(let r = 0; r < n - 1; r++){
-    const pairs = [];
-    for(let i = 0; i < n / 2; i++){ const a = arr[i], b = arr[n - 1 - i]; pairs.push(r % 2 ? [b, a] : [a, b]); }
-    rounds.push(pairs); arr = [arr[0], arr[n - 1], ...arr.slice(1, n - 1)];
-  }
-  return rounds;
+/* ---------- montagem das competições ---------- */
+const regionOf = t => LG[t.league].region;
+const seedSort = ids => ids.filter(Boolean).slice().sort((a, b) => bySI(T(a), T(b)));
+const pickIx = (arr, ix) => ix.map(i => arr[i]).filter(Boolean);
+const mkComp = o => Object.assign({si:0, done:false, order:null, buckets:null, ctx:{}}, o);
+function buildComps(ev){
+  const e = EVENTS[ev];
+  if(e.kind === 'league') return LEAGUES.map(l => { const ids = Object.values(S.teams).filter(t => t.league === l.id).map(t => t.id);
+    return mkComp({id:l.id, lg:l.id, name:l.name, kind:'league', ev, teams:ids, stages:[{name:'Fase de grupos', parts:[rrNew(ids, 1, l.name)]}]}); });
+  if(e.kind === 'major') return [majorComp(ev)];
+  if(e.kind === 'ewc') return [ewcComp()];
+  if(e.kind === 'lcq') return lcqComps();
+  return [siComp()];
 }
+function majorComp(ev){
+  const e = EVENTS[ev], src = S.src && S.src[e.src], O = lid => (src && src[lid]) || Object.values(S.teams).filter(t => t.league === lid).sort(bySI).map(t => t.id), g = (lid, i) => O(lid)[i];
+  const direct = [...seedSort([g('EML', 0), g('NAL', 0), g('SAL', 0), g('APLA', 0)]), ...seedSort([g('EML', 1), g('NAL', 1), g('SAL', 1), g('APLN', 0)]), ...seedSort([g('EML', 2), g('NAL', 2), g('SAL', 2), g('CNL', 0)])];
+  const playin = seedSort([g('EML', 3), g('NAL', 3), g('SAL', 3), g('APLO', 0), g('APLA', 1), g('CNL', 1), g('CNL', 2), g('CNL', 3)]);
+  const rest = Object.values(S.teams).filter(t => !direct.includes(t.id) && !playin.includes(t.id)).sort(bySI).map(t => t.id);
+  while(direct.length < 12 && rest.length) direct.push(rest.shift()); while(playin.length < 8 && rest.length) playin.push(rest.shift());
+  const grp = [[0, 3, 4, 7], [1, 2, 5, 6]].map(ix => pickIx(playin, ix));
+  return mkComp({id:'MAJ', lg:null, name:e.name, kind:'major', ev, teams:[...direct, ...playin], ctx:{direct, po:e.po},
+    stages:[{name:'Play-ins', parts:grp.map((ts, i) => brNew('gsl', ts, m => m.el ? 3 : 1, 'Play-in · Grupo ' + 'AB'[i]))}]});
+}
+function ewcComp(){
+  const all = Object.values(S.teams).sort(bySI), champ = all.find(t => t.ewc);
+  let direct = all.slice(0, 14); if(champ && !direct.includes(champ)) direct = [...direct.slice(0, 13), champ];
+  const playin = all.filter(t => !direct.includes(t)).slice(0, 8).map(t => t.id), dIds = seedSort(direct.map(t => t.id));
+  return mkComp({id:'EWC', lg:null, name:EVENTS.ewc.name, kind:'ewc', ev:'ewc', teams:[...dIds, ...playin], ctx:{direct:dIds},
+    stages:[{name:'Play-in · Fase 1', parts:[[0, 3, 4, 7], [1, 2, 5, 6]].map((ix, i) => brNew('gsl', pickIx(playin, ix), m => m.op ? 1 : 3, 'Play-in · Grupo ' + 'AB'[i]))}]});
+}
+function lcqComps(){
+  const all = Object.values(S.teams).sort(bySI), champ = all.find(t => t.ewc);
+  const direct = new Set((champ ? [champ, ...all.filter(t => t !== champ).slice(0, G14)] : all.slice(0, G14 + 1)).map(t => t.id));
+  return Object.entries(LCQ_REG).map(([id, lgs]) => { const ids = all.filter(t => lgs.includes(t.league) && !direct.has(t.id)).slice(0, 8).map(t => t.id);
+    return mkComp({id, lg:null, name:'LCQ ' + id, kind:'lcq', ev:'lcq', teams:ids, stages:[{name:'LCQ ' + id, parts:[brNew('de8', ids, () => 3, 'LCQ ' + id)]}]}); });
+}
+function siComp(){
+  const all = Object.values(S.teams).sort(bySI), champ = all.find(t => t.ewc);
+  const gs = champ ? all.filter(t => t !== champ).slice(0, G14) : all.slice(0, G14 + 1);
+  const taken = new Set([...(champ ? [champ.id] : []), ...gs.map(t => t.id)]);
+  let lq = (S.lcq || []).filter(id => S.teams[id] && !taken.has(id)); const rest = all.filter(t => !taken.has(t.id) && !lq.includes(t.id));
+  while(lq.length < 5 && rest.length) lq.push(rest.shift().id);
+  const ordered = [...(champ ? [champ.id] : []), ...gs.map(t => t.id), ...seedSort(lq)];        // 20 vagas em 5 potes de 4 (campeão EWC + G1-3 · G4-7 · G8-11 · G12-14 + LCQ · LCQs)
+  const pots = [0, 1, 2, 3, 4].map(i => ordered.slice(i * 4, i * 4 + 4)); let groups;
+  for(let n = 0; n < 300; n++){                                                                  // 1 time de cada pote por grupo; no máximo 2 da mesma região
+    groups = [[], [], [], []]; pots.forEach(p => shuffle(p.slice()).forEach((id, i) => groups[i].push(id)));
+    if(groups.every(gr => { const c = {}; gr.forEach(id => { const r = regionOf(T(id)); c[r] = (c[r] || 0) + 1; }); return Math.max(...Object.values(c)) <= 2; })) break;
+  }
+  S.qual = ordered.slice();
+  return mkComp({id:'SI', lg:null, name:'Six Invitational', kind:'si', ev:'si', teams:ordered, stages:[{name:'Fase de grupos', parts:groups.map((ids, i) => rrNew(ids, 3, 'Grupo ' + 'ABCD'[i]))}]});
+}
+
+/* ---------- transição entre fases e fechamento ---------- */
+function compNext(c){
+  const st = c.stages[c.si], P = st.parts, push = (name, parts) => { c.stages.push({name, parts}); c.si = c.stages.length - 1; };
+  if(c.kind === 'league'){
+    if(c.si !== 0) return compFinish(c);
+    const tb = rrTable(P[0]).map(x => x.id), n = Math.min(EVENTS[c.ev].po, tb.length), ko = c.ev === 'kickoff';
+    return push(ko ? 'Playoffs' : 'Stage Finals', [brNew(n >= 8 ? 'de8' : 'de6', tb.slice(0, n), () => 3, ko ? 'Playoffs' : 'Stage Finals')]);
+  }
+  if(c.kind === 'major'){
+    if(c.si === 0){ const pl = P.map(brPlaces); return push('Fase Suíça', [swNew([...c.ctx.direct, pl[0][0][0], pl[1][0][0], pl[0][1][0], pl[1][1][0]], 'Fase Suíça')]); }
+    if(c.si === 1) return push('Playoffs', [brNew(c.ctx.po, swOrder(P[0]).adv, m => m.gf ? 5 : 3, 'Playoffs')]);
+    return compFinish(c);
+  }
+  if(c.kind === 'ewc'){
+    if(c.si === 0){ const a = brPlaces(P[0]), b = brPlaces(P[1]); return push('Play-in · Fase 2', [brNew('se4', [a[0][0], b[0][0], a[1][0], b[1][0]], () => 3, 'Play-in · Fase 2')]); }
+    if(c.si === 1){ const w = brPlaces(P[0]), seeds = [...c.ctx.direct, w[0][0], w[1][0]];
+      return push('Fase de grupos', [[0, 3, 4, 7, 8, 11, 12, 15], [1, 2, 5, 6, 9, 10, 13, 14]].map((ix, i) => brNew('de8', pickIx(seeds, ix), m => m.op ? 1 : 3, 'Grupo ' + 'AB'[i]))); }
+    if(c.si === 2){ const a = brPlaces(P[0]).flat().slice(0, 4), b = brPlaces(P[1]).flat().slice(0, 4);
+      return push('Playoffs', [brNew('se8', [a[0], b[0], a[1], b[1], a[2], b[2], a[3], b[3]], m => m.gf ? 5 : 3, 'Playoffs')]); }
+    return compFinish(c);
+  }
+  if(c.kind === 'si'){
+    if(c.si !== 0) return compFinish(c);
+    const tb = P.map(rrTable), col = k => tb.map(t => t[k].id); c.ctx.fifth = tb.map(t => t[4].id);
+    return push('Playoffs', [brNew('si16', [...col(0), ...col(1), ...col(2), ...col(3)], m => m.gf ? 5 : 3, 'Playoffs')]);
+  }
+  return compFinish(c);                                                                          // lcq: uma fase só
+}
+function compFinish(c){
+  const st = c.stages, Pt = (i, j = 0) => st[i].parts[j], bp = (i, j) => brPlaces(Pt(i, j)), nz = a => a.filter(x => x && x.length), g = (a, i) => (a && a[i]) || [];
+  let b;
+  if(c.kind === 'league'){                                                                         // colocações distintas: empates da chave se desfazem pela fase de grupos
+    const tb = rrTable(Pt(0)).map(x => x.id), rk = id => tb.indexOf(id), po = st[1] ? bp(1, 0).flatMap(bb => bb.slice().sort((x, y) => rk(x) - rk(y))) : [], inPo = new Set(po);
+    b = [...po, ...tb.filter(id => !inPo.has(id))].map(id => [id]);
+  } else if(c.kind === 'major'){
+    const sw = swOrder(Pt(1)), pi = [bp(0, 0), bp(0, 1)];
+    b = nz([...bp(2, 0), ...sw.outs, [g(pi[0], 2)[0], g(pi[1], 2)[0]].filter(Boolean), [g(pi[0], 3)[0], g(pi[1], 3)[0]].filter(Boolean)]);
+  } else if(c.kind === 'ewc'){
+    const ga = bp(2, 0), gb = bp(2, 1), p2 = bp(1, 0), p1 = [bp(0, 0), bp(0, 1)];
+    b = nz([...bp(3, 0), [...g(ga, 4), ...g(gb, 4)], [...g(ga, 5), ...g(gb, 5)], g(p2, 2), [g(p1[0], 2)[0], g(p1[1], 2)[0]].filter(Boolean), [g(p1[0], 3)[0], g(p1[1], 3)[0]].filter(Boolean)]);
+  } else if(c.kind === 'si') b = nz([...bp(1, 0), c.ctx.fifth]);
+  else b = nz(bp(0, 0));
+  c.buckets = b; c.order = b.flat(); c.done = true;
+}
+const compById = id => S.comps.find(c => c.id === id);
+function compFix(c){ if(c.done) return []; return c.stages[c.si].parts.flatMap((p, pi) => partFix(p).map(f => ({...f, cid:c.id, pi}))); }
+function compsAdvance(fx){                                                                       // depois de um dia de jogo: avança rodadas e fases
+  S.comps.forEach(c => { if(c.done) return; const had = new Set(fx.filter(f => f.cid === c.id).map(f => f.pi));
+    c.stages[c.si].parts.forEach((p, pi) => partAdv(p, had.has(pi)));
+    for(let n = 0; n < 4 && !c.done && c.stages[c.si].parts.every(partDone); n++) compNext(c); });
+}
+const userComp = () => S.comps.find(c => c.teams.includes(S.userId)) || null;
+function compAlive(c){                                                                           // quem ainda disputa a fase atual
+  const s = new Set(); if(c.done) return s;
+  c.stages[c.si].parts.forEach(p => { if(p.k === 'rr') p.teams.forEach(t => s.add(t)); else if(p.k === 'br') brAlive(p).forEach(t => s.add(t)); else swActive(p).concat(p.adv).forEach(t => s.add(t)); });
+  return s;
+}
+function userFixture(){
+  const uc = userComp(); if(!uc || uc.done) return null;
+  const f = compFix(uc).find(x => x.a === S.userId || x.b === S.userId); return f ? {...f, opp:f.a === S.userId ? f.b : f.a} : null;
+}
+function userState(){                                                                            // 'none' fora do evento · 'play' joga hoje · 'wait' vivo sem jogo hoje · 'out' eliminado · 'done'
+  const c = userComp(); if(!c) return 'none'; if(c.done) return 'done';
+  return userFixture() ? 'play' : compAlive(c).has(S.userId) ? 'wait' : 'out';
+}
+function placeLab(c, id){
+  let pos = 1; for(const bk of c.buckets){ if(bk.includes(id)) return pos === 1 ? 'Campeão' : pos === 2 ? 'Vice-campeão' : bk.length > 1 ? `${pos}º–${pos + bk.length - 1}º` : `${pos}º`; pos += bk.length; }
+  return 'Não participou';
+}
+const placeShort = (c, id) => { let pos = 1; for(const bk of c.buckets){ if(bk.includes(id)) return bk.length > 1 ? `${pos}º–${pos + bk.length - 1}º` : `${pos}º`; pos += bk.length; } return null; };
+/* ordem projetada de uma liga em andamento (para a projeção de SI Points) */
+function projOrder(c){
+  if(c.done) return c.order;
+  const tb = rrTable(c.stages[0].parts[0]).map(x => x.id); if(c.si === 0) return tb;
+  const br = c.stages[c.si].parts[0], placed = brPlaces(br).flat(), alive = brAlive(br).filter(t => !placed.includes(t)), inBr = new Set(br.teams);
+  return [...alive, ...placed, ...tb.filter(id => !inBr.has(id))];
+}
+function estRemain(c){                                                                           // rodadas que faltam (estimativa, só para a barra de progresso)
+  if(!c || c.done) return 0;
+  const cur = c.stages[c.si].parts.reduce((mx, p) => Math.max(mx, p.k === 'rr' ? p.sched.length - p.r : p.k === 'br' ? new Set(p.m.filter(m => !m.done).map(m => m.r)).size : 5 - p.r), 0);
+  const poR = c.ctx && c.ctx.po === 'de8' ? 6 : 3;
+  const later = c.kind === 'league' ? (c.si === 0 ? (EVENTS[c.ev].po >= 8 ? 6 : 5) : 0) : c.kind === 'major' ? [5 + poR, poR, 0][c.si] : c.kind === 'ewc' ? [2 + 6 + 3, 6 + 3, 3, 0][c.si] : c.kind === 'si' ? (c.si === 0 ? 8 : 0) : 0;
+  return cur + Math.max(0, later);
+}
+
 function newCareer(userId){
-  const teams = buildAll(), sched = {};
-  LEAGUES.forEach(l => sched[l.id] = roundRobin(shuffle(Object.values(teams).filter(t => t.league === l.id).map(t => t.id))));
-  const pw = teams[userId].power;
-  S = {v:3, igl2:true, fin:true, fin2:true, train:true, roles5:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, sched, po:{}, final:{}, results:[], uh:[], report:null, done:false, snap:null,
+  const teams = buildAll(), pw = teams[userId].power;
+  S = {v:3, igl2:true, fin:true, fin2:true, train:true, roles5:true, pool:true, attrs:2, userId, year:START_YEAR, md:0, cur:null, teams, comps:[], src:{}, lcq:null, mdl:[], results:[], uh:[], report:null, done:false, snap:null,
        fa:genFA(namesOf(teams)), hist:[], news:[], offers:[],
-       cal:CAL_FIRST.slice(), ei:0, ev:'stage2', tn:null, evres:null, qual:null, season:newSeason(), win:'pre', lgName:'Stage 2 ' + START_YEAR, si0:teams[userId].si,
+       cal:CAL_FIRST.slice(), ei:0, ev:'stage2', evres:null, qual:null, season:newSeason(), win:'pre', lgName:'Stage 2 ' + START_YEAR, si0:teams[userId].si,
        club:{cash:Math.max(60, 100 + Math.round((pw - 75) * 4)), staff:{an:0, ps:0, md:0, co:0}, week:1, scout:false, fin:null, evo:[], evoLog:[], mapFocus:[]}};
+  S.comps = buildComps('stage2');
   globalTable('proj').forEach(r => r.t.rkPrev = r.rank);
   save();
 }
 
-/* ---------- classificação, projeção e G16 ---------- */
-const cmpT = (x, y) => y.w - x.w || (y.rw - y.rl) - (x.rw - x.rl) || y.rw - x.rw || y.power - x.power;
-const leagueTable = lid => Object.values(S.teams).filter(t => t.league === lid).sort(cmpT);
-function projRanking(lid){
-  if(S.final[lid]) return S.final[lid];
-  const g = leagueTable(lid).map(t => t.id), po = S.po[lid];
-  if(po && po.sfW.filter(Boolean).length === 2){
-    const bySeed = ids => ids.slice().sort((x, y) => po.seeds.indexOf(x) - po.seeds.indexOf(y));
-    return [...bySeed(po.sfW), ...bySeed(po.sfL), ...g.slice(4)];
-  }
-  return g;
+/* ---------- classificação, projeção e G14 ---------- */
+function projAdd(){                                                          // SI Points projetados enquanto uma liga está em andamento
+  const add = {}, e = EVENTS[S.ev]; if(e.kind !== 'league') return add;
+  S.comps.forEach(c => { if(!c.done) projOrder(c).forEach((id, i) => add[id] = PTS[e.pts][i] || 0); });
+  return add;
 }
 function globalTable(mode){
-  const rk = {}; LEAGUES.forEach(l => rk[l.id] = S.tn || S.final[l.id] ? null : projRanking(l.id));      // projeção só durante um Stage em andamento
-  const arr = Object.values(S.teams).map(t => ({t, pts:mode === 'proj' && rk[t.league] ? t.si + PLACE_PTS[rk[t.league].indexOf(t.id)] : t.si}));
+  const add = mode === 'proj' ? projAdd() : {};
+  const arr = Object.values(S.teams).map(t => ({t, pts:t.si + (add[t.id] || 0)}));
   arr.sort((x, y) => y.pts - x.pts || y.t.power - x.t.power || x.t.name.localeCompare(y.t.name));
   arr.forEach((r, i) => r.rank = i + 1);
   return arr;
 }
-function g16Status(){
-  const tb = globalTable('proj'), me = tb.find(r => r.t.id === S.userId), cut = tb[G16 - 1], nxt = tb[G16], inn = me.rank <= G16;
-  return {tb, me, rank:me.rank, pts:me.pts, in:inn, cutPts:cut.pts, cutTeam:cut.t, nextTeam:nxt.t, nextPts:nxt.pts, margin:inn ? me.pts - nxt.pts : cut.pts - me.pts};
+function g16Status(){                                                        // G14: as 14 vagas diretas do Global Standings (o campeão da EWC entra à parte)
+  const tb = globalTable('proj'), me = tb.find(r => r.t.id === S.userId), cut = tb[G14 - 1], nxt = tb[G14], inn = me.rank <= G14 || !!me.t.ewc;
+  return {tb, me, rank:me.rank, pts:me.pts, in:inn, cutPts:cut.pts, cutTeam:cut.t, nextTeam:nxt.t, nextPts:nxt.pts, margin:Math.max(0, inn ? me.pts - nxt.pts : cut.pts - me.pts)};
 }
 function userInPlayoffs(){
-  if(S.tn || S.md < nG(userLid())) return null;
-  const po = S.po[userLid()]; if(!po) return leagueTable(userLid()).slice(0, 4).some(t => t.id === S.userId);
-  return po.seeds.includes(S.userId);
+  const c = userComp(); if(!c || c.kind !== 'league' || c.si === 0) return null;
+  return c.stages[1].parts[0].teams.includes(S.userId);
 }
 function computeAlerts(){
-  const g = g16Status(), u = T(S.userId), out = [];
+  const g = g16Status(), u = T(S.userId), out = [], uc = userComp(), st = userState();
   const burn = () => { const b = u.players.filter(isBurnout); if(b.length) out.push({lv:'crit', ic:'🔥', t:'BURNOUT no elenco', x:`${b.map(p => p.name).join(', ')} em burnout: −15 de rating em jogo. Use Descanso/Psicólogo antes da rodada.`}); return out; };
   if(S.ev === 'si'){                                            // o Six Invitational fecha a temporada: não há mais SI Points em jogo
-    if(!S.tn.teams.includes(u.id)) out.push({lv:'info', ic:'📺', t:`Six Invitational ${siTag()} sem a sua organização`, x:`${u.name} não se classificou. Acompanhe o torneio pelo Painel ou simule o evento.`});
-    else if(S.done) out.push(S.tn.champ === u.id ? {lv:'ok', ic:'🏆', t:`CAMPEÃO DO SIX INVITATIONAL ${siTag()}!`, x:`${u.name} conquista o maior título do circuito.`} : {lv:'info', ic:'🏁', t:'Six Invitational encerrado', x:`Campeão: ${T(S.tn.champ).name}.`});
+    if(!uc) out.push({lv:'info', ic:'📺', t:`Six Invitational ${siTag()} sem a sua organização`, x:`${u.name} não se classificou. Acompanhe o torneio pelo Painel ou simule o evento.`});
+    else if(S.done) out.push(uc.order[0] === u.id ? {lv:'ok', ic:'🏆', t:`CAMPEÃO DO SIX INVITATIONAL ${siTag()}!`, x:`${u.name} conquista o maior título do circuito.`} : {lv:'info', ic:'🏁', t:'Six Invitational encerrado', x:`Campeão: ${T(uc.order[0]).name}. Sua campanha: ${placeLab(uc, u.id)}.`});
     return burn();
   }
-  if(S.done && S.ev === 'major2'){                              // última chance de SI Points: a lista de classificados fecha aqui
-    out.push(S.qual.includes(u.id) ? {lv:'ok', ic:'🎫', t:`Vaga garantida — Six Invitational ${siTag()}`, x:`${u.name} fecha os SI Points em #${g.rank} com ${g.pts} pts (G16).`}
-                                   : {lv:'crit', ic:'💀', t:'Fora do G16 — a vaga no Six Invitational ficou para trás', x:`${u.name} encerra em #${g.rank} com ${g.pts} pts, a ${g.margin} pts da linha de corte.`});
+  if(S.ev === 'lcq'){                                           // última chance: só o campeão do LCQ da região vai ao Six Invitational
+    if(!uc) out.push({lv:'info', ic:'📺', t:'Last Chance Qualifiers sem a sua organização', x:g.in ? `Você já tem vaga direta no Six Invitational (#${g.rank}).` : 'Você não está entre os 8 melhores fora das vagas diretas da sua região. Simule o evento ou acompanhe pelo Painel.'});
+    else if(S.done) out.push(uc.order[0] === u.id ? {lv:'ok', ic:'🎟️', t:`Classificado ao Six Invitational ${siTag()} pelo LCQ!`, x:`${u.name} vence o ${uc.name} e garante a vaga.`} : {lv:'crit', ic:'💀', t:'Fora do Six Invitational', x:`${u.name} termina o ${uc.name} em ${placeLab(uc, u.id)}. A temporada acabou para a sua organização.`});
+    else out.push({lv:'warn', ic:'🎟️', t:'LCQ: a última chance de vaga no Six Invitational', x:`Chave de dupla eliminação Bo3 com 8 times. Só o campeão de ${uc.name} avança.`});
     return burn();
   }
-  if(g.in && g.margin <= 25) out.push({lv:'crit', ic:'🚨', t:'ALERTA MÁXIMO — a linha de corte está no seu pescoço', x:`Só ${g.margin} pts separam você do ${g.nextTeam.short} (#${G16 + 1}). Um tropeço e o G16 escapa.`});
-  else if(g.in && g.margin <= 70) out.push({lv:'warn', ic:'⚠️', t:'Zona de risco do G16', x:`Você está em #${g.rank}, apenas ${g.margin} pts acima do 1º time fora da zona (${g.nextTeam.short}). Cada round conta.`});
+  if(S.done && S.ev === 'major2'){                              // fecha os SI Points: quem está no G14 vai direto; os demais dependem do LCQ da região
+    if(g.in) out.push({lv:'ok', ic:'🎫', t:`Vaga direta — Six Invitational ${siTag()}`, x:`${u.name} fecha os SI Points em #${g.rank} com ${g.pts} pts (G${G14}).`});
+    else { const lq = lcqComps().find(c => c.teams.includes(u.id));
+      out.push(lq ? {lv:'warn', ic:'🎟️', t:'Você vai ao LCQ', x:`${u.name} fecha em #${g.rank} (${g.margin} pts da linha G${G14}) mas disputa o ${lq.name}: só o campeão vai ao Six Invitational.`}
+                  : {lv:'crit', ic:'💀', t:'Sem caminho ao Six Invitational', x:`${u.name} encerra em #${g.rank}, fora das vagas diretas e fora dos 8 do LCQ da região.`}); }
+    return burn();
+  }
+  if(g.in && g.margin <= 25) out.push({lv:'crit', ic:'🚨', t:'ALERTA MÁXIMO — a linha de corte está no seu pescoço', x:`Só ${g.margin} pts separam você do ${g.nextTeam.short} (#${G14 + 1}). Um tropeço e a vaga direta escapa.`});
+  else if(g.in && g.margin <= 70) out.push({lv:'warn', ic:'⚠️', t:`Zona de risco do G${G14}`, x:`Você está em #${g.rank}, apenas ${g.margin} pts acima do 1º time fora da zona (${g.nextTeam.short}). Cada partida conta.`});
   else if(g.in) out.push({lv:'ok', ic:'✅', t:'Rota do Six Invitational encaminhada', x:`#${g.rank} projetado com ${g.margin} pts de folga sobre a linha de corte. Não relaxe.`});
-  else if(g.margin <= 40) out.push({lv:'crit', ic:'💥', t:'VOCÊ ESTÁ FORA DO G16 — por muito pouco!', x:`Faltam ${g.margin} pts para cruzar a linha (${g.cutTeam.short}, #${G16}). É vencer ou ver o Six Invitational pela TV.`});
-  else if(g.margin <= 130) out.push({lv:'warn', ic:'🔥', t:'A linha de corte está ao alcance', x:`Você precisa de +${g.margin} pts. Subir na tabela da liga vale até ${PLACE_PTS[0]} pts em colocação final.`});
-  else out.push({lv:'warn', ic:'☠️', t:'Distante do G16', x:`A ${g.margin} pts da linha. Só um título regional muda o jogo (${PLACE_PTS[0]} pts).`});
-  if(!S.tn){
-    const rem = Math.max(0, nG(userLid()) - S.md), maxPossible = u.si + rem * WIN_PTS + 2 * PO_WIN_PTS + PLACE_PTS[0];
-    if(!g.in && maxPossible < g.cutPts) out.push({lv:'crit', ic:'⛔', t:'Eliminação matemática iminente', x:`Mesmo vencendo tudo neste Stage você chegaria a ${maxPossible} pts, abaixo dos ${g.cutPts} da linha atual.`});
-    if(userInPlayoffs() === false) out.push({lv:'info', ic:'📡', t:'Fora dos playoffs', x:`Sua campanha regional acabou. O G16 agora depende só da tabela mundial (#${g.rank} projetado).`});
-  } else if(!S.tn.teams.includes(u.id)) out.push({lv:'info', ic:'📺', t:`Sua organização não disputa ${EVENTS[S.ev].name}`, x:`Só ${S.tn.teams.length} times entram, por vagas regionais e SI Points. Simule o evento ou acompanhe pelo Painel.`});
+  else if(g.margin <= 60) out.push({lv:'crit', ic:'💥', t:`VOCÊ ESTÁ FORA DO G${G14} — por muito pouco!`, x:`Faltam ${g.margin} pts para cruzar a linha (${g.cutTeam.short}, #${G14}). Sem vaga direta, resta o LCQ.`});
+  else if(g.margin <= 300) out.push({lv:'warn', ic:'🔥', t:'A linha de corte está ao alcance', x:`Você precisa de +${g.margin} pts. Subir na tabela vale até ${PTS.stage[0]} pts no Stage e ${PTS.major[0]} no Major.`});
+  else out.push({lv:'warn', ic:'☠️', t:`Distante do G${G14}`, x:`A ${g.margin} pts da linha. Só um título de peso muda o jogo — ou o LCQ no fim da temporada.`});
+  if(uc && uc.kind === 'league' && userInPlayoffs() === false) out.push({lv:'info', ic:'📡', t:'Fora dos playoffs', x:`Sua campanha regional acabou. O G${G14} agora depende só da tabela mundial (#${g.rank} projetado).`});
+  else if(!uc) out.push({lv:'info', ic:'📺', t:`Sua organização não disputa ${EVENTS[S.ev].name}`, x:`Só ${S.comps.reduce((n, c) => n + c.teams.length, 0)} times entram, por vagas regionais e SI Points. Simule o evento ou acompanhe pelo Painel.`});
+  else if(st === 'out') out.push({lv:'info', ic:'📡', t:`Eliminado de ${EVENTS[S.ev].name}`, x:'Sua campanha terminou. Simule o restante ou acompanhe pelo Painel.'});
   return burn();
 }
 
-/* ---------- calendário e dias de jogo ---------- */
-function setupPO(lid){ const g = leagueTable(lid); S.po[lid] = {seeds:g.slice(0, 4).map(t => t.id), sf:[[g[0].id, g[3].id], [g[1].id, g[2].id]], sfW:[], sfL:[], final:null}; }
-function fixtures(lid, idx){
-  const st = stageOf(lid, idx); if(!st) return [];
-  if(st.ph === 'g') return S.sched[lid][st.r];
-  const po = S.po[lid];
-  if(st.ph === 'sf'){ if(po) return po.sf; const g = leagueTable(lid); return [[g[0].id, g[3].id], [g[1].id, g[2].id]]; }
-  return po && po.final ? [po.final] : [];
-}
-function userFixture(idx = S.md){
-  if(S.tn){
-    const list = S.tn.rounds[idx] || [];
-    for(let i = 0; i < list.length; i++) if(list[i].includes(S.userId)) return {slot:i, opp:list[i][0] === S.userId ? list[i][1] : list[i][0], lg:'TN', ph:TN_PH[idx]};
-    return null;
-  }
-  const lid = userLid(), st = stageOf(lid, idx); if(!st) return null;
-  if(st.ph === 'f' && !(S.po[lid] && S.po[lid].sfW.filter(Boolean).length === 2)) return null;
-  const list = fixtures(lid, idx);
-  for(let i = 0; i < list.length; i++) if(list[i].includes(S.userId)) return {slot:i, opp:list[i][0] === S.userId ? list[i][1] : list[i][0], lg:lid, ph:st.ph};
-  return null;
-}
+/* ---------- dias de jogo ---------- */
 /* histórico do jogador para a página de perfil: totais de carreira (p.c), últimas séries (p.mh) e resultado por evento (p.eh) */
 const MH_MAX = 6, EH_MAX = 8, PL_SHORT = ['1º','2º','3º–4º','5º–8º','9º–16º'];
 function logStats(p, t, opp, s, won, m, k){
@@ -1109,10 +1420,10 @@ function logStats(p, t, opp, s, won, m, k){
 function tagPlaces(lab){                          // ao fechar o evento: grava a colocação de cada time no histórico dos seus jogadores
   Object.values(S.teams).forEach(t => { const l = lab(t); if(l) squad(t).forEach(p => { const e = p.eh && p.eh[0]; if(e && e.y === S.year && e.ev === S.ev) e.lab = l; }); });
 }
+const roundsOf = m => { if(!m.maps) return {a:m.score.a, b:m.score.b}; let a = 0, b = 0; m.maps.forEach(x => { a += x.score.a; b += x.score.b; }); return {a, b}; };
+const metaOf = (f, user) => ({cid:f.cid, pi:f.pi, id:f.id, fa:f.fa != null ? f.fa : f.a, fb:f.fb != null ? f.fb : f.b, bo:f.bo, lab:f.lab, idx:S.md, user:!!user});      // fa/fb = lados originais da chave (o usuário é reordenado para 'a')
 function commit(m, meta){
-  const w = m.winner, l = other(w), W = m.t[w], Lz = m.t[l], group = meta.ph === 'g';
-  if(group){ W.w++; Lz.l++; W.rw += m.score[w]; W.rl += m.score[l]; Lz.rw += m.score[l]; Lz.rl += m.score[w]; }
-  if(!S.tn) W.si += group ? WIN_PTS : PO_WIN_PTS;             // torneios pagam SI Points pela colocação final, não por vitória
+  const w = m.winner, l = other(w), W = m.t[w], Lz = m.t[l];                  // SI Points só pela colocação final de cada evento
   W.form.push('W'); Lz.form.push('L'); if(W.form.length > 5) W.form.shift(); if(Lz.form.length > 5) Lz.form.shift();
   for(const k of ['a','b']){
     const t = m.t[k];
@@ -1123,93 +1434,38 @@ function commit(m, meta){
     });
     if(t.id !== S.userId) t.conf = clamp(Math.round(60 + (t.conf - 60) * .5 + (k === w ? 3 : -3)), 30, 85);
   }
-  if(S.tn) S.tn.res[meta.idx][meta.slot] = {a:m.t.a.id, b:m.t.b.id, sa:m.score.a, sb:m.score.b, w:W.id};
-  else {
-    const po = S.po[meta.lg];
-    if(meta.ph === 'sf'){ po.sfW[meta.slot] = W.id; po.sfL[meta.slot] = Lz.id; }
-    if(meta.ph === 'f'){ po.champ = W.id; po.runner = Lz.id; }
-  }
-  S.results.push({i:meta.idx, ph:meta.ph, lg:meta.lg, a:m.t.a.id, b:m.t.b.id, sa:m.score.a, sb:m.score.b, w:W.id, ot:m.wasOT, map:m.map.loc, up:W.power <= Lz.power - 5, user:!!meta.user});
+  const c = compById(meta.cid), swp = m.t.a.id !== meta.fa, rr_ = roundsOf(m);         // a série pode ter sido jogada com os lados trocados em relação à chave
+  partRep(c.stages[c.si].parts[meta.pi], meta.id, W.id, swp ? m.score.b : m.score.a, swp ? m.score.a : m.score.b, swp ? rr_.b : rr_.a, swp ? rr_.a : rr_.b);
+  S.results.push({i:meta.idx, ph:meta.lab, cid:meta.cid, lg:c.lg || 'TN', a:m.t.a.id, b:m.t.b.id, sa:m.score.a, sb:m.score.b, w:W.id, ot:m.wasOT, map:m.map.loc, up:W.power <= Lz.power - 5, user:!!meta.user});
   if(S.results.length > 400) S.results.splice(0, S.results.length - 400);
 }
-/* Simula, instantaneamente, todas as partidas não-usuário de um dia de jogo em TODAS as ligas */
-function simStage(idx){
-  let user = null, n = 0;
-  for(const l of LEAGUES){
-    const st = stageOf(l.id, idx); if(!st) continue;
-    if(st.ph === 'sf' && !S.po[l.id]) setupPO(l.id);
-    if(st.ph === 'f'){ const po = S.po[l.id]; po.final = po.sfW.slice().sort((x, y) => po.seeds.indexOf(x) - po.seeds.indexOf(y)); }
-    fixtures(l.id, idx).forEach((pair, slot) => {
-      if(pair.includes(S.userId)){ user = {a:S.userId, b:pair[0] === S.userId ? pair[1] : pair[0], lg:l.id, slot, ph:st.ph}; return; }
-      commit(quickSeries(T(pair[0]), T(pair[1]), boFor(st.ph, idx)), {idx, lg:l.id, slot, ph:st.ph}); n++;
-    });
-  }
-  return {user, n};
+/* Simula um dia de jogo inteiro sem o usuário (todas as competições do evento): usado para fechar o que resta depois que a campanha dele acaba */
+function simDay(){
+  const fx = []; let n = 0;
+  S.comps.forEach(c => compFix(c).forEach(f => { fx.push({cid:f.cid, pi:f.pi}); commit(quickSeries(T(f.a), T(f.b), f.bo), metaOf(f)); n++; }));
+  if(fx.length) S.mdl[S.md] = compFix(S.comps.find(c => !c.done) || S.comps[0])[0] ? compFix(S.comps.find(c => !c.done) || S.comps[0])[0].lab : 'Rodada ' + (S.md + 1);
+  compsAdvance(fx); S.md++; return n;
 }
-function closeLeague(lid){
-  const po = S.po[lid], g = leagueTable(lid).map(t => t.id);
-  const losers = po.sfL.slice().sort((x, y) => po.seeds.indexOf(x) - po.seeds.indexOf(y));
-  const fin = [po.champ, po.runner, ...losers, ...g.slice(4)];
-  S.final[lid] = fin; fin.forEach((id, i) => T(id).si += PLACE_PTS[i]);
-}
-const closeStage = idx => LEAGUES.forEach(l => { const st = stageOf(l.id, idx); if(st && st.ph === 'f' && !S.final[l.id]) closeLeague(l.id); });
-
-/* ---------- torneios de 16 times (Kickoff, Majors, EWC, Six Invitational) ---------- */
-const tnPairs = l => l.reduce((a, x, i) => i % 2 ? a : [...a, [x, l[i + 1]]], []);
-function tnField(id){
-  if(id === 'si' && S.qual) return S.qual.map(T);                       // SI: os 16 do G16, definidos ao fim do Major de novembro
-  if(id === 'si') return Object.values(S.teams).sort(bySI).slice(0, G16);
-  let f = LEAGUES.flatMap(l => Object.values(S.teams).filter(t => t.league === l.id).sort(bySI).slice(0, SLOTS[l.id] || 2));
-  const rest = Object.values(S.teams).filter(t => !f.includes(t)).sort(bySI);
-  while(f.length < G16 && rest.length) f.push(rest.shift());
-  return f.sort(bySI).slice(0, G16);
-}
-function setupTournament(id){
-  const f = tnField(id).sort(bySI), order = SEED16.map(s => f[s - 1].id);
-  S.tn = {ev:id, teams:order, rounds:[tnPairs(order)], res:[[], [], [], []], champ:null};
-}
-function simTournRound(idx){
-  let user = null, n = 0;
-  S.tn.rounds[idx].forEach((pair, slot) => {
-    if(pair.includes(S.userId)){ user = {a:S.userId, b:pair[0] === S.userId ? pair[1] : pair[0], lg:'TN', slot, ph:TN_PH[idx]}; return; }
-    commit(quickSeries(T(pair[0]), T(pair[1]), boFor(TN_PH[idx], idx)), {idx, lg:'TN', slot, ph:TN_PH[idx]}); n++;
-  });
-  return {user, n};
-}
-function tnAdvance(idx){
-  const win = S.tn.res[idx].map(x => x.w);
-  if(idx === 3){ S.tn.champ = win[0]; S.done = true; } else S.tn.rounds[idx + 1] = tnPairs(win);
-}
-/* SI Points por colocação: grupo 0 = campeão … 4 = eliminado nas oitavas */
-function tnAward(){
-  const e = EVENTS[S.tn.ev], grp = {};
-  S.tn.res.forEach((rd, r) => rd.forEach(x => { grp[x.w === x.a ? x.b : x.a] = 4 - r; }));
-  grp[S.tn.champ] = 0;
-  Object.entries(grp).forEach(([id, g]) => { T(id).si += e.pts[g]; });
-  if(S.tn.ev === 'ewc'){ Object.values(S.teams).forEach(t => t.ewc = false); const c = T(S.tn.champ); c.ewc = true; c.si += EWC_BONUS; }
-  return grp;
-}
-/* fecha o evento: colocação do usuário, prêmio em dinheiro e (no Major de novembro) a lista de classificados ao SI */
+/* fecha o evento: SI Points por colocação, prêmio do usuário e o que cada evento libera (classificação regional, vaga da EWC, campeões dos LCQs) */
 function closeEvent(){
-  const u = T(S.userId), e = EVENTS[S.ev]; let lab = 'Não participou', cash = 0;
-  if(S.tn){ const g = tnAward(); tagPlaces(t => g[t.id] != null ? PL_SHORT[g[t.id]] : null); if(g[u.id] != null){ lab = TN_LAB[g[u.id]]; cash = e.cash[g[u.id]]; } }
-  else { const pl = S.final[u.league].indexOf(u.id) + 1; lab = pl + 'º lugar'; cash = Math.round(PLACE_PTS[pl - 1] / 2);
-    tagPlaces(t => { const i = (S.final[t.league] || []).indexOf(t.id); return i >= 0 ? (i + 1) + 'º' : null; }); }
+  const u = T(S.userId), e = EVENTS[S.ev], uc = userComp(); let lab = 'Não participou', cash = 0;
+  S.comps.forEach(c => c.order.forEach((id, i) => { const p = pointsFor(S.ev, i); if(p) T(id).si += p; }));
+  if(uc){ const pos = uc.order.indexOf(u.id); lab = placeLab(uc, u.id); cash = cashFor(S.ev, pos); }
+  if(e.kind === 'league'){ S.src = S.src || {}; S.src[S.ev] = {}; S.comps.forEach(c => S.src[S.ev][c.id] = c.order); }
+  if(S.ev === 'ewc'){ Object.values(S.teams).forEach(t => t.ewc = false); T(S.comps[0].order[0]).ewc = true; }        // campeão da EWC: vaga direta no Six Invitational
+  if(S.ev === 'lcq') S.lcq = S.comps.map(c => c.order[0]).filter(Boolean);
+  if(S.ev === 'si') S.siChamp = S.comps[0].order[0];
+  tagPlaces(t => { const c = S.comps.find(x => x.teams.includes(t.id)); return c ? placeShort(c, t.id) : null; });
   S.club.cash += cash; S.season.cash += cash; S.season.log.push({ev:S.ev, lab, cash});
-  if(S.ev === 'major2'){ const g = g16Status(); S.qual = g.tb.slice(0, G16).map(r => r.t.id); S.season.rank = g.rank; S.season.pts = g.pts; }
+  if(S.ev === 'major2'){ const g = g16Status(); S.season.rank = g.rank; S.season.pts = g.pts; }
   S.evres = {ev:S.ev, lab, cash, si:u.si - (S.si0 || 0)};
 }
 
 /* ---------- avanço do calendário ---------- */
-function setupLeague(){
-  LEAGUES.forEach(l => S.sched[l.id] = roundRobin(shuffle(Object.values(S.teams).filter(t => t.league === l.id).map(t => t.id))));
-  Object.values(S.teams).forEach(t => Object.assign(t, {w:0, l:0, rw:0, rl:0}));
-  S.lgName = evName(S.ev);
-}
 function startEvent(){
   const id = S.cal[S.ei];
-  Object.assign(S, {ev:id, md:0, cur:null, report:null, snap:null, done:false, results:[], final:{}, po:{}, tn:null, evres:null, si0:T(S.userId).si});
-  if(EVENTS[id].lg) setupLeague(); else setupTournament(id);
+  Object.assign(S, {ev:id, md:0, cur:null, report:null, snap:null, done:false, results:[], mdl:[], evres:null, si0:T(S.userId).si});
+  S.comps = buildComps(id); S.lgName = evName(id);
   globalTable('proj').forEach(r => r.t.rkPrev = r.rank);
 }
 function advanceEvent(){
@@ -1220,25 +1476,27 @@ function advanceEvent(){
   save(); return S.ev;
 }
 function startMatchday(){
-  const idx = S.md, t0 = performance.now(), pre = g16Status();
+  const idx = S.md, t0 = performance.now(), pre = g16Status(), uc = userComp(), ufx = uc ? compFix(uc) : [];
   S.offers = []; S.win = null;                               // ao iniciar a rodada a janela fecha
   S.snap = {rank:pre.rank, si:T(S.userId).si, inn:pre.in, pts:pre.pts, cash:S.club.cash};
   pre.tb.forEach(r => { r.t.siPrev = r.t.si; r.t.rkPrev = r.rank; });
-  const r = S.tn ? simTournRound(idx) : simStage(idx);
-  S.cur = {idx, user:r.user, sim:r.n, ms:Math.max(.1, +(performance.now() - t0).toFixed(1))};
+  let user = null, n = 0; const fx = [];
+  S.comps.forEach(c => compFix(c).forEach(f => { fx.push({cid:f.cid, pi:f.pi});
+    if(f.a === S.userId || f.b === S.userId){ user = {...f, a:S.userId, b:f.a === S.userId ? f.b : f.a, fa:f.a, fb:f.b}; return; }
+    commit(quickSeries(T(f.a), T(f.b), f.bo), metaOf(f)); n++; }));
+  const uf = ufx.find(f => f.a === S.userId || f.b === S.userId) || ufx[0]; S.mdl[idx] = uf ? uf.lab : 'Rodada ' + (idx + 1);
+  S.cur = {idx, user, sim:n, ms:Math.max(.1, +(performance.now() - t0).toFixed(1)), fx};
   save(); return S.cur;
 }
 function finishMatchday(userRes){
   const idx = S.cur.idx, u = T(S.userId);
-  if(S.tn) tnAdvance(idx);
-  else {
-    closeStage(idx);
-    if(idx === totalMD() - 1){                            // liga do usuário encerrada: o resto do circuito é simulado até o fim
-      for(let i = idx + 1; i < 40 && LEAGUES.some(l => !S.final[l.id]); i++){ simStage(i); closeStage(i); }
-      S.done = true;
-    }
-  }
+  compsAdvance(S.cur.fx);
   S.md = idx + 1;
+  const uc = userComp();
+  if(S.comps.every(c => c.done) || (uc && uc.done)){          // a campanha do usuário acabou: o resto do evento é simulado até o fim
+    for(let i = 0; i < 100 && S.comps.some(c => !c.done); i++) simDay();
+    S.done = true;
+  }
   if(S.done) closeEvent();                                // antes do relatório: os pontos de colocação entram no ganho de SI
   const after = g16Status(), sn = S.snap, place = S.done ? S.evres.lab : null;
   S.report = {idx, label:mdLabel(idx), res:userRes || null, dSI:u.si - sn.si, rankBefore:sn.rank, rankAfter:after.rank, inn:after.in,
@@ -1247,6 +1505,7 @@ function finishMatchday(userRes){
   if(!S.done){ S.club.week++; startWeek(); S.report.dCash = S.club.cash - sn.cash; }
   save(); return S.report;
 }
+const evProgress = () => { const c = userComp() || S.comps.find(x => !x.done) || S.comps[0], r = estRemain(c); return S.done ? 1 : S.md / Math.max(1, S.md + r); };
 const mvpScore = s => s.k - s.d + s.fk * .5 + s.cl * 1.5;
 function mvpOf(m){
   let best = null;
@@ -1260,7 +1519,7 @@ function finishUserMatch(m, meta){
   t.players.forEach(p => { p.stress = clamp(p.stress + Math.round((5 + (won ? 0 : 4)) * psy() * nm), 0, 100); p.sat = clamp(p.sat + (won ? 3 : -3), 0, 100); });
   t.conf = clamp(t.conf + (won ? 2 : -3), 15, 80); t.chem = clamp(t.chem + (won ? 1 : -1), 0, 90);
   if(won) c.cash += Math.round(12 * (1 + .3 * c.staff.md));
-  S.uh.push({ev:S.ev, idx:meta.idx, opp:m.t.b.id, won, sa:m.score.a, sb:m.score.b, ot:m.wasOT, map:m.map.name});
+  S.uh.push({ev:S.ev, idx:meta.idx, lab:meta.lab, opp:m.t.b.id, won, sa:m.score.a, sb:m.score.b, ot:m.wasOT, map:m.map.name});
   return finishMatchday({won, sa:m.score.a, sb:m.score.b, opp:m.t.b.id, ot:m.wasOT, map:m.map.name, mvp:mvpOf(m), bo:m.bo || 1, maps:m.maps ? m.maps.map(x => ({n:x.map.name, sa:x.score.a, sb:x.score.b})) : null});
 }
 
@@ -1583,7 +1842,7 @@ const retires = p => p.age >= 33 && rnd() < Math.min(1, (p.age - 32) * .3);
 const seasonBase = t => Math.round(Math.max(0, (t.power - 72) * 4.5) + rnd() * 22);
 function nextSeason(){
   const u = T(S.userId), sl = S.season.log.find(x => x.ev === 'si');
-  S.hist.push({year:S.year, inn:!!S.qual && S.qual.includes(u.id), si:sl ? sl.lab : null, rank:S.season.rank, pts:S.season.pts, champ:S.tn && S.tn.champ, cash:S.season.cash});
+  S.hist.push({year:S.year, inn:!!S.qual && S.qual.includes(u.id), si:sl ? sl.lab : null, rank:S.season.rank, pts:S.season.pts, champ:S.siChamp, cash:S.season.cash});
   const before = {}; squad(u).forEach(p => before[p.id] = p.ovr);
   const info = {year:S.year + 1, prize:S.season.cash, place:sl ? sl.lab : 'Não classificado', retired:[], legends:[], ups:[], young:[], deals:0, myRetired:[]};
   S.year++;
@@ -1604,7 +1863,7 @@ function nextSeason(){
     refreshPower(t); const b = seasonBase(t);
     Object.assign(t, {w:0, l:0, rw:0, rl:0, form:[], note:'', conf:60, chem:t.id === S.userId ? Math.round(60 + (t.chem - 60) * .5) : 60, si:b, siBase:b, siPrev:b});
   });
-  Object.assign(S, {cal:CAL_FULL.slice(), ei:0, uh:[], season:newSeason(), qual:null, win:'pre'});
+  Object.assign(S, {cal:CAL_FULL.slice(), ei:0, uh:[], season:newSeason(), qual:null, src:{}, lcq:null, siChamp:null, win:'pre'});
   Object.assign(S.club, {week:1, scout:false, fin:null});
   startEvent();                                           // abre a temporada pelo Kickoff
   S.offers = genOffers();
@@ -1651,7 +1910,7 @@ function renderTop(){
   el.innerHTML = `<div class="brand"><b>R6</b> <span>Manager</span><small>STAGE 2 · ${S.year}</small></div>
     <nav class="nav">${nav}<button data-act="global">Global <span class="gold">[G]</span></button>${lock ? `<button class="on" disabled>● Partida</button>` : ''}</nav>
     <span class="chip-g" title="Caixa">💰 ${c.cash} K$</span>
-    <button class="chip-g ${lv}" data-act="global" title="Abrir Global Standings">${logo(u, 'xs')} <span>#${g.rank} · ${g.pts} pts</span> <span>${g.in ? 'G16 ✔' : 'FORA DO G16'}</span></button>
+    <button class="chip-g ${lv}" data-act="global" title="Abrir Global Standings">${logo(u, 'xs')} <span>#${g.rank} · ${g.pts} pts</span> <span>${g.in ? 'G14 ✔' : 'FORA DO G14'}</span></button>
     <button class="btn sm" data-act="menu">☰</button>`;
 }
 
@@ -1672,7 +1931,7 @@ function renderSide(){
   const rep = S.cur || S.report;
   $('#side').innerHTML = `<div class="card cy"><h3>⚡ Resultados Globais Rápidos <span class="live">AO VIVO</span></h3>
     <div class="tabs" style="margin-bottom:8px">${chips}</div>
-    <div class="gr">${list || `<div class="mut" style="padding:14px 0">Nenhuma rodada simulada ainda. Inicie a <b>${mdLabel(Math.min(S.md, totalMD() - 1))}</b> e o motor calcula todas as ligas em paralelo.</div>`}</div>
+    <div class="gr">${list || `<div class="mut" style="padding:14px 0">Nenhuma rodada simulada ainda. Inicie o próximo dia (<b>${esc(mdLabel(S.md))}</b>) e o motor calcula todas as competições em paralelo.</div>`}</div>
     <div class="mut" style="font-size:11px;margin-top:8px;letter-spacing:.06em">${rep && rep.sim != null ? `⚙ ${rep.sim} partidas simuladas em ${rep.ms} ms` : ''}</div></div>`;
 }
 
@@ -1711,7 +1970,7 @@ function selectHTML(){
       <div style="margin:12px 0" class="row" ><span class="tag ${diffLabel(sel.power)[1]}">${diffLabel(sel.power)[0]}</span><span class="tag mut">${styleName(sel)}</span>${sel.ewc ? '<span class="tag fill">🏆 Campeã EWC 2026</span>' : ''}</div>
       ${sel.note ? `<div class="mut" style="font-size:12px;margin-bottom:6px">ℹ ${esc(sel.note)}</div>` : ''}
       <div class="kv"><span>Poder base</span><b class="gold">${sel.power}${sel.src ? '' : ' <span class="mut" style="font-size:11px">(estimativa)</span>'}</b></div>
-      <div class="kv"><span>SI Points iniciais</span><b>${sel.si}${sel.ewc ? ` <span class="gold">(inclui +${EWC_BONUS} EWC)</span>` : ''}</b></div>
+      <div class="kv"><span>SI Points iniciais</span><b>${sel.si}${sel.ewc ? ' <span class="gold">· campeã da EWC: vaga direta no SI</span>' : ''}</b></div>
       ${sel.coach ? `<div class="kv"><span>Comissão</span><b>${esc(sel.coach)}</b></div>` : ''}
       <div class="kv"><span>Operadores assinatura</span><b>${sel.sigA} / ${sel.sigD}</b></div>
       <div class="kv"><span>Mapas fortes</span><b class="green">${mp.best.map(x => x.n).join(', ')}</b></div>
@@ -1723,7 +1982,7 @@ function selectHTML(){
   }
   return `<div class="hero"><div class="tag gold" style="margin-bottom:10px">BLAST R6 · Stage 2 · 2026</div>
       <h1><b>R6</b> Esports <span>Manager</span></h1>
-      <p>Simulador tático de carreira: treino individual por atributo, staff, mercado de transferências (usuário e CPU), rounds de 3:00 em tempo real com decisões de emergência, ligas simuladas em paralelo e a corrida por SI Points rumo ao G16 do Six Invitational — em temporadas infinitas.</p>
+      <p>Simulador tático de carreira: treino individual por atributo, staff, mercado de transferências (usuário e CPU), rounds de 3:00 em tempo real com decisões de emergência, ligas simuladas em paralelo e a corrida por SI Points rumo ao G14 do Six Invitational — em temporadas infinitas.</p>
       ${sv ? `<div class="row" style="margin-top:14px;flex-wrap:wrap"><button class="btn cyan" data-act="continue">▶ Continuar carreira — ${esc(sv.teams[sv.userId].name)} · ${sv.year || START_YEAR} · ${sv.done ? 'Temporada encerrada' : 'Semana ' + sv.club.week}</button><button class="btn sm danger" data-act="wipe">Apagar save</button></div>` : ''}</div>
     <div class="grid g21" style="align-items:start"><div><div class="tabs" style="margin-bottom:12px">${LEAGUES.map(l => `<button data-act="pick-league" data-l="${l.id}" class="${lid === l.id ? 'on' : ''}">${l.tag} · ${l.region}</button>`).join('')}</div>
       <div class="teams">${cards}</div>
@@ -1735,32 +1994,70 @@ function selectHTML(){
 const nextBtn = () => S.ei + 1 >= S.cal.length
   ? `<button class="btn gold" data-act="next-season">▶ Iniciar temporada ${S.year + 1}-${String(S.year + 2).slice(2)}</button>`
   : `<button class="btn gold" data-act="next-event">▶ Próximo: ${esc(evName(S.cal[S.ei + 1]))}</button>`;
-function bracketHTML(){
-  const bk = S.tn; if(!bk) return '';
-  const cols = TN_NAMES.map((nm, r) => `<div><div class="mut" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">${nm} · ${boLabel(EVENTS[bk.ev].bo[r])}</div>${(bk.rounds[r] || []).map((pair, s) => { const x = bk.res[r][s];
-    return `<div style="border:1px solid var(--line);border-radius:5px;padding:4px 8px;margin-bottom:8px;background:var(--bg2)">${pair.map(id => `<div class="kv" style="border:0;padding:3px 0;${x && x.w !== id ? 'opacity:.45' : ''}"><span>${tn(T(id), 'xs')}</span><b>${x ? (x.a === id ? x.sa : x.sb) : ''}</b></div>`).join('')}</div>`; }).join('') || '<div class="mut" style="font-size:12px">a definir</div>'}</div>`).join('');
-  return `<div class="card"><h3>${esc(evName(bk.ev))} · chaveamento</h3><div class="scroll"><div style="display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:12px">${cols}</div></div>${bk.champ ? `<div class="gold" style="margin-top:6px;font-weight:800">🏆 Campeão: ${esc(T(bk.champ).name)}</div>` : ''}</div>`;
+/* ---------- tabelas e chaves das competições ---------- */
+const tsn = id => `<span class="tn">${logo(T(id), 'xs')}<span>${esc(T(id).short)}</span></span>`;
+const sg = v => (v > 0 ? '+' : '') + v;
+function rrTableHTML(p, cut, full){
+  const tb = rrTable(p), bo3 = p.bo >= 3;
+  return `<div class="scroll"><table class="tbl${full ? '' : ' mini'}"><thead><tr><th>#</th><th>Time</th><th class="num">V</th><th class="num">D</th>${bo3 ? '<th class="num">SM</th>' : ''}<th class="num">SR</th>${bo3 ? '<th class="num">Pts</th>' : ''}${full ? `<th>Forma</th><th class="num">Poder</th><th class="num">SI Pts</th>` : ''}</tr></thead><tbody>${tb.map((x, i) => { const t = T(x.id);
+    return `<tr class="${x.id === S.userId ? 'me' : ''} ${i < cut ? 'q' : ''}"><td>${i + 1}</td><td>${tn(t)}</td><td class="num">${x.w}</td><td class="num">${x.l}</td>${bo3 ? `<td class="num">${sg(x.md)}</td>` : ''}<td class="num">${sg(x.rd)}</td>${bo3 ? `<td class="num gold"><b>${x.pts}</b></td>` : ''}${full ? `<td>${fdots(t)}</td><td class="num">${t.power}</td><td class="num gold"><b>${t.si}</b></td>` : ''}</tr>`; }).join('')}</tbody></table></div>`;
+}
+function rrRoundsHTML(p){
+  return p.sched.map((pairs, r) => `<div class="card"><h3>Rodada ${r + 1}${r === p.r && !rrDone(p) ? ' · <span class="gold">próxima</span>' : ''}</h3>${pairs.map(([a, b], i) => { const x = p.res[r + ':' + i];
+    return `<div class="kv"><span>${tn(T(a), 'xs')}</span><span style="text-align:center;min-width:64px">${x ? `<b>${x.a === a ? x.sa : x.sb} - ${x.a === a ? x.sb : x.sa}</b>` : '<span class="mut">vs</span>'}</span><span>${tn(T(b), 'xs')}</span></div>`; }).join('')}</div>`).join('');
+}
+function brHTML(br){
+  const rs = [...new Set(br.m.filter(m => !m.bye).map(m => m.r))].sort((a, b) => a - b);
+  const src = x => x.s != null ? '?' : x.w ? 'Venc. ' + x.w : 'Perd. ' + x.l;
+  const slot = (x, m, sc) => { const t = brRes(br, x), won = m.done && m.w === t;
+    return `<div class="kv" style="border:0;padding:2px 0;${m.done && !won ? 'opacity:.45' : ''}"><span>${t && t !== 'BYE' ? tsn(t) : `<span class="mut" style="font-size:11px">${t === 'BYE' ? '—' : src(x)}</span>`}</span><b>${m.done && !m.bye ? sc : ''}</b></div>`; };
+  const cols = rs.map(r => `<div><div class="mut" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px">Rodada ${r}</div>${br.m.filter(m => m.r === r && !m.bye).map(m => `<div style="border:1px solid var(--line);border-radius:5px;padding:4px 8px;margin-bottom:6px;background:var(--bg2)"><div class="mut" style="font-size:10px">${esc(m.lab)} · Bo${m.bo}</div>${slot(m.a, m, m.sa)}${slot(m.b, m, m.sb)}</div>`).join('')}</div>`).join('');
+  return `<div class="scroll"><div style="display:grid;grid-template-columns:repeat(${rs.length},minmax(150px,1fr));gap:10px">${cols}</div></div>`;
+}
+function swHTML(p){
+  const ord = p.teams.slice().sort((a, b) => (p.rec[b].w - p.rec[a].w) || (p.rec[a].l - p.rec[b].l) || (p.teams.indexOf(a) - p.teams.indexOf(b)));
+  const rows = ord.map((t, i) => `<tr class="${t === S.userId ? 'me' : ''} ${p.adv.includes(t) ? 'q' : ''}"><td>${i + 1}</td><td>${tn(T(t))}</td><td class="num"><b>${p.rec[t].w}-${p.rec[t].l}</b></td><td>${p.adv.includes(t) ? '<span class="tag fill">playoffs</span>' : p.out.includes(t) ? '<span class="tag red">eliminado</span>' : '<span class="mut">em disputa</span>'}</td></tr>`).join('');
+  const rounds = p.rounds.map((r, i) => `<div class="mut" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;margin:8px 0 2px">Rodada ${i + 1}</div>${r.map(m => `<div class="kv"><span>${tsn(m.a)}</span><b>${m.done ? `${m.sa}-${m.sb}` : 'vs'}${m.bo === 3 ? ' <span class="tag gold">Bo3</span>' : ''}</b><span>${tsn(m.b)}</span></div>`).join('')}`).join('');
+  return `<div class="grid g2" style="align-items:start"><div class="scroll"><table class="tbl mini"><thead><tr><th>#</th><th>Time</th><th class="num">Campanha</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="mut" style="font-size:11px;margin-top:6px">3 vitórias classificam · 3 derrotas eliminam · Bo1, e Bo3 quando há eliminação em jogo.</div></div><div style="max-height:420px;overflow:auto">${rounds || '<div class="mut">A 1ª rodada sai ao iniciar o dia.</div>'}</div></div>`;
+}
+function partHTML(c, st, p, full){
+  if(p.k === 'br') return `<div class="mut" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:6px 0">${esc(p.name)}</div>${brHTML(p)}`;
+  if(p.k === 'sw') return swHTML(p);
+  const lg = c.kind === 'league';
+  return `<div class="mut" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:6px 0">${esc(p.name)}</div>${rrTableHTML(p, lg ? EVENTS[c.ev].po : 2, lg && full)}`
+    + (full && lg ? `<div class="mut" style="font-size:11px;margin:6px 0"><span class="gold">▌</span> Top ${EVENTS[c.ev].po} → ${c.ev === 'kickoff' ? 'playoffs (dupla eliminação Bo3)' : 'Stage Finals (Bo3)'} · Fase de grupos em Bo1</div>` : '');
+}
+function compFullHTML(c){
+  const st = c.stages.map((stg, i) => {
+    const rr = stg.parts[0].k === 'rr' && c.kind === 'league';
+    return `<div class="card"><h3>${esc(stg.name)}${c.done ? '' : i === c.si ? ' · <span class="gold">em andamento</span>' : ''}</h3>${stg.parts.map(p => partHTML(c, stg, p, true)).join('')}</div>${rr ? `<div class="grid g2">${rrRoundsHTML(stg.parts[0])}</div>` : ''}`; }).join('');
+  const win = c.done ? `<div class="card cy"><h3>Resultado final</h3><div class="row" style="flex-wrap:wrap;gap:6px 14px">${c.order.slice(0, 8).map((id, i) => `<span>${i + 1}º ${tsn(id)}</span>`).join('')}</div><div class="gold" style="margin-top:8px;font-weight:800">🏆 Campeão: ${esc(T(c.order[0]).name)}</div></div>` : '';
+  return `<div class="stack">${win}${st}</div>`;
+}
+function compMiniHTML(c){                                                        // resumo da fase atual no Painel
+  const stg = c.stages[c.done ? c.stages.length - 1 : c.si];
+  return `<div class="card"><h3>${esc(c.kind === 'league' ? LG[c.id].tag : c.name)} · ${esc(stg.name)}</h3>${stg.parts.map(p => partHTML(c, stg, p, false)).join('')}${c.done ? `<div class="gold" style="margin-top:6px;font-weight:800">🏆 Campeão: ${esc(T(c.order[0]).name)}</div>` : ''}</div>`;
 }
 
 /* ---------- painel ---------- */
 function dashHTML(){
   const u = T(S.userId), lg = LG[u.league], c = S.club, al = computeAlerts(), g = g16Status();
   const alerts = al.map(a => `<div class="alert ${a.lv}"><div class="ic">${a.ic}</div><div><h4>${esc(a.t)}</h4><p>${esc(a.x)}</p></div></div>`).join('');
-  const tb = leagueTable(u.league), rankL = (S.final[u.league] || tb.map(t => t.id)).indexOf(S.userId) + 1, tot = totalMD();
-  const phase = Array.from({length:tot}, (_, i) => { const h = S.uh.find(x => x.idx === i && (x.ev || S.ev) === S.ev), cls = h ? 'done ' + (h.won ? 'W' : 'L') : i === S.md && !S.done ? 'cur' : '';
-    return `<span class="ph ${cls}">${S.tn ? ['O16', 'QF', 'SF', 'F'][i] : i < nG(u.league) ? 'R' + (i + 1) : i === nG(u.league) ? 'SF' : 'F'}${h ? ` ${h.sa}-${h.sb}` : ''}</span>`; }).join('');
+  const uc = userComp(), rr0 = uc && uc.kind === 'league' ? uc.stages[0].parts[0] : null, ord = uc ? (uc.kind === 'league' ? projOrder(uc) : uc.done ? uc.order : []) : [], rankL = ord.indexOf(S.userId) + 1;
+  const mine = S.uh.filter(h => h.ev === S.ev), stt = userState();
+  const phase = mine.map(h => `<span class="ph done ${h.won ? 'W' : 'L'}">${esc(phLabel(h.lab))} ${h.sa}-${h.sb}</span>`).join('') + (!S.done && stt === 'play' ? `<span class="ph cur">${esc(phLabel(userFixture().lab))}</span>` : '') || '<span class="mut">Sem partidas ainda.</span>';
   let hero;
   if(S.done){
-    const er = S.evres || {lab:'Encerrado', cash:0, si:0}, champ = S.tn ? S.tn.champ : S.final[u.league][0];
+    const er = S.evres || {lab:'Encerrado', cash:0, si:0}, champ = (uc || S.comps[0]).order[0];
     hero = `<div class="card"><h3>${esc(evName(S.ev))} encerrado</h3><div class="big gold" style="margin-bottom:6px">${esc(er.lab)}</div>
-      <p class="mut">${u.name}: <b class="txt">+${er.si} SI Points</b> no evento e prêmio de <b class="gold">+${er.cash} K$</b> — #${g.rank} no ranking mundial (${g.pts} pts). ${S.tn ? 'Campeão' : 'Campeão da liga'}: <b class="txt">${esc(T(champ).name)}</b>.</p>
-      ${S.ev === 'major2' && S.qual ? `<p style="margin-top:6px">${S.qual.includes(u.id) ? `<b class="green">Classificado direto ao Six Invitational ${siTag()} (G16).</b>` : '<b class="red">Sem vaga direta no Six Invitational.</b>'}</p>` : ''}
+      <p class="mut">${u.name}: <b class="txt">+${er.si} SI Points</b> no evento e prêmio de <b class="gold">+${er.cash} K$</b> — #${g.rank} no ranking mundial (${g.pts} pts). ${uc && uc.kind === 'league' ? 'Campeão da liga' : 'Campeão'}: <b class="txt">${esc(T(champ).name)}</b>.</p>
       ${S.ei + 1 >= S.cal.length ? '<p class="mut" style="margin-top:6px">Ao virar a temporada: os atletas envelhecem e evoluem, veteranos se aposentam, novas promessas surgem, os SI Points zeram e a CPU abre a janela de transferências.</p>' : ''}
       <div class="row" style="margin-top:14px;flex-wrap:wrap">${nextBtn()}<button class="btn" data-act="global">Ver Global Standings</button><button class="btn sm danger" data-act="newcareer">Nova carreira</button></div></div>`;
   } else {
-    const f = userFixture(), lbl = mdLabel(S.md), resume = S.cur && S.cur.user;
+    const f = userFixture(), lbl = f ? f.lab : mdLabel(S.md), resume = S.cur && S.cur.user;
     if(f){
-      const o = T(f.opp), bo = boFor(f.ph, S.md), p = seriesProb(winProb(u, o, 200), bo), mp = bestWorstMaps(o);
+      const o = T(f.opp), bo = f.bo, p = seriesProb(winProb(u, o, 200), bo), mp = bestWorstMaps(o);
       hero = `<div class="card"><h3>Próxima partida · ${lbl} <span class="tag gold">${boLabel(bo)}</span></h3>
         <div class="vs"><div class="t">${logo(u, 'lg')}<div class="nm">${esc(u.short)}</div><div class="mut">Poder ${u.power}</div></div><div class="x">VS</div><div class="t">${logo(o, 'lg')}<div class="nm">${esc(o.short)}</div><div class="mut">Poder ${o.power}</div></div></div>
         <div style="margin:14px 0"><div class="row" style="justify-content:space-between;font-size:12px"><span class="cyan"><b>${Math.round(p * 100)}%</b> vitória (simulação com seu estado atual)</span><span class="mut">${Math.round((1 - p) * 100)}%</span></div><div class="bar" style="margin-top:4px"><i style="width:${p * 100}%"></i></div></div>
@@ -1770,31 +2067,31 @@ function dashHTML(){
         <div class="kv"><span>Operadores assinatura</span><b>${hasIntel() ? o.sigA + ' / ' + o.sigD : '🔒 requer Analista ou VOD'}</b></div>
         <div class="row" style="margin-top:14px;flex-wrap:wrap"><button class="btn gold" data-act="md-start">▶ ${resume ? 'Retomar partida' : 'Iniciar ' + lbl}</button><button class="btn" data-act="scout" ${c.scout ? 'disabled' : ''} title="Revela os mapas fortes e os operadores-assinatura do rival no veto">${c.scout ? '✔ VOD revisado' : '📼 Revisar VOD do rival'}</button><button class="btn" data-act="sim-event" title="Simula todas as rodadas restantes, inclusive as suas">⏩ Simular ${esc(EVENTS[S.ev].name)} inteiro</button></div><div class="mut" style="font-size:12px;margin-top:8px">Ao iniciar, todas as outras ligas são simuladas instantaneamente.</div></div>`;
     } else {
-      const why = S.tn ? (S.tn.teams.includes(u.id) ? 'Sua organização já foi eliminada de ' + EVENTS[S.ev].name + '.' : 'Sua organização não disputa ' + EVENTS[S.ev].name + '.')
-        : userInPlayoffs() === false || stageOf(u.league, S.md).ph !== 'g' ? 'Sua organização não está mais na disputa dos playoffs da ' + lg.tag + '.' : 'Sua organização não joga nesta etapa.';
-      hero = `<div class="card"><h3>${lbl}</h3><p class="mut" style="margin-bottom:12px">${why} O circuito segue sem você — o G16 depende da tabela mundial.</p>
-        <div class="row" style="flex-wrap:wrap"><button class="btn gold" data-act="md-start">⏩ Simular ${lbl}</button><button class="btn" data-act="sim-event">⏩ Simular ${esc(EVENTS[S.ev].name)} inteiro</button></div></div>`;
+      const why = stt === 'none' ? 'Sua organização não disputa ' + EVENTS[S.ev].name + '.' : stt === 'wait' ? 'Sua organização segue viva em ' + EVENTS[S.ev].name + ', mas não joga neste dia.' : 'Sua organização já foi eliminada de ' + EVENTS[S.ev].name + '.';
+      const c0 = uc || S.comps.find(x => !x.done) || S.comps[0], lbl2 = c0.stages[c0.si].name + ' · dia ' + (S.md + 1);
+      hero = `<div class="card"><h3>${esc(lbl2)}</h3><p class="mut" style="margin-bottom:12px">${why} O circuito segue sem você — o G14 depende da tabela mundial.</p>
+        <div class="row" style="flex-wrap:wrap"><button class="btn gold" data-act="md-start">⏩ Simular ${esc(lbl2)}</button><button class="btn" data-act="sim-event">⏩ Simular ${esc(EVENTS[S.ev].name)} inteiro</button></div></div>`;
     }
   }
-  const last = S.results.filter(r => r.lg === u.league || r.lg === 'TN').slice(-8).reverse().map(r => { const W = T(r.w), Lz = T(r.w === r.a ? r.b : r.a);
-    return `<div class="kv"><span>${phLabel(r.ph, r.i).replace('Rodada ', 'R').replace('Semifinal', 'SF').replace('Final', 'F')}</span><span style="text-align:right"><b style="color:${W.color}">${esc(W.short)}</b> ${r.w === r.a ? r.sa : r.sb}-${r.w === r.a ? r.sb : r.sa} <span class="mut">${esc(Lz.short)}</span>${r.user ? ' <span class="tag cyan">você</span>' : ''}</span></div>`; }).join('');
-  const miniTb = tb.map((t, i) => `<tr class="${t.id === S.userId ? 'me' : ''} ${i < 4 ? 'q' : ''}"><td>${i + 1}</td><td>${tn(t)}</td><td class="num">${t.w}-${t.l}</td><td class="num">${t.rw - t.rl > 0 ? '+' : ''}${t.rw - t.rl}</td></tr>`).join('');
+  const last = S.results.filter(r => !uc || r.cid === uc.id).slice(-8).reverse().map(r => { const W = T(r.w), Lz = T(r.w === r.a ? r.b : r.a);
+    return `<div class="kv"><span>${esc(phLabel(r.ph))}</span><span style="text-align:right"><b style="color:${W.color}">${esc(W.short)}</b> ${r.w === r.a ? r.sa : r.sb}-${r.w === r.a ? r.sb : r.sa} <span class="mut">${esc(Lz.short)}</span>${r.user ? ' <span class="tag cyan">você</span>' : ''}</span></div>`; }).join('');
+  const cutN = uc && uc.kind === 'league' ? EVENTS[uc.ev].po : 0;
   const avgS = Math.round(u.players.reduce((s, p) => s + p.stress, 0) / 5), avgSat = Math.round(u.players.reduce((s, p) => s + p.sat, 0) / 5);
   const win = windowOpen() ? `<div class="alert info"><div class="ic">🔁</div><div style="flex:1"><h4>Janela de transferências aberta · ${winLabel()}</h4><p>Compre, venda e dispense jogadores. Ela fecha quando você iniciar a próxima rodada.${S.offers.length ? ` Você tem <b class="gold">${S.offers.length} proposta(s)</b> por seus atletas.` : ''}</p></div><button class="btn sm cyan" data-act="nav" data-v="market">Ir ao Mercado</button></div>` : '';
-  const hist = S.hist.length ? `<div class="card"><h3>Histórico de temporadas</h3><div class="scroll"><table class="tbl mini"><thead><tr><th>Temporada</th><th>Six Invitational</th><th class="num">SI Points</th><th>G16</th><th>Campeão do SI</th><th class="num">Prêmios</th></tr></thead><tbody>${S.hist.slice().reverse().map(h => `<tr><td>${h.year}-${String(h.year + 1).slice(2)}</td><td>${esc(h.si || '—')}</td><td class="num">${h.rank ? `#${h.rank} · ${h.pts} pts` : '—'}</td><td>${h.inn ? '<span class="tag fill">G16</span>' : '<span class="mut">—</span>'}</td><td>${h.champ && S.teams[h.champ] ? tn(T(h.champ)) : '—'}</td><td class="num gold">+${h.cash != null ? h.cash : h.prize || 0} K$</td></tr>`).join('')}</tbody></table></div></div>` : '';
+  const hist = S.hist.length ? `<div class="card"><h3>Histórico de temporadas</h3><div class="scroll"><table class="tbl mini"><thead><tr><th>Temporada</th><th>Six Invitational</th><th class="num">SI Points</th><th>G14</th><th>Campeão do SI</th><th class="num">Prêmios</th></tr></thead><tbody>${S.hist.slice().reverse().map(h => `<tr><td>${h.year}-${String(h.year + 1).slice(2)}</td><td>${esc(h.si || '—')}</td><td class="num">${h.rank ? `#${h.rank} · ${h.pts} pts` : '—'}</td><td>${h.inn ? '<span class="tag fill">G14</span>' : '<span class="mut">—</span>'}</td><td>${h.champ && S.teams[h.champ] ? tn(T(h.champ)) : '—'}</td><td class="num gold">+${h.cash != null ? h.cash : h.prize || 0} K$</td></tr>`).join('')}</tbody></table></div></div>` : '';
   const cal = `<div class="card"><h3>Temporada ${seasonLabel()} · calendário</h3><div class="phase">${S.cal.map((id, i) => { const lgx = S.season.log.find(x => x.ev === id);
     return `<span class="ph ${i < S.ei || (i === S.ei && S.done) ? 'done' : i === S.ei ? 'cur' : ''}" title="${esc(evName(id))}">${esc(EVENTS[id].name.replace('BLAST R6 ', ''))}${lgx ? ' · ' + esc(lgx.lab) : ''}</span>`; }).join('')}</div>
-    <div class="mut" style="margin-top:8px;font-size:12px">Kickoff → Major → Stage 1 → EWC → Stage 2 → Major → Six Invitational. SI Points acumulam até o Major de novembro: os 16 melhores jogam o Invitational.</div></div>`;
-  const side = S.tn ? bracketHTML() : `<div class="card"><h3>${lg.tag} · classificação</h3><table class="tbl"><thead><tr><th>#</th><th>Time</th><th class="num">V-D</th><th class="num">SR</th></tr></thead><tbody>${miniTb}</tbody></table>
-        <div class="mut" style="font-size:11px;margin-top:6px"><span class="gold">▌</span> Top 4 avança aos playoffs</div></div>`;
+    <div class="mut" style="margin-top:8px;font-size:12px">Kickoff → Major → Stage 1 → EWC → Stage 2 → Major → LCQ → Six Invitational. Os SI Points acumulam até o Major de novembro: os 14 primeiros vão direto ao Invitational (mais o campeão da EWC); o resto tenta a vaga no LCQ da região.</div></div>`;
+  const side = uc ? (uc.kind === 'league' && uc.si === 0 ? `<div class="card"><h3>${lg.tag} · classificação</h3>${rrTableHTML(rr0, cutN, false)}<div class="mut" style="font-size:11px;margin-top:6px"><span class="gold">▌</span> Top ${cutN} avança aos playoffs · Bo1</div></div>` : compMiniHTML(uc))
+    : `<div class="card"><h3>${esc(EVENTS[S.ev].name)}</h3><p class="mut" style="font-size:12.5px">${S.comps.length > 1 ? S.comps.length + ' chaves regionais em andamento.' : 'Evento em andamento.'} Veja as tabelas na aba <b>Liga</b>.</p></div>`;
   return `<div class="stack">${win}${alerts}${cal}
     <div class="grid g2" style="align-items:start">${hero}${side}</div>
     <div class="grid g3">
       <div class="card"><h3>Calendário</h3><div class="phase">${phase}</div>${S.done ? '' : `<div class="mut" style="margin-top:10px;font-size:12px">Semana ${c.week}</div>`}</div>
-      <div class="card"><h3>SI Points</h3><div class="big gold">${u.si}</div><div class="mut" style="margin:4px 0 8px">${S.tn ? 'Ranking atual' : 'Projeção de fim de Stage'}: <b class="cyan">${g.pts}</b> · #${g.rank} mundial</div>
-        <div class="kv"><span>Colocação na liga</span><b>${rankL}º</b></div><div class="kv"><span>Linha G16</span><b>${g.cutPts} pts</b></div></div>
+      <div class="card"><h3>SI Points</h3><div class="big gold">${u.si}</div><div class="mut" style="margin:4px 0 8px">${EVENTS[S.ev].kind === 'league' ? 'Projeção de fim de Stage' : 'Ranking atual'}: <b class="cyan">${g.pts}</b> · #${g.rank} mundial</div>
+        <div class="kv"><span>${uc && uc.kind === 'league' ? 'Colocação na liga' : 'Colocação no evento'}</span><b>${rankL ? rankL + 'º' : '—'}</b></div><div class="kv"><span>Linha G14</span><b>${g.cutPts} pts</b></div></div>
       <div class="card"><h3>Estado do elenco</h3><div class="kv"><span>Estresse médio</span><b>${avgS}</b></div>${meter(avgS, stressCls(avgS))}<div class="kv" style="margin-top:6px"><span>Satisfação média</span><b>${avgSat}</b></div>${meter(avgSat, 'g')}<div class="kv" style="margin-top:6px"><span>Química · Confiança</span><b>${u.chem} · ${u.conf}</b></div></div></div>
-    <div class="card"><h3>Resultados da ${lg.tag}</h3><div class="grid g2">${last || '<div class="mut">Sem partidas jogadas.</div>'}</div></div>${hist}</div>`;
+    <div class="card"><h3>Resultados · ${esc(uc ? (uc.kind === 'league' ? lg.tag : uc.name) : EVENTS[S.ev].name)}</h3><div class="grid g2">${last || '<div class="mut">Sem partidas jogadas.</div>'}</div></div>${hist}</div>`;
 }
 
 /* ---------- elenco ---------- */
@@ -1937,29 +2234,21 @@ function showSeason(info){
 
 /* ---------- liga ---------- */
 function leagueHTML(){
-  const u = T(S.userId), lid = UI.lgTab || u.league, tb = leagueTable(lid);
-  const tabs = LEAGUES.map(l => `<button data-act="lgtab" data-l="${l.id}" class="${lid === l.id ? 'on' : ''}">${l.tag}</button>`).join('');
-  const rk = S.final[lid] || tb.map(t => t.id);
-  const rows = tb.map((t, i) => `<tr class="${t.id === S.userId ? 'me' : ''} ${i < 4 ? 'q' : ''}"><td>${i + 1}</td><td>${tn(t)}</td><td class="num">${t.w}</td><td class="num">${t.l}</td><td class="num">${t.rw - t.rl > 0 ? '+' : ''}${t.rw - t.rl}</td><td>${fdots(t)}</td><td class="num">${t.power}</td><td class="num gold"><b>${t.si}</b></td></tr>`).join('');
-  const n = nG(lid), po = S.po[lid];
-  const rounds = Array.from({length:n + 2}, (_, i) => {
-    const list = i < n ? S.sched[lid][i] : i === n ? fixtures(lid, i) : (po && po.final ? [po.final] : []);
-    if(!list.length) return '';
-    const ph = i < n ? 'g' : i === n ? 'sf' : 'f';
-    const items = list.map(pair => { const r = S.results.find(x => x.i === i && x.lg === lid && x.ph === ph && ((x.a === pair[0] && x.b === pair[1]) || (x.a === pair[1] && x.b === pair[0])));
-      const A = T(pair[0]), B = T(pair[1]);
-      return `<div class="kv"><span>${tn(A)}</span><span style="text-align:center;min-width:70px">${r ? `<b>${r.a === A.id ? r.sa : r.sb} - ${r.a === A.id ? r.sb : r.sa}</b>${r.ot ? ' <span class="tag gold">OT</span>' : ''}` : '<span class="mut">vs</span>'}</span><span>${tn(B)}</span></div>`; }).join('');
-    return `<div class="card"><h3>${i < n ? 'Rodada ' + (i + 1) : i === n ? 'Semifinais' : 'Grande Final'}${lid === u.league && i === S.md && !S.done ? ' · <span class="gold">próxima</span>' : ''}</h3>${items}</div>`; }).join('');
-  let bracket = '';
-  if(po){ const nm = id => id ? tn(T(id)) : '<span class="mut">a definir</span>';
-    bracket = `<div class="card"><h3>Playoffs ${LG[lid].tag}</h3><div class="grid g3"><div><div class="mut" style="font-size:11px;margin-bottom:6px">SEMIFINAL 1 (1º × 4º)</div><div class="kv"><span>${nm(po.sf[0][0])}</span></div><div class="kv"><span>${nm(po.sf[0][1])}</span></div><div class="mut" style="font-size:12px;margin-top:4px">Vencedor: ${nm(po.sfW[0])}</div></div>
-      <div><div class="mut" style="font-size:11px;margin-bottom:6px">SEMIFINAL 2 (2º × 3º)</div><div class="kv"><span>${nm(po.sf[1][0])}</span></div><div class="kv"><span>${nm(po.sf[1][1])}</span></div><div class="mut" style="font-size:12px;margin-top:4px">Vencedor: ${nm(po.sfW[1])}</div></div>
-      <div><div class="mut" style="font-size:11px;margin-bottom:6px">GRANDE FINAL</div><div class="kv"><span>${nm(po.final && po.final[0])}</span></div><div class="kv"><span>${nm(po.final && po.final[1])}</span></div><div class="gold" style="font-size:13px;margin-top:4px">🏆 Campeão: ${po.champ ? nm(po.champ) : '—'}</div></div></div></div>`; }
-  return `<div class="stack">${bracketHTML()}<div class="tabs">${tabs}</div>
-    <div class="card"><h3>${LG[lid].name} · ${esc(S.lgName || 'Stage 2 ' + S.year)}${S.final[lid] ? ' · <span class="gold">FINAL</span>' : ''}</h3><div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Time</th><th class="num">V</th><th class="num">D</th><th class="num">SR</th><th>Forma</th><th class="num">Poder</th><th class="num">SI Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="mut" style="font-size:11px;margin-top:6px"><span class="gold">▌</span> Top 4 → playoffs · Colocação final paga ${PLACE_PTS.join(' / ')} pts SI · vitória na fase de grupos +${WIN_PTS}, playoffs +${PO_WIN_PTS}${S.final[lid] ? ` · <b>Campeão: ${esc(T(rk[0]).name)}</b>` : ''}</div></div>
-    ${bracket}<div class="grid g2">${rounds}</div></div>`;
+  const ids = S.comps.map(c => c.id), uc = userComp(), cur = UI.lgTab && ids.includes(UI.lgTab) ? UI.lgTab : (uc ? uc.id : ids[0]), c = S.comps.find(x => x.id === cur), isLg = c.kind === 'league';
+  const tabs = S.comps.length > 1 ? `<div class="tabs">${S.comps.map(x => `<button data-act="lgtab" data-l="${x.id}" class="${cur === x.id ? 'on' : ''}">${x.kind === 'league' ? LG[x.id].tag : esc(x.id)}</button>`).join('')}</div>` : '';
+  return `<div class="stack">${tabs}<div class="card"><h3>${esc(isLg ? LG[c.id].name + ' · ' + (S.lgName || evName(S.ev)) : evName(S.ev) + (S.comps.length > 1 ? ' · ' + c.name : ''))}${c.done ? ' · <span class="gold">FINAL</span>' : ''}</h3>
+    <p class="mut" style="font-size:12.5px">${EVENT_FMT[EVENTS[S.ev].kind === 'league' ? (S.ev === 'kickoff' ? 'kickoff' : 'stage') : S.ev === 'major1' ? 'major1' : S.ev === 'major2' ? 'major2' : EVENTS[S.ev].kind]}</p></div>${compFullHTML(c)}</div>`;
 }
+const EVENT_FMT = {
+  kickoff:'Kickoff regional: fase de grupos em pontos corridos (Bo1) e os 8 melhores vão à dupla eliminação (Bo3). Pontos de SI por colocação: 240 / 175 / 140 / 115… Os 4 primeiros de cada região vão ao Major de maio.',
+  stage:'Stage regional: fase de grupos em pontos corridos (Bo1); os 6 melhores disputam o Stage Finals (dupla eliminação, Bo3). SI Points: 420 / 300 / 250 / 200… Os 4 primeiros seguem para a EWC (Stage 1) ou para o Major de novembro (Stage 2).',
+  major1:'BLAST R6 Major: 20 times. Play-ins (2 grupos GSL, 4 times cada) → Fase Suíça (16 times; 3 vitórias classificam, 3 derrotas eliminam) → Playoffs de 8 times em eliminação simples (Bo3, final Bo5). SI Points de 1500 (campeão) a 250.',
+  major2:'BLAST R6 Major: 20 times. Play-ins (2 grupos GSL) → Fase Suíça (16 times) → Playoffs de 8 times em dupla eliminação (Bo3, final Bo5). SI Points de 1500 (campeão) a 250. É a última chance de somar pontos para o G14.',
+  ewc:'Esports World Cup: 22 times. Play-in (2 grupos GSL) → Play-in 2 (4 times) → Fase de grupos (2 grupos de 8, dupla eliminação) → Playoffs de 8 (Bo3, final Bo5). O campeão garante vaga direta no Six Invitational.',
+  lcq:'Last Chance Qualifiers: uma chave de dupla eliminação (Bo3) com os 8 melhores de cada região fora das vagas diretas. Só o campeão de cada LCQ (EML, SAL, NAL, CNL, APAC) vai ao Six Invitational.',
+  si:'Six Invitational: 20 times (campeão da EWC + 14 do Global Standings + 5 dos LCQs). Fase de grupos (4 grupos de 5, todos contra todos em Bo3: 4/3/1/0 pontos) → Playoffs de dupla eliminação com 16 times (Bo3, final Bo5).'
+};
+
 
 /* ---------- página do jogador (modal): perfil, forma, radar, estatísticas e históricos ---------- */
 const teamsNow = () => S ? S.teams : PREVIEW;                    // na seleção de time ainda não há save: usa o preview
@@ -2038,21 +2327,21 @@ function openPlayer(id){ const f = findPlayer(id); if(f) openModal(playerHTML(f)
 
 /* ---------- Global Standings (modal, acessível sempre) ---------- */
 function openGlobal(){
-  const mode = UI.gMode, tb = globalTable(mode), tab = UI.gTab, cut = tb[G16 - 1].pts, nxt = tb[G16].pts, g = g16Status();
+  const mode = UI.gMode, tb = globalTable(mode), tab = UI.gTab, cut = tb[G14 - 1].pts, nxt = tb[G14].pts, g = g16Status();
   const rows = tb.filter(r => tab === 'ALL' || r.t.league === tab);
   let body = '';
   rows.forEach(r => {
-    if(tab === 'ALL' && r.rank === G16 + 1) body += `<tr class="cut"><td colspan="7"><div class="cutline">▬ Linha de corte · G16 · Vaga direta ao Six Invitational — Paris ▬</div></td></tr>`;
-    const d = mode === 'proj' && r.t.rkPrev ? r.t.rkPrev - r.rank : 0, inn = r.rank <= G16, bub = r.rank >= G16 - 2 && r.rank <= G16 + 3;
+    if(tab === 'ALL' && r.rank === G14 + 1) body += `<tr class="cut"><td colspan="7"><div class="cutline">▬ Linha de corte · G14 · Vaga direta ao Six Invitational — Paris ▬</div></td></tr>`;
+    const d = mode === 'proj' && r.t.rkPrev ? r.t.rkPrev - r.rank : 0, inn = r.rank <= G14, bub = r.rank >= G14 - 2 && r.rank <= G14 + 3;
     body += `<tr class="${r.t.id === S.userId ? 'me' : ''} ${inn ? 'q' : ''} ${bub && !inn ? 'bub' : ''}"><td><b>${r.rank}</b></td><td class="${d > 0 ? 'up' : d < 0 ? 'dn' : 'mut'}">${d > 0 ? '▲' + d : d < 0 ? '▼' + -d : '•'}</td>
       <td>${tn(r.t)}</td><td><span class="tag" style="color:${LG[r.t.league].color}">${LG[r.t.league].tag}</span></td><td class="num gold"><b>${r.pts}</b></td><td class="num mut">${mode === 'proj' ? r.t.si : ''}</td>
-      <td>${inn ? '<span class="tag fill">G16</span>' : r.rank <= G16 + 3 ? '<span class="tag orange">bolha</span>' : ''}</td></tr>`;
+      <td>${inn ? '<span class="tag fill">G14</span>' : r.rank <= G14 + 3 ? '<span class="tag orange">bolha</span>' : ''}</td></tr>`;
   });
-  const status = g.in ? `Você está <b class="green">dentro</b> do G16 com <b>${g.margin}</b> pts de folga.` : `Você está <b class="red">fora</b> do G16 — faltam <b>${g.margin}</b> pts.`;
+  const status = g.in ? `Você está <b class="green">dentro</b> do G14 com <b>${g.margin}</b> pts de folga.` : `Você está <b class="red">fora</b> do G14 — faltam <b>${g.margin}</b> pts.`;
   openModal(`<div class="mhead"><h2><b>Global</b> Standings · SI Points</h2><div class="sp"></div><button class="btn sm" data-act="close">✕ Fechar</button></div>
     <div class="row" style="flex-wrap:wrap;margin-bottom:10px"><div class="tabs">${['ALL', ...LEAGUES.map(l => l.id)].map(id => `<button data-act="gtab" data-l="${id}" class="${tab === id ? 'on' : ''}">${id === 'ALL' ? 'Mundo' : LG[id].tag}</button>`).join('')}</div><div class="sp"></div>
       <div class="tabs"><button data-act="gmode" data-m="proj" class="${mode === 'proj' ? 'on' : ''}">Projeção</button><button data-act="gmode" data-m="off" class="${mode === 'off' ? 'on' : ''}">Oficial</button></div></div>
-    <div class="alert ${g.in ? (g.margin <= 25 ? 'crit' : g.margin <= 70 ? 'warn' : 'ok') : 'crit'}" style="margin-bottom:10px"><div class="ic">${g.in ? '🎫' : '⚠️'}</div><div><h4>Linha de corte: ${cut} pts (#${G16}) · 17º: ${nxt} pts</h4><p>${status} ${mode === 'proj' ? 'Projeção = SI atuais + pontos da colocação atual em cada liga (1º = 350).' : 'Pontos oficiais já creditados (vitórias e colocações finais).'}${S.year === START_YEAR ? ` A FaZe Clan parte com +${EWC_BONUS} pts pelo título da EWC 2026.` : ''}</p></div></div>
+    <div class="alert ${g.in ? (g.margin <= 25 ? 'crit' : g.margin <= 70 ? 'warn' : 'ok') : 'crit'}" style="margin-bottom:10px"><div class="ic">${g.in ? '🎫' : '⚠️'}</div><div><h4>Linha de corte: ${cut} pts (#${G14}) · ${G14 + 1}º: ${nxt} pts</h4><p>${status} ${mode === 'proj' ? `Projeção = SI atuais + pontos da colocação atual na liga (1º = ${PTS[(EVENTS[S.ev].pts && EVENTS[S.ev].kind === 'league') ? EVENTS[S.ev].pts : 'stage'][0]}).` : 'Pontos oficiais já creditados (colocações finais de cada evento).'} Os ${G14} primeiros vão direto ao Six Invitational, mais o campeão da EWC; os demais tentam o LCQ da região.${S.year === START_YEAR ? ' A FaZe Clan, campeã da EWC 2026, já tem vaga direta.' : ''}</p></div></div>
     <div class="scroll" style="max-height:62vh"><table class="tbl"><thead><tr><th>#</th><th>Δ</th><th>Time</th><th>Liga</th><th class="num">${mode === 'proj' ? 'Proj.' : 'Pontos'}</th><th class="num">${mode === 'proj' ? 'Atual' : ''}</th><th>Status</th></tr></thead><tbody>${body}</tbody></table></div>`);
 }
 
@@ -2064,9 +2353,9 @@ function startUserMatch(){
   const cur = S.cur && S.cur.user ? S.cur : startMatchday();
   if(!cur) return;
   if(!cur.user){ const rep = finishMatchday(null); render(); showReport(rep); return; }
-  const u = T(cur.user.a), o = T(cur.user.b), bo = boFor(cur.user.ph, cur.idx), first = rnd() < .5 ? 'a' : 'b';
+  const u = T(cur.user.a), o = T(cur.user.b), bo = cur.user.bo, first = rnd() < .5 ? 'a' : 'b';
   CM = newMatch(u, o, 'a', false, S.club.staff.an);
-  CM.meta = {idx:cur.idx, lg:cur.user.lg, slot:cur.user.slot, ph:cur.user.ph, user:true}; CM.ready = false; CM.finished = false;
+  CM.meta = metaOf(cur.user, true); CM.ready = false; CM.finished = false;
   CS = {bo, need:(bo + 1) / 2, wins:{a:0, b:0}, plan:[], maps:[], i:0, over:false, loadout:{atk:null, def:null}};
   CM.loadout = CS.loadout; UI.opDraft = null;
   CM.vp = {pool:MAPS.slice(), seq:vetoSeq(bo), step:0, turn:first, first, stage:'map', pending:null};          // veto interativo: mapas, lados e operadores
@@ -2226,23 +2515,63 @@ function planHTML(m){
       <div class="row" style="margin-top:8px;flex-wrap:wrap">${opsBtn}${toBtn}<button class="btn sm cyan sp" data-act="auto" ${m.ready ? '' : 'disabled'}>${UI.auto ? '⏸ Parar auto' : '⏩ Assistir tudo'}</button><button class="btn sm sp" data-act="simall" ${m.ready ? '' : 'disabled'}>⚡ Simular tudo</button></div>`
     : live ? `<div class="row"><span class="mut" style="font-size:12px">Velocidade</span>${[1, 2, 4].map(s => `<button class="btn sm ${UI.speed === s ? 'gold' : ''}" data-act="speed" data-v="${s}">×${s}</button>`).join('')}<button class="btn sm sp" data-act="skip-round">⏭ Pular round</button>${toBtn}</div>` : '';
   return `<h3>${live ? 'Round em andamento' : 'Pré-round'} · você ${my === 'atk' ? 'ATACA' : 'DEFENDE'}</h3>
-    <p class="mut" style="font-size:12.5px;margin-bottom:10px">A comissão técnica conduz os rounds (estilo <b>${styleName(u)}</b>). Suas decisões: o veto (mapa e operadores banidos) e o <b>timeout técnico</b> entre os rounds.</p>
+    ${prep && m.ready ? prepHTML(m) : `<p class="mut" style="font-size:12.5px;margin-bottom:10px">A comissão técnica conduz os rounds (estilo <b>${styleName(u)}</b>). Suas decisões: o veto, a <b>preparação</b> de cada round (bomb, drones e setup), os operadores e o <b>timeout técnico</b>.</p>`}
     <div class="kv"><span>Mapa</span><b class="gold">${esc(m.map.name)}</b></div>
     <div class="kv"><span>Seus bans</span><b>${esc(m.bans.a.atk)} / ${esc(m.bans.a.def)}</b></div><div class="kv"><span>Bans do rival</span><b>${esc(m.bans.b.atk)} / ${esc(m.bans.b.def)}</b></div>
     <div class="mrow" style="margin:10px 0"><span>Confiança</span>${meter(m.conf.a, 'g')}<b>${Math.round(m.conf.a)}</b></div>${opsRow}${fx}<div style="height:8px"></div>${ctrl}`;
 }
 
+/* ---------- fase de preparação (interface): ataque descobre a bomb com drones · defesa escolhe a bomb e o setup ---------- */
+const prepIntel = m => { const sel = m.loadout && m.loadout.atk; return sel && sel.some(Boolean) ? tagN(sel, 'Intel') : 1; };
+const prepCap = (m, P) => reconCap(prepIntel(m), P.plan.cad);
+function prepHTML(m){
+  const P = ensurePrep(m), uk = m.userKey, U = m.t[uk], R = i => esc(m.map.routes[i]), sg = v => (v > 0 ? '+' : '') + v.toFixed(1);
+  const opts = (list, cur) => list.map((t, i) => `<option value="${i + 1}" ${cur === i + 1 ? 'selected' : ''}>${esc(t)}</option>`).join('');
+  const box = inner => `<div class="card" style="margin:0 0 10px;padding:10px 12px;background:var(--card2)">${inner}</div>`;
+  if(P.side === 'atk'){
+    const cap = prepCap(m, P), est = reconP(teamMods(U), teamMods(m.t[other(uk)]), P.plan.cad, 3, prepIntel(m), 1, false);
+    const badge = i => P.res[i] === 'bomb' ? '<span class="red">💣 bomb!</span>' : P.res[i] === 'empty' ? '<span class="green">✔ vazio</span>' : P.res[i] === 'unk' ? '<span class="mut">❓ sem leitura</span>' : P.scout.includes(i) ? '<span class="cyan">drone pronto</span>' : '<span class="mut">sem drone</span>';
+    const sites = [0, 1, 2].map(i => `<button class="rt ${P.scout.includes(i) ? 'on' : ''}" data-act="prep-scout" data-i="${i}" ${P.sent ? 'disabled' : ''}>Site ${i + 1} · ${R(i)}<small>${badge(i)}</small></button>`).join('');
+    const sum = !P.sent ? `<div class="mut" style="font-size:12px">Escolha até <b>${cap}</b> site(s) para os drones (Intel no elenco e cadência lenta ampliam) · chance de leitura por drone ≈ <b>${Math.round(est * 100)}%</b>.</div>`
+      : P.know === 2 ? `<div class="green" style="font-size:12.5px"><b>✔ Bomb localizada:</b> Site ${P.cands[0] + 1} · ${R(P.cands[0])}</div>`
+      : P.know === 1 ? `<div class="orange" style="font-size:12.5px"><b>Sem certeza:</b> a bomb está no Site ${P.cands[0] + 1} ou no Site ${P.cands[1] + 1}.</div>` : `<div class="red" style="font-size:12.5px"><b>Sem informação:</b> os drones não deram leitura. Você ataca às cegas.</div>`;
+    return box(`<div class="h3" style="margin-bottom:8px">🛰 Reconhecimento · descobrir a bomb</div><div class="stack" style="gap:6px">${sites}</div>
+        <div style="margin:8px 0 6px">${sum}</div><button class="btn sm cyan" style="width:100%" data-act="prep-send" ${P.sent || !P.scout.length ? 'disabled' : ''}>📡 ${P.sent ? 'Drones enviados' : `Enviar drones (${P.scout.length}/${cap})`}</button>`)
+      + box(`<div class="h3" style="margin-bottom:8px">⚔ Plano de ataque</div>
+        <div class="mut" style="font-size:11px;margin-bottom:3px">Site de ataque</div><select data-prep="route" style="width:100%;margin-bottom:8px">${[0, 1, 2].map(i => `<option value="${i}" ${P.plan.route === i ? 'selected' : ''}>Site ${i + 1} · ${esc(m.map.routes[i])}${P.res[i] === 'bomb' ? ' 💣' : P.res[i] === 'empty' ? ' (vazio)' : ''}${P.sent && !P.cands.includes(i) ? ' ✖' : ''}</option>`).join('')}</select>
+        <div class="mut" style="font-size:11px;margin-bottom:3px">Cadência</div><select data-prep="cad" style="width:100%">${opts(CAD.atk, P.plan.cad)}</select>
+        <div class="mut" style="font-size:11px;margin-top:6px">${P.sent ? (P.cands.includes(P.plan.route) ? '' : '<span class="orange">⚠ Você escolheu um site descartado pelos drones.</span>') : 'Atacar sem drones é chutar: 1 chance em 3 de acertar a bomb; errar custa tempo e chance de plant.'}</div>`);
+  }
+  return box(`<div class="h3" style="margin-bottom:8px">💣 Bomb · onde a defesa monta</div><div class="stack" style="gap:6px">${[0, 1, 2].map(i => `<button class="rt ${P.plan.route === i ? 'on' : ''}" data-act="prep-bomb" data-i="${i}">Site ${i + 1} · ${R(i)}<small>afinidade do time ${sg(raff(U, m.map.id, i))}</small></button>`).join('')}</div>
+      <div class="mut" style="font-size:11px;margin-top:6px">O ataque vai mandar drones para descobrir a bomb. Escolha o site que seu time domina; a IA costuma trocar de site a cada round.</div>`)
+    + box(`<div class="h3" style="margin-bottom:8px">🛡 Setup de defesa</div><div class="mut" style="font-size:11px;margin-bottom:3px">Cadência da defesa</div><select data-prep="cad" style="width:100%;margin-bottom:8px">${opts(CAD.def, P.plan.cad)}</select>
+      <label class="mut" style="font-size:12px;display:flex;gap:8px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-prep="hunt" ${P.hunt ? 'checked' : ''} style="margin-top:2px"><span>🎯 <b>Caçar drones</b> — reduz em 15 pontos a chance de o ataque achar a bomb, mas custa −0,4 nos duelos. Anti-gadget nos operadores ajuda.</span></label>`);
+}
+function sendDrones(m){
+  const P = ensurePrep(m); if(P.side !== 'atk' || P.sent || !P.scout.length) return;
+  P.p = reconP(teamMods(m.t[m.userKey]), teamMods(m.t[other(m.userKey)]), P.plan.cad, P.aiPlan.cad, prepIntel(m), P.counter, false);
+  const r = reconResult(P.aiPlan.route, P.scout, P.p); Object.assign(P, {sent:true, res:r.res, cands:r.cands, know:r.know});
+  if(r.cands.length === 1) P.plan.route = r.cands[0];
+  const lab = x => P.res[x] === 'bomb' ? '<b class="red">💣 bomb</b>' : P.res[x] === 'empty' ? '<b class="green">vazio</b>' : '<span class="mut">sem leitura</span>';
+  feedAdd({c:'sys', h:`🛰 <b>Drones enviados</b> — ${P.scout.map(x => `Site ${x + 1} (${esc(m.map.routes[x])}): ${lab(x)}`).join(' · ')}`});
+  updateMatch();
+}
+
 /* ---------- escolha de operadores por execução (vale para a série; por lado; sem escolha a comissão sorteia) ---------- */
-function suggestOps(m, side){                     // sugestão: monta a composição-base e dá cada função ao jogador de melhor encaixe
-  const u = m.t[m.userKey], banned = m.bans[other(m.userKey)][side], tpl = side === 'atk' ? ['hb','ent','ent','inf','sup'] : ['anc','anc','roam','anc','inf'];
-  const perms = a => a.length < 2 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(p => [x, ...p]));
-  let best = null;                                // testa as 120 formas de distribuir as funções entre os 5 jogadores e fica com a de maior encaixe total
-  perms(u.players.map((_, i) => i)).forEach(pm => {
-    const used = new Set(), out = ['', '', '', '', '']; let sc = 0;
-    pm.forEach((pi, s) => { let bo = null, bf = -9; OPS[side].forEach(o => { if(OP_T[o] === tpl[s] && o !== banned && !used.has(o)){ const f = fitOf(u.players[pi], o); if(f > bf){ bf = f; bo = o; } } }); if(bo){ used.add(bo); out[pi] = bo; sc += bf; } });
-    if(!best || sc > best.sc) best = {sc, out};
-  });
-  return best.out;
+function suggestOps(m, side){                     // sugestão: várias partidas aleatórias + subida de encosta; cada troca (de operador ou entre jogadores) só vale se melhorar composição + encaixe
+  const u = m.t[m.userKey], banned = m.bans[other(m.userKey)][side], pool = OPS[side].filter(o => o !== banned), n = u.players.length;
+  const score = ops => { const c = compOf(side, ops); return c.mods + (side === 'atk' ? c.first + c.plant * 8 : 0) + ops.reduce((s, o, i) => s + fitOf(u.players[i], o), 0); };
+  let best = null;
+  for(let start = 0; start < 12; start++){
+    let ops = shuffle(pool.slice()).slice(0, n), cur = score(ops), improved = true;
+    for(let it = 0; improved && it < 10; it++){
+      improved = false;
+      for(let i = 0; i < n; i++) for(const o of pool){ if(ops.includes(o)) continue; const t = ops.slice(); t[i] = o; const sc = score(t); if(sc > cur + 1e-9){ ops = t; cur = sc; improved = true; } }
+      for(let i = 0; i < n; i++) for(let j = i + 1; j < n; j++){ const t = ops.slice(); [t[i], t[j]] = [t[j], t[i]]; const sc = score(t); if(sc > cur + 1e-9){ ops = t; cur = sc; improved = true; } }
+    }
+    if(!best || cur > best.sc) best = {sc:cur, ops};
+  }
+  return best.ops;
 }
 function openOps(){
   const m = CM; if(!m || m.done || !m.ready || UI.phase !== 'prep') return;
@@ -2252,11 +2581,11 @@ function openOps(){
 function renderOps(){
   const m = CM, d = UI.opDraft; if(!m || !d) return;
   const {side, sel} = d, u = m.t[m.userKey], rv = m.t[other(m.userKey)], banned = m.bans[other(m.userKey)][side], sgn = v => (v > 0 ? '+' : '') + v.toFixed(1), cl = v => v > .05 ? 'green' : v < -.05 ? 'red' : 'mut';
-  const groups = Object.entries(OP_LAB).filter(([t]) => OPS[side].some(o => OP_T[o] === t));
+  const groups = [...new Set(OPS[side].map(o => OP_F[o][0]))].map(t => [t, OP_TAG[t]]);      // agrupado pela função principal (a 1ª da Liquipedia)
   const rows = u.players.map((p, i) => {
     const tk = new Set(sel.filter((x, j) => x && j !== i));
-    const opts = `<option value="">— comissão escolhe —</option>` + groups.map(([t, lab]) => `<optgroup label="${lab}">${OPS[side].filter(o => OP_T[o] === t).map(o => { const f = fitOf(p, o), dis = o === banned || tk.has(o);
-      return `<option value="${esc(o)}" ${o === sel[i] ? 'selected' : ''} ${dis ? 'disabled' : ''}>${esc(o)}${o === banned ? ' (banido)' : tk.has(o) ? ' (em uso)' : ''} · encaixe ${sgn(f)}</option>`; }).join('')}</optgroup>`).join('');
+    const opts = `<option value="">— comissão escolhe —</option>` + groups.map(([t, lab]) => `<optgroup label="${lab}">${OPS[side].filter(o => OP_F[o][0] === t).map(o => { const f = fitOf(p, o), dis = o === banned || tk.has(o);
+      return `<option value="${esc(o)}" ${o === sel[i] ? 'selected' : ''} ${dis ? 'disabled' : ''}>${esc(o)} — ${opTags(o)}${o === banned ? ' (banido)' : tk.has(o) ? ' (em uso)' : ''} · encaixe ${sgn(f)}</option>`; }).join('')}</optgroup>`).join('');
     return `<div class="ops-row"><div><b>${esc(p.name)}</b> <span class="mut" style="font-size:11px">${p.role}</span></div><select data-ops="${i}">${opts}</select></div>`;
   }).join('');
   let an = `<div class="mut" style="font-size:12px">Escolha os cinco para ver a análise da composição. Vagas em branco ficam com a comissão (sorteio).</div>`;
@@ -2270,7 +2599,7 @@ function renderOps(){
     <p class="mut" style="margin-bottom:8px;font-size:12.5px">Escolha o operador de cada jogador. A escolha vale para todos os rounds em que você <b>${side === 'atk' ? 'ataca' : 'defende'}</b> nesta série, até você mudar (a outra lista vale quando os lados trocam). O número ao lado do nome é o <b>encaixe</b>: o quanto o jogador rende com aquele operador.
       ${banned ? `<br>🚫 Banido pelo rival: <b class="red">${esc(banned)}</b>.` : ''}${hasIntel() ? ` Operador-assinatura do rival: <b>${esc(side === 'atk' ? rv.sigD : rv.sigA)}</b> (${side === 'atk' ? 'defesa' : 'ataque'}).` : ''}</p>
     ${rows}<div class="card" style="margin:12px 0;padding:10px 14px;background:var(--card2)">${an}</div>
-    <div class="mut" style="font-size:11.5px;margin-bottom:10px">${side === 'atk' ? 'Ataque: Hard Breacher abre o plant · Entry abre o round · Info (drones) dá leitura · Suporte troca e apoia.' : 'Defesa: Âncora segura o site · Roamer pressiona por fora · Info (contra-drones) reduz a surpresa.'} Composição desbalanceada custa rating.</div>
+    <div class="mut" style="font-size:11.5px;margin-bottom:10px">${side === 'atk' ? 'Ataque (funções da Liquipedia): Breach abre o site — só Thermite, Hibana, Ace e Maverick abrem parede reforçada (plant) · Linha de frente abre o round · Intel dá leitura · Suporte apoia · Controle de mapa ganha espaço · Anti-gadget neutraliza as defesas.' : 'Defesa (funções da Liquipedia): Anti-entrada segura o site · Controle de multidão segura e pressiona · Armadilhas · Intel (contra-drones) · Suporte · Anti-gadget neutraliza o ataque.'} Composição desbalanceada custa rating.</div>
     <div class="row" style="flex-wrap:wrap"><button class="btn sm cyan" data-act="ops-sug">✨ Sugerir</button><button class="btn sm" data-act="ops-clear">Limpar</button><span class="sp"></span><button class="btn gold" data-act="ops-ok">✔ Confirmar</button></div>`, true);
 }
 function confirmOps2(){                           // (confirmOps já é o bans de operador do veto)
@@ -2370,24 +2699,24 @@ function simEvent(){
   const step = () => {
     if(S.done){ closeModal(); UI.view = 'dash'; render(); showEventEnd(); return; }
     const c = S.cur || startMatchday();
-    if(c.user) finishUserMatch(quickSeries(T(c.user.a), T(c.user.b), boFor(c.user.ph, c.idx)), {idx:c.idx, lg:c.user.lg, slot:c.user.slot, ph:c.user.ph, user:true});
+    if(c.user) finishUserMatch(quickSeries(T(c.user.a), T(c.user.b), c.user.bo), metaOf(c.user, true));
     else finishMatchday(null);
     const p = $('#simprog'), b = $('#simbar');
-    if(p) p.textContent = S.done ? 'Concluído' : mdLabel(Math.min(S.md, totalMD() - 1)) + '…';
-    if(b) b.style.width = Math.min(100, Math.round(S.md / totalMD() * 100)) + '%';
+    if(p) p.textContent = S.done ? 'Concluído' : mdLabel(S.md) + '…';
+    if(b) b.style.width = Math.min(100, Math.round(evProgress() * 100)) + '%';
     setTimeout(step, 0);                                  // uma rodada por vez: a tela não trava
   };
   setTimeout(step, 30);
 }
 function showEventEnd(){
   const u = T(S.userId), er = S.evres, g = g16Status(), mine = S.uh.filter(h => h.ev === S.ev), w = mine.filter(h => h.won).length;
-  const champ = S.tn ? S.tn.champ : S.final[u.league][0];
+  const uc = userComp(), champ = (uc || S.comps[0]).order[0];
   openModal(`<div class="mhead"><h2><b>${esc(evName(S.ev))}</b> · resumo</h2></div>
     <div class="kv"><span>Sua colocação</span><b class="gold">${esc(er.lab)}</b></div>
     <div class="kv"><span>Partidas jogadas</span><b>${mine.length} · ${w}V ${mine.length - w}D</b></div>
-    <div class="kv"><span>${S.tn ? 'Campeão' : 'Campeão da liga'}</span><b>${esc(T(champ).name)}</b></div>
+    <div class="kv"><span>${uc && uc.kind === 'league' ? 'Campeão da liga' : 'Campeão'}</span><b>${esc(T(champ).name)}</b></div>
     <div class="kv"><span>SI Points no evento</span><b class="gold">+${er.si}</b></div><div class="kv"><span>Prêmio</span><b class="gold">+${er.cash} K$</b></div>
-    <div class="kv"><span>Ranking mundial</span><b>#${g.rank} · ${g.pts} pts ${g.in ? '<span class="tag fill">G16</span>' : ''}</b></div>
+    <div class="kv"><span>Ranking mundial</span><b>#${g.rank} · ${g.pts} pts ${g.in ? '<span class="tag fill">G14</span>' : ''}</b></div>
     ${computeAlerts().map(a => `<div class="alert ${a.lv}" style="margin-top:8px"><div class="ic">${a.ic}</div><div><h4>${esc(a.t)}</h4><p>${esc(a.x)}</p></div></div>`).join('')}
     <div class="row" style="margin-top:16px;flex-wrap:wrap"><button class="btn gold" data-act="close">Continuar</button><button class="btn" data-act="global">Global Standings</button></div>`, true);
 }
@@ -2402,8 +2731,8 @@ function showReport(rep){
       ${r.maps ? `<div class="kv"><span>Série ${boLabel(r.bo)}</span><b>${r.maps.map(x => `${esc(x.n)} ${x.sa}–${x.sb}`).join(' · ')}</b></div>` : `<div class="kv"><span>Mapa</span><b>${esc(r.map)}</b></div>`}<div class="kv"><span>MVP da partida</span><b class="gold">${esc(r.mvp.name)} <span class="mut">(${r.mvp.k}K/${r.mvp.d}D)</span></b></div>`;
   else head = `<p class="mut" style="margin-bottom:10px">${rep.label} foi simulada sem a sua participação.</p>`;
   const alerts = al.map(a => `<div class="alert ${a.lv}" style="margin-top:8px"><div class="ic">${a.ic}</div><div><h4>${esc(a.t)}</h4><p>${esc(a.x)}</p></div></div>`).join('');
-  const drama = rep.dropped ? `<div class="alert crit" style="margin-top:8px"><div class="ic">📉</div><div><h4>VOCÊ CAIU DA LINHA DE CORTE DO G16!</h4><p>O ranking mundial mudou: você despencou para #${rep.rankAfter}. A pressão é máxima.</p></div></div>`
-    : rep.gained ? `<div class="alert ok" style="margin-top:8px"><div class="ic">📈</div><div><h4>Você entrou no G16!</h4><p>Subiu para #${rep.rankAfter} no ranking mundial projetado.</p></div></div>` : '';
+  const drama = rep.dropped ? `<div class="alert crit" style="margin-top:8px"><div class="ic">📉</div><div><h4>VOCÊ CAIU DA LINHA DE CORTE DO G14!</h4><p>O ranking mundial mudou: você despencou para #${rep.rankAfter}. A pressão é máxima.</p></div></div>`
+    : rep.gained ? `<div class="alert ok" style="margin-top:8px"><div class="ic">📈</div><div><h4>Você entrou no G14!</h4><p>Subiu para #${rep.rankAfter} no ranking mundial projetado.</p></div></div>` : '';
   const dr = rep.rankBefore - rep.rankAfter;
   const fin = S.done ? `<div class="alert info" style="margin-top:8px"><div class="ic">🏁</div><div><h4>${esc(evName(S.ev))} encerrado — ${esc(rep.place)}</h4><p>Prêmio de +${S.evres.cash} K$ e ${S.evres.si} SI Points no evento. Volte ao Painel para avançar no calendário.</p></div></div>` : '';
   const burn = u.players.filter(isBurnout);
@@ -2415,7 +2744,7 @@ function showReport(rep){
     <div class="kv"><span>Rodada global</span><b>${rep.sim} partidas simuladas em ${rep.ms} ms</b></div>${fin}${drama}${alerts}
     ${!S.done ? `<div class="alert info" style="margin-top:8px"><div class="ic">📋</div><div><h4>Nova semana</h4><p>O elenco recuperou parte do estresse e o treino da semana rendeu (aba Treino).${burn.length ? ' Atenção ao burnout: ' + burn.map(p => p.name).join(', ') + '.' : ''}</p></div></div>` : ''}
     <div class="row" style="margin-top:16px"><button class="btn gold" data-act="report-ok">Continuar</button><button class="btn" data-act="global">Global Standings</button></div>`, true);
-  if(rep.dropped) toast(`<b class="red">💥 QUEDA DO G16</b><br>Você agora está em #${rep.rankAfter}.`, 'crit');
+  if(rep.dropped) toast(`<b class="red">💥 QUEDA DO G14</b><br>Você agora está em #${rep.rankAfter}.`, 'crit');
   else if(al[0] && al[0].lv === 'crit' && !S.done) toast(`<b>${al[0].ic} ${esc(al[0].t)}</b><br><span class="mut">${esc(al[0].x)}</span>`, 'crit');
 }
 
@@ -2427,7 +2756,9 @@ document.addEventListener('click', e => {
     case 'pick-league': UI.pickLeague = d.l; UI.selTeam = null; render(); break;
     case 'pick-team': UI.selTeam = d.id; render(); break;
     case 'start': if(UI.selTeam){ newCareer(UI.selTeam); UI.lgTab = null; UI.view = 'dash'; render(); toast(`Carreira iniciada com <b>${esc(T(S.userId).name)}</b>. Monte o treino na aba <b>Treino</b> e ajuste o elenco no <b>Mercado</b>.`, 'ok'); } break;
-    case 'continue': S = loadSave(); if(S){ UI.lgTab = null; UI.view = 'dash'; render(); } break;
+    case 'continue': S = loadSave(); if(S){
+      if(S.legacyComps){ delete S.legacyComps; if(S.done && S.ei + 1 >= S.cal.length){ nextSeason(); } else if(S.done){ advanceEvent(); } else { startEvent(); } save(); toast('Save antigo: o evento em andamento foi <b>reiniciado no formato BLAST R6</b> (Suíço, GSL, LCQ…).', 'warn'); }
+      UI.lgTab = null; UI.view = 'dash'; render(); } break;
     case 'wipe': if(confirm('Apagar o save atual?')){ wipeSave(); render(); } break;
     case 'nav': UI.view = d.v; UI.lgTab = null; render(); break;
     case 'global': openGlobal(); break;
@@ -2448,6 +2779,10 @@ document.addEventListener('click', e => {
     case 'veto-ops': confirmOps(); break;
     case 'speed': UI.speed = +d.v; updateMatch(); break;
     case 'skip-round': UI.skip = true; break;
+    case 'prep-scout': { const m = CM, P = m && m.prep; if(!P || P.sent || P.side !== 'atk') break; const i = +d.i, at = P.scout.indexOf(i);
+      if(at >= 0) P.scout.splice(at, 1); else if(P.scout.length < prepCap(m, P)) P.scout.push(i); else toast('Capacidade de drones esgotada: aumente o Intel do elenco ou use cadência lenta.', 'warn'); updateMatch(); break; }
+    case 'prep-send': if(CM) sendDrones(CM); break;
+    case 'prep-bomb': { const P = CM && CM.prep; if(P && P.side === 'def'){ P.plan.route = +d.i; updateMatch(); } break; }
     case 'ops-open': openOps(); break;
     case 'ops-sug': if(CM && UI.opDraft){ UI.opDraft.sel = suggestOps(CM, UI.opDraft.side); renderOps(); } break;
     case 'ops-clear': if(UI.opDraft){ UI.opDraft.sel = ['', '', '', '', '']; renderOps(); } break;
@@ -2496,6 +2831,10 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('change', e => {
+  if(e.target.dataset && e.target.dataset.prep && CM && CM.prep){ const P = CM.prep, k = e.target.dataset.prep;
+    if(k === 'cad'){ P.plan.cad = +e.target.value; if(P.side === 'atk' && !P.sent) P.scout = P.scout.slice(0, prepCap(CM, P)); }
+    else if(k === 'route') P.plan.route = +e.target.value; else if(k === 'hunt') P.hunt = e.target.checked;
+    updateMatch(); return; }
   if(e.target.dataset && e.target.dataset.ops !== undefined){ if(UI.opDraft){ UI.opDraft.sel[+e.target.dataset.ops] = e.target.value; renderOps(); } return; }
   if(S && e.target.dataset && e.target.dataset.mf !== undefined){ setMapFocus(+e.target.dataset.mf, e.target.value); rerender(); return; }
   if(S && e.target.dataset && e.target.dataset.tp){ const [id, sl] = e.target.dataset.tp.split(':'); setPlan(+id, +sl, e.target.value); rerender(); return; }
